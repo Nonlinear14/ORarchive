@@ -1,0 +1,39 @@
+/* 디자인 토큰 — mockup/trpg_folio_mockup_v3.html 의 :root 를 이식 */
+:root {
+  --ink: #17242a;
+  --ink2: #2b3e43;
+  --paper: #f7f5f0;
+  --canvas: #eeece7;
+  --card: #fffefa;
+  --gold: #ae895b;
+  --gold2: #dcc8a7;
+  --line: #e6e3db;
+  --slate: #7d8987;
+  --muted: #727c78;
+  --green: #427a67;
+  --rose: #ad665f;
+  --shadow: 0 9px 25px rgba(35, 36, 31, 0.045), 0 2px 5px rgba(35, 36, 31, 0.028);
+  --rad: 16px;
+
+  --font: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+  --font-serif: Georgia, 'Malgun Gothic', serif;
+
+  /* 사이드바 */
+  --side-bg: #142128;
+  --side-line: #29383e;
+  --side-text: #d7e0dd;
+  --side-item: #b3c0be;
+  --side-hover: #21353b;
+  --side-active: #2b4146;
+  --side-active-text: #fff2da;
+  --side-accent: #caa574;
+  --side-heading: #788f91;
+  --side-card: #213039;
+
+  /* 브랜드 / 타이포 */
+  --brand-gold: #c4a276;
+  --heading-ink: #223530;
+  --eyebrow: #9c7c53;
+
+  /* 반응형 기준 (미디어쿼리는 리터럴 사용): ≤1050px 접힌 사이드바 / ≤750px 모바일 */
+}

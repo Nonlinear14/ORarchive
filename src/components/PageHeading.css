@@ -1,0 +1,41 @@
+.heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 25px;
+}
+
+.heading h1 {
+  font-family: var(--font-serif);
+  color: var(--heading-ink);
+  font-size: 34px;
+  letter-spacing: -1.1px;
+  margin: 7px 0 8px;
+  font-weight: 650;
+}
+
+.heading p {
+  font-size: 13px;
+  color: #79817d;
+  margin: 0;
+  line-height: 1.8;
+}
+
+@media (max-width: 750px) {
+  .heading {
+    align-items: start;
+  }
+
+  .heading h1 {
+    font-size: 27px;
+  }
+
+  .heading p {
+    font-size: 12px;
+  }
+
+  .heading .btn {
+    padding: 9px;
+  }
+}

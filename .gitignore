@@ -1,0 +1,31 @@
+# dependencies / build
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+
+# env (keep .env.example)
+.env
+.env.local
+.env.*
+!.env.example
+
+# logs
+npm-debug.log*
+*.log
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# editor / os
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# local Claude settings
+.claude/settings.local.json

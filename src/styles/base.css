@@ -1,0 +1,127 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--paper);
+  color: #263534;
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+::selection {
+  background: #e5d3ae;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid #ccb18b;
+  outline-offset: 1px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #d9ac72;
+  outline-offset: 3px;
+}
+
+.ico {
+  flex-shrink: 0;
+}
+
+.eyebrow {
+  font-weight: 750;
+  letter-spacing: 2px;
+  font-size: 10px;
+  color: var(--eyebrow);
+}
+
+.muted {
+  color: #89958e;
+}
+
+/* 버튼 */
+.btn {
+  border: 1px solid #dad9d1;
+  background: #fffdfa;
+  color: #33433e;
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  white-space: nowrap;
+  transition: 0.15s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px #17242a12;
+}
+
+.btn.primary {
+  background: #203b38;
+  color: #fff9ee;
+  border-color: #203b38;
+}
+
+.btn.small {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+.btn .ico {
+  width: 15px;
+  height: 15px;
+}
+
+/* 태그 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #6f746d;
+  background: #f1eee7;
+  border: 1px solid #e7e3d8;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+.tag .ico {
+  width: 12px;
+  height: 12px;
+}
+
+.tag.gold {
+  color: #917047;
+  background: #f6eee2;
+  border-color: #e8d8c0;
+}

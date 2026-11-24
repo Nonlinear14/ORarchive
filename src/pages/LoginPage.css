@@ -1,0 +1,61 @@
+.login-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.login-card {
+  background: #fffdf8;
+  width: min(450px, 100%);
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  padding: 29px;
+  box-shadow: 0 30px 90px #0b11151f;
+}
+
+.login-card h1 {
+  font: normal 28px var(--font-serif);
+  margin: 8px 0 10px;
+  color: #283d34;
+}
+
+.login-card p {
+  color: #808d84;
+  line-height: 1.7;
+  font-size: 12px;
+}
+
+.social-button {
+  border: 1px solid #e9e3d7;
+  background: #fff;
+  color: #263534;
+  width: 100%;
+  border-radius: 9px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  text-align: left;
+  margin-top: 10px;
+}
+
+.social-button:disabled {
+  opacity: 0.6;
+}
+
+.social-button.google i {
+  font-weight: 900;
+  color: #4285f4;
+  font-style: normal;
+  font-size: 19px;
+}
+
+.auth-note {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 17px;
+  font-size: 11px;
+  color: #929b92;
+  line-height: 1.7;
+}
