@@ -21,6 +21,11 @@ export default defineConfig([
     },
   },
   {
+    // 테스트 도우미는 HMR 대상이 아니다
+    files: ['src/test/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
     files: ['scripts/**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },

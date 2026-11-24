@@ -1,0 +1,73 @@
+.profile-menu {
+  position: relative;
+}
+
+.profile-menu > .mini-avatar {
+  border: 0;
+  padding: 0;
+}
+
+.mini-avatar-inner {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.profile-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 230px;
+  background: #fffdfa;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px #17242a1f;
+  padding: 6px;
+  z-index: 40;
+}
+
+.profile-pop-head {
+  padding: 10px 10px 12px;
+  border-bottom: 1px solid #f0ede7;
+  margin-bottom: 4px;
+}
+
+.profile-pop-head strong {
+  display: block;
+  font-size: 13px;
+  color: #2a3935;
+}
+
+.profile-pop-head small {
+  display: block;
+  font-size: 11px;
+  color: #8d9690;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #3a4944;
+  text-align: left;
+}
+
+.profile-pop-item:hover {
+  background: #f4f1ea;
+}
+
+.profile-pop-item .ico {
+  width: 15px;
+  height: 15px;
+  color: #7d8987;
+}

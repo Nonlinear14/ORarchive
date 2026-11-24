@@ -1,4 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from './database.types'
+
+export type FolioClient = SupabaseClient<Database>
 
 export interface SupabaseEnv {
   url: string
@@ -20,8 +23,8 @@ export const isSupabaseConfigured = config !== null
  * 앱 전역 Supabase 클라이언트 (PKCE 흐름).
  * 환경 변수가 없으면 null — 앱 셸은 계속 동작하고, 로그인 기능만 비활성화된다.
  */
-export const supabase: SupabaseClient | null = config
-  ? createClient(config.url, config.publishableKey, {
+export const supabase: FolioClient | null = config
+  ? createClient<Database>(config.url, config.publishableKey, {
       auth: {
         flowType: 'pkce',
         persistSession: true,

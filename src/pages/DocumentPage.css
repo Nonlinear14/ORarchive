@@ -1,0 +1,113 @@
+.editor-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 19px;
+  flex-wrap: wrap;
+}
+
+.doc-title-wrap {
+  flex: 1;
+  min-width: min(100%, 280px);
+}
+
+.doc-title {
+  display: block;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font: 650 30px var(--font-serif);
+  letter-spacing: -0.8px;
+  color: var(--heading-ink);
+  padding: 4px 6px;
+  margin: 6px 0 4px -7px;
+}
+
+.doc-title:hover {
+  border-color: var(--line);
+}
+
+.doc-title:focus {
+  background: #fffdfa;
+}
+
+.editor-header p {
+  font-size: 11px;
+  color: #8c9690;
+  margin: 0;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.conflict-banner {
+  margin-bottom: 16px;
+}
+
+.conflict-banner b {
+  font-size: 12px;
+}
+
+.conflict-banner p {
+  margin: 4px 0 10px;
+}
+
+.conflict-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.doc-body {
+  background: #fffdfa;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-top: 12px;
+}
+
+.doc-body .doc-text {
+  min-height: 420px;
+  font-size: 13px;
+}
+
+@media (max-width: 750px) {
+  .doc-title {
+    font-size: 24px;
+  }
+
+  .doc-body .doc-text {
+    min-height: 300px;
+  }
+
+  .doc-body {
+    padding: 14px;
+  }
+}
+
+.recover-banner {
+  margin-bottom: 16px;
+}
+
+.recover-banner b {
+  font-size: 12px;
+}
+
+.recover-banner p {
+  margin: 4px 0 10px;
+}
+
+.doc-recover .doc-title:hover {
+  border-color: transparent;
+}
+
+.doc-recover .doc-text[readonly] {
+  background: #f8f6f1;
+}

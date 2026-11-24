@@ -1,0 +1,74 @@
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.settings-card {
+  background: #fffdfa;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 22px;
+  min-width: 0;
+}
+
+.settings-card h3 {
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.settings-card p {
+  font-size: 11px;
+  color: #89938a;
+  line-height: 1.8;
+}
+
+.connected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 13px 0;
+  font-size: 12px;
+}
+
+.connected > span:first-child {
+  min-width: 0;
+}
+
+.connected small {
+  display: block;
+  font-size: 11px;
+  color: #8d9690;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.profile-row p {
+  margin: 4px 0 0;
+}
+
+.avatar.large {
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 750px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

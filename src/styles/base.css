@@ -125,3 +125,170 @@ a:focus-visible {
   background: #f6eee2;
   border-color: #e8d8c0;
 }
+
+.tag.good {
+  color: #40755d;
+  background: #e9f3ec;
+  border-color: #d9e8dd;
+}
+
+.tag.red {
+  color: #a25d58;
+  background: #f8e9e7;
+  border-color: #f0d6d2;
+}
+
+.btn.danger {
+  background: #fdf6f4;
+  color: #a25d58;
+  border-color: #ecd3ce;
+}
+
+.btn.danger.solid {
+  background: #a25d58;
+  color: #fff9f6;
+  border-color: #a25d58;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 섹션 머리 (목업 .section-top) */
+.section-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 31px 0 17px;
+  gap: 16px;
+}
+
+.section-top h2 {
+  font-size: 17px;
+  margin: 0;
+  font-weight: 750;
+  color: #2a3935;
+}
+
+.section-top p {
+  font-size: 11px;
+  color: #9b9e98;
+  margin: 5px 0 0;
+}
+
+.text-link {
+  border: 0;
+  background: none;
+  color: #8d7657;
+  font-weight: 700;
+  font-size: 11px;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 0;
+}
+
+.text-link .ico {
+  width: 14px;
+  height: 14px;
+}
+
+/* 폼 */
+.field-label {
+  display: block;
+  color: #6d7872;
+  font-weight: 700;
+  font-size: 11px;
+  margin-bottom: 9px;
+}
+
+.field-input,
+.field-textarea {
+  width: 100%;
+  border: 1px solid #e3e0d6;
+  background: #fcfbf8;
+  border-radius: 8px;
+  padding: 10px 11px;
+  color: #33423d;
+  font-size: 12px;
+}
+
+.field-textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.8;
+}
+
+.field-help {
+  font-size: 10px;
+  color: #a3a59e;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.field-error {
+  font-size: 11px;
+  color: var(--rose);
+  margin-top: 8px;
+}
+
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  background: #f4efe4;
+  border: 1px solid #e7dcc9;
+  color: #827158;
+  font-size: 11px;
+  line-height: 1.8;
+  border-radius: 10px;
+  padding: 13px;
+}
+
+.callout.danger {
+  background: #f8ecea;
+  border-color: #efd5d0;
+  color: #93524d;
+}
+
+.callout .ico {
+  margin-top: 3px;
+  width: 15px;
+  height: 15px;
+}
+
+.empty {
+  padding: 35px;
+  color: #849088;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.avatar,
+.mini-avatar {
+  overflow: hidden;
+}
+
+.avatar img,
+.mini-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}

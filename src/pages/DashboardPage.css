@@ -187,6 +187,53 @@
   color: #8f978f;
 }
 
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.stat {
+  background: #fffdfa;
+  border: 1px solid #e9e6df;
+  border-radius: 13px;
+  padding: 21px 19px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat::after {
+  content: '✦';
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  color: #e6dccf;
+  font-size: 22px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #8c928d;
+}
+
+.stat-val {
+  font: normal 28px Georgia, serif;
+  color: #263a36;
+  margin-top: 10px;
+}
+
+.stat-val small {
+  font: 10px var(--font);
+  color: #909a92;
+  margin-left: 4px;
+}
+
+.stage > .callout {
+  margin-top: 18px;
+}
+
 @media (max-width: 1300px) {
   .hero-art {
     right: -55px;
@@ -204,6 +251,15 @@
 }
 
 @media (max-width: 750px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 16px;
+  }
+
   .hero {
     height: auto;
     min-height: 242px;

@@ -106,6 +106,7 @@ const extraTitles: Record<string, string> = {
 /** 현재 경로의 표시 이름 (브레드크럼·문서 제목용) */
 export function pageLabel(pathname: string): string {
   const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  if (normalized.startsWith('/documents/')) return '문서'
   return (
     navRoutes.find((route) => route.path === normalized)?.label ??
     extraTitles[normalized] ??

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import { App } from './App'
+import { AuthProvider } from './lib/auth/AuthProvider'
 import './styles/tokens.css'
 import './styles/base.css'
 
@@ -13,8 +14,10 @@ const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 createRoot(root).render(
   <StrictMode>
-    <BrowserRouter basename={basename}>
-      <App />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter basename={basename}>
+        <App />
+      </BrowserRouter>
+    </AuthProvider>
   </StrictMode>,
 )

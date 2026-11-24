@@ -59,3 +59,16 @@
   color: #929b92;
   line-height: 1.7;
 }
+
+.social-button:not(:disabled):hover {
+  background: #fbf9f4;
+}
+
+.login-alert {
+  margin-top: 14px;
+}
+
+.login-alert-detail {
+  opacity: 0.8;
+  word-break: break-word;
+}

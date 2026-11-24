@@ -232,3 +232,14 @@
     display: none;
   }
 }
+
+.profile-mini-text {
+  min-width: 0;
+}
+
+.profile-mini-text strong,
+.profile-mini-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

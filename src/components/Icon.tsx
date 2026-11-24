@@ -69,6 +69,20 @@ const paths = {
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </>
   ),
+  trash: <path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  alert: (
+    <>
+      <path d="M12 3 2 20h20z" />
+      <path d="M12 10v4m0 3v.01" />
+    </>
+  ),
+  logout: <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4m-4 4h11" />,
+  offline: (
+    <>
+      <path d="M20 17a4 4 0 0 0-1.8-7.5A6.5 6.5 0 0 0 5.7 11 4 4 0 0 0 7 19h11" />
+      <path d="M4 4l16 16" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof paths

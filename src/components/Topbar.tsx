@@ -1,7 +1,9 @@
-import { Link, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 import { pageLabel } from '../routes'
 import { MobileBrand } from './Brand'
 import { Icon } from './Icon'
+import { PendingIndicator } from './PendingIndicator'
+import { ProfileMenu } from './ProfileMenu'
 import './Topbar.css'
 
 export function Topbar() {
@@ -16,6 +18,7 @@ export function Topbar() {
         <strong aria-current="page">{pageLabel(pathname)}</strong>
       </nav>
       <div className="top-actions">
+        <PendingIndicator />
         <button type="button" className="search-trigger" aria-label="검색" title="검색은 준비 중입니다">
           <Icon name="search" />
           <span>작품, 캐릭터, 프로젝트 검색...</span>
@@ -24,9 +27,7 @@ export function Topbar() {
         <button type="button" className="iconbtn" aria-label="알림" title="알림은 준비 중입니다">
           <Icon name="bell" />
         </button>
-        <Link to="/login" className="mini-avatar" aria-label="로그인" title="로그인">
-          F
-        </Link>
+        <ProfileMenu />
       </div>
     </header>
   )

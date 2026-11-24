@@ -1,0 +1,111 @@
+.pending-menu {
+  position: relative;
+}
+
+.pending-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 35px;
+  padding: 0 12px;
+  border: 1px solid #e8d8c0;
+  border-radius: 10px;
+  background: #f6eee2;
+  color: #917047;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pending-trigger.danger {
+  border-color: #f0d6d2;
+  background: #f8e9e7;
+  color: #a25d58;
+}
+
+.pending-trigger .ico {
+  width: 15px;
+  height: 15px;
+}
+
+.pending-count {
+  display: none;
+}
+
+.pending-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: min(320px, calc(100vw - 32px));
+  background: #fffdfa;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px #17242a1f;
+  padding: 6px;
+  z-index: 40;
+}
+
+.pending-pop-head {
+  margin: 0 0 4px;
+  padding: 10px 10px 12px;
+  border-bottom: 1px solid #f0ede7;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #6d7872;
+}
+
+.pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.pending-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+}
+
+.pending-row:hover {
+  background: #f4f1ea;
+}
+
+.pending-link {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.pending-link strong {
+  display: block;
+  font-size: 12px;
+  color: #2a3935;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-link small {
+  display: block;
+  font-size: 10px;
+  color: #8d9690;
+  margin-top: 2px;
+}
+
+@media (max-width: 750px) {
+  .pending-trigger {
+    padding: 0 9px;
+  }
+
+  .pending-trigger-text {
+    display: none;
+  }
+
+  .pending-count {
+    display: inline;
+  }
+}

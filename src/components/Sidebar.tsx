@@ -1,8 +1,40 @@
 import { Link, NavLink } from 'react-router'
+import { useAuth } from '../lib/auth/context'
+import { avatarUrl, displayName } from '../lib/auth/helpers'
 import { navGroups } from '../routes'
+import { Avatar } from './Avatar'
 import { SidebarBrand } from './Brand'
 import { Icon } from './Icon'
 import './Sidebar.css'
+
+function SidebarProfile() {
+  const { user, profile } = useAuth()
+
+  if (!user) {
+    return (
+      <Link to="/login" className="profile-mini" title="로그인">
+        <div className="avatar">F</div>
+        <div>
+          <strong>게스트</strong>
+          <small>로그인하고 기기 간 동기화</small>
+        </div>
+        <Icon name="chev" />
+      </Link>
+    )
+  }
+
+  const name = displayName(user, profile)
+  return (
+    <Link to="/settings" className="profile-mini" title={`${name} · 계정 설정`}>
+      <Avatar name={name} url={avatarUrl(user, profile)} />
+      <div className="profile-mini-text">
+        <strong>{name}</strong>
+        <small>{user.email ?? 'Google 계정'}</small>
+      </div>
+      <Icon name="chev" />
+    </Link>
+  )
+}
 
 export function Sidebar() {
   return (
@@ -36,16 +68,9 @@ export function Sidebar() {
           <div className="progress" aria-hidden="true">
             <div />
           </div>
-          <div className="quota-foot">로그인 후 사용량이 표시됩니다</div>
+          <div className="quota-foot">사용량 표시는 준비 중입니다</div>
         </div>
-        <Link to="/login" className="profile-mini" title="로그인">
-          <div className="avatar">F</div>
-          <div>
-            <strong>게스트</strong>
-            <small>로그인하고 기기 간 동기화</small>
-          </div>
-          <Icon name="chev" />
-        </Link>
+        <SidebarProfile />
       </div>
     </aside>
   )
