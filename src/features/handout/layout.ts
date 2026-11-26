@@ -48,16 +48,22 @@ export interface TextBlockStyle {
   seal?: { ring: string; size: number }
 }
 
+/** 세로 정렬 (2열 줄에서 짧은 블록이 놓이는 자리). 없으면 가운데 */
+export type VAlign = 'top' | 'middle' | 'bottom'
+export const VALIGNS: VAlign[] = ['top', 'middle', 'bottom']
+
 export interface TextBlock {
   id: string
   type: 'text'
   text: string
   style: TextBlockStyle
+  valign?: VAlign
 }
 
 export interface ImageBlock {
   id: string
   type: 'image'
+  valign?: VAlign
   /** 검사한 공개 https 주소. 없으면 구분선(rule)을 그리거나, 편집 화면에서만 빈 자리를 보여 준다 */
   url?: string
   alt?: string
@@ -371,10 +377,13 @@ function parseBlock(raw: Json | undefined, fallback: TextBlockStyle): LayoutBloc
     return { id: raw.id, type: 'space', height: Math.round(num(raw.height, MIN_SPACE, MAX_SPACE) ?? DEFAULT_SPACE) }
   }
   if (raw.type === 'text') {
-    return { id: raw.id, type: 'text', text: typeof raw.text === 'string' ? raw.text : '', style: parseTextStyle(raw.style, fallback) }
+    const block: TextBlock = { id: raw.id, type: 'text', text: typeof raw.text === 'string' ? raw.text : '', style: parseTextStyle(raw.style, fallback) }
+    if (typeof raw.valign === 'string' && (VALIGNS as string[]).includes(raw.valign)) block.valign = raw.valign as VAlign
+    return block
   }
   if (raw.type === 'image') {
     const block: ImageBlock = { id: raw.id, type: 'image', maxWidth: num(raw.maxWidth, 20, 2000) ?? 380 }
+    if (typeof raw.valign === 'string' && (VALIGNS as string[]).includes(raw.valign)) block.valign = raw.valign as VAlign
     if (typeof raw.url === 'string') {
       const check = validateImageUrl(raw.url)
       if (check.ok) block.url = check.url

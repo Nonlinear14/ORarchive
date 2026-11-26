@@ -645,6 +645,38 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(block('f-body').style.textAlign).toBe('right')
   })
 
+  it('세로 정렬(위 · 가운데 · 아래): 글상자 · 이미지 편집에 있고, 2열 줄에서 보인다 (롤꾸 복사는 칸의 valign)', async () => {
+    const two = {
+      ...serializeHandout(createHandoutContent('moonlit')),
+      layout: {
+        rows: [
+          {
+            id: 'r',
+            blocks: [
+              { id: 'a', type: 'text', text: '왼쪽', style: { size: 14, color: '#000000' } },
+              { id: 'b', type: 'image', url: 'https://cdn.example.com/x.png', maxWidth: 300 },
+            ],
+          },
+        ],
+      },
+    }
+    const { saved } = await openStudio(two as unknown as DocumentContent)
+    select('a')
+    expect(screen.getByRole('button', { name: '세로 가운데 정렬' })).toHaveAttribute('aria-pressed', 'true')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: '세로 위 정렬' }))
+    select('b')
+    fireEvent.click(screen.getByRole('button', { name: '세로 아래 정렬' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'a')).toMatchObject({ valign: 'top' })
+    expect(blockOf(saved().content, 'b')).toMatchObject({ valign: 'bottom' })
+    expect(block('a')).toHaveAttribute('data-valign', 'top')
+    // 가운데로 돌리면 그 키를 뺀다
+    fireEvent.click(screen.getByRole('button', { name: '세로 가운데 정렬' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'b')).not.toHaveProperty('valign')
+  })
+
   it('2열: 사이 손잡이에서 ← → 키로 좌우를 바꾸고, 두 블록은 같은 줄 높이 · 여백은 줄에 한 번', async () => {
     const two = {
       ...serializeHandout(createHandoutContent('moonlit')),

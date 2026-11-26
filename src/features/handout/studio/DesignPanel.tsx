@@ -16,8 +16,10 @@ import {
   type LayoutBlock,
   type LineStyle,
   type TextBlock,
+  type VAlign,
+  VALIGNS,
 } from '../layout'
-import { removeBlock, setBackground, setSpaceHeight, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
+import { removeBlock, setBackground, setBlockValign, setSpaceHeight, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
 import { normalizeHex, validateImageUrl, type HandoutImage } from '../model'
 
 /** 이미지에서 사용자가 고친 부분. url 은 validateImageUrl 로 검사한 주소 */
@@ -250,6 +252,48 @@ function AlignIcon({ align }: { align: Align }) {
   )
 }
 
+const VALIGN_LABELS: Record<VAlign, string> = { top: '위', middle: '가운데', bottom: '아래' }
+
+function VAlignIcon({ valign }: { valign: VAlign }) {
+  const y = valign === 'top' ? 2 : valign === 'middle' ? 5 : 8
+  return (
+    <svg viewBox="0 0 16 14" width="14" height="12" aria-hidden="true">
+      <rect x="1" y={valign === 'top' ? 0.5 : valign === 'bottom' ? 12 : 6.2} width="14" height="1.4" rx="0.7" fill="currentColor" opacity="0.45" />
+      <rect x="5" y={y - 1.5} width="6" height="5" rx="1" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** 세로 정렬: 2열 줄에서 더 낮은 블록이 놓이는 자리 */
+function VAlignTools({ block, onEdit }: { block: TextBlock | Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit): void }) {
+  const current = block.valign ?? 'middle'
+  return (
+    <>
+      <span className="field-label sub" id={`valign-${block.id}`}>
+        세로 정렬
+      </span>
+      <div className="align-tools" role="group" aria-labelledby={`valign-${block.id}`}>
+        {VALIGNS.map((value) => {
+          const active = current === value
+          return (
+            <button
+              key={value}
+              type="button"
+              className={active ? 'btn small active' : 'btn small'}
+              aria-pressed={active}
+              aria-label={`세로 ${VALIGN_LABELS[value]} 정렬`}
+              title={`${VALIGN_LABELS[value]} 정렬 (2열 줄에서 보여요)`}
+              onClick={() => !active && onEdit(setBlockValign(block.id, value))}
+            >
+              <VAlignIcon valign={value} /> {VALIGN_LABELS[value]}
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
 function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutEdit, group?: string): void }) {
   const style = block.style
   return (
@@ -291,7 +335,7 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
         />
       </div>
       <span className="field-label sub" id={`align-${block.id}`}>
-        정렬
+        가로 정렬
       </span>
       <div className="align-tools" role="group" aria-labelledby={`align-${block.id}`}>
         {ALIGNS.map(([value, label]) => {
@@ -311,6 +355,7 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
           )
         })}
       </div>
+      <VAlignTools block={block} onEdit={onEdit} />
     </div>
   )
 }
@@ -426,6 +471,7 @@ function ImageSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: '
         // 이미지를 빼면 빈 이미지 블록(이미지 고르기)으로 — 구분선으로 되돌아가지 않는다
         onRemove={() => onEdit(setBlockImage(block.id, { url: undefined, alt: undefined, rule: undefined }))}
       />
+      <VAlignTools block={block} onEdit={onEdit} />
       <p className="field-help">
         Roll20 에는 공개된 https 이미지만 보여요. 이미지 올리기는 아직 지원하지 않으니, 공개 주소를 붙여 넣어 주세요.
       </p>

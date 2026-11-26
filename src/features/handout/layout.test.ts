@@ -3,7 +3,7 @@ import type { DocumentContent } from '../../lib/documents'
 import { deepFreeze } from '../../test/json'
 import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
 import { layoutOf, lineSegments, resolveLayout, type LayoutRow } from './layout'
-import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockStyle, setBlockText, setRowSplit, swapRow } from './layoutEdits'
+import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockValign, setBlockStyle, setBlockText, setRowSplit, swapRow } from './layoutEdits'
 import { serializeHandout } from './model'
 import { createHandoutContent } from './templates'
 
@@ -105,6 +105,8 @@ describe('블록 편집 연산', () => {
     expect(row.split).toBe(37)
     const html = blockRoll20Html(resolveLayout(stored))
     expect(html).toMatch(/<td width="37%" valign="middle"[^>]*>.*블랙우드.*<\/td><td width="63%" valign="middle"/)
+    const top = blockRoll20Html(resolveLayout(setBlockValign('f-signature', 'top')(stored)))
+    expect(top).toMatch(/<td width="37%" valign="top"[^>]*vertical-align:top;/)
   })
 
   it('구분선은 2열에 놓을 수 없다 (구분선을 옆에 · 구분선 옆에)', () => {

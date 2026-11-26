@@ -272,6 +272,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         data-block-id={block.id}
         data-block-type={block.type}
         data-line={isLineBlock(block) ? 'true' : undefined}
+        data-valign={block.type !== 'space' ? (block.valign ?? 'middle') : undefined}
         style={rs(editBox(block))}
         onPointerDown={
           editing

@@ -66,6 +66,8 @@ function blockHtml(block: LayoutBlock, align: Align, contentWidth: number): stri
   return ''
 }
 
+const valignOf = (b: LayoutBlock) => (b.type === 'space' ? 'middle' : (b.valign ?? 'middle'))
+
 /** 롤꾸 복사: Roll20 핸드아웃 내용 칸에 붙여 넣을 HTML (text/html) */
 export function blockRoll20Html(layout: HandoutLayout): string {
   const rows = layout.rows
@@ -77,7 +79,7 @@ export function blockRoll20Html(layout: HandoutLayout): string {
       const cells = row.blocks
         .map(
           (b, i) =>
-            `<td width="${widths[i]}%" valign="middle" style="${NO_BORDER}padding:0 ${i === 0 ? 8 : 0}px 0 ${i === 0 ? 0 : 8}px;width:${widths[i]}%;vertical-align:middle;">${blockHtml(withoutMargins(b), layout.align, layout.contentWidth)}</td>`,
+            `<td width="${widths[i]}%" valign="${valignOf(b)}" style="${NO_BORDER}padding:0 ${i === 0 ? 8 : 0}px 0 ${i === 0 ? 0 : 8}px;width:${widths[i]}%;vertical-align:${valignOf(b)};">${blockHtml(withoutMargins(b), layout.align, layout.contentWidth)}</td>`,
         )
         .join('')
       const { top, bottom } = rowMargins(row)

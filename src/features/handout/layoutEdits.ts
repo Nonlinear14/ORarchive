@@ -8,7 +8,7 @@
 import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { HANDOUT_CONTENT_VERSION, isStructuredHandout, serializeHandout } from './model'
-import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type RuleSpec, type TextBlockStyle } from './layout'
+import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type RuleSpec, type VAlign, type TextBlockStyle } from './layout'
 import { createHandoutContent, resolveHandout } from './templates'
 
 export type LayoutEdit = (stored: DocumentContent) => DocumentContent
@@ -87,6 +87,10 @@ export const setBlockStyle = (id: string, patch: TextStylePatch): LayoutEdit =>
 /** 이미지 블록의 주소·대체 텍스트 (url 은 validateImageUrl 로 검사한 값, undefined 면 이미지 빼기) */
 export const setBlockImage = (id: string, patch: { url?: string; alt?: string; rule?: undefined }): LayoutEdit =>
   patchBlock(id, (block) => assign(block, patch))
+
+/** 세로 정렬 (글상자 · 이미지). 가운데(기본)로 돌리면 그 키를 뺀다 */
+export const setBlockValign = (id: string, valign: VAlign): LayoutEdit =>
+  patchBlock(id, (block) => assign({ ...block }, { valign: valign === 'middle' ? undefined : valign }))
 
 /** 공백 높이 (px) */
 export const setSpaceHeight = (id: string, height: number): LayoutEdit => patchBlock(id, (block) => (block.height === height ? block : { ...block, height }))
