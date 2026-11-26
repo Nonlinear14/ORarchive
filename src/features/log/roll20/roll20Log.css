@@ -1,0 +1,485 @@
+/* Roll20 로그 에디터 (목록 · 불러오기 창 · 편집 화면). 로그 미리보기 안쪽 모양은 그림자 DOM 의 CSS(render.ts)가 맡는다 */
+
+.log-stage {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+}
+
+.icon-only {
+  padding: 7px 8px;
+}
+
+/* 설정 패널 */
+.log-panel .field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.opt-count {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 10px;
+  color: #917047;
+  background: #f6eee2;
+  border-radius: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.char-row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 9px;
+  margin-bottom: 8px;
+  background: var(--card);
+}
+
+.char-row.is-hidden {
+  opacity: 0.6;
+}
+
+.char-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.char-av {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex: none;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: #d9c4aa;
+  color: #4d3a2e;
+  font: 700 13px/1 var(--font);
+}
+
+.char-av.broken {
+  background: repeating-linear-gradient(45deg, #ddd 0 4px, #eee 4px 8px);
+  color: #a25d58;
+  border: 1px dashed #c98f88;
+}
+
+.char-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.char-name .field-input {
+  padding: 6px 8px;
+  font-weight: 700;
+}
+
+.char-name small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.char-color {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #d6d4cc;
+  flex: none;
+  cursor: pointer;
+  background: none;
+}
+
+.char-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.char-color::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+.char-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 10.5px;
+  color: #93524d;
+  background: #f8ecea;
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.char-warn .ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.char-warn .text-link {
+  margin-left: auto;
+  color: #93524d;
+  flex: none;
+}
+
+.char-more {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.char-more-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.opt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.opt-row:last-child {
+  border-bottom: 0;
+}
+
+.opt-row > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.opt-row b {
+  display: block;
+  font-size: 12px;
+  color: var(--heading-ink);
+}
+
+.opt-row small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.opt-switch {
+  appearance: none;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: #d6d4cc;
+  position: relative;
+  flex: none;
+  cursor: pointer;
+  transition: 0.15s;
+  margin: 0;
+}
+
+.opt-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  transition: 0.15s;
+}
+
+.opt-switch:checked {
+  background: #427a67;
+}
+
+.opt-switch:checked::after {
+  transform: translateX(15px);
+}
+
+.opt-switch:focus-visible {
+  outline: 2px solid #d9ac72;
+  outline-offset: 2px;
+}
+
+.fr-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.fr-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fr-foot .field-help {
+  margin: 0;
+}
+
+.seg-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 10px 0 6px;
+}
+
+.log-panel .panel-section > .seg-label:first-of-type {
+  margin-top: 0;
+}
+
+.log-export {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* 불러오기 창 */
+.import-tabs {
+  margin: 16px 0 14px;
+}
+
+.import-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.import-tabs .ico {
+  width: 15px;
+  height: 15px;
+}
+
+.dropzone {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 26px 18px;
+  text-align: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  color: var(--muted);
+  background: var(--canvas);
+  cursor: pointer;
+}
+
+.dropzone.dragging,
+.dropzone:focus-within {
+  border-color: var(--gold);
+  outline: 2px solid #d9ac72;
+  outline-offset: 2px;
+}
+
+.dropzone .ico {
+  width: 26px;
+  height: 26px;
+  color: var(--gold);
+}
+
+.dropzone b {
+  color: var(--heading-ink);
+  font-size: 13px;
+}
+
+.dropzone small {
+  font-size: 11px;
+}
+
+.import-steps {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--ink2);
+}
+
+.pastezone {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--canvas);
+  resize: none;
+  font: 13px var(--font);
+  caret-color: transparent;
+}
+
+.pastezone::placeholder {
+  color: var(--muted);
+}
+
+.good-callout {
+  background: #e9f3ec;
+  border-color: #d9e8dd;
+  color: #40755d;
+  margin-top: 14px;
+}
+
+.import-summary > div {
+  display: grid;
+  gap: 3px;
+}
+
+.import-summary .warn-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: #93524d;
+}
+
+.import-summary .warn-line .ico {
+  width: 13px;
+  height: 13px;
+  margin: 3px 0 0;
+  flex: none;
+}
+
+.import-name {
+  margin-top: 14px;
+}
+
+/* 휴대폰: 메시지 메뉴 */
+.msg-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 22, 0.45);
+  z-index: 90;
+}
+
+.msg-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 91;
+  background: var(--card);
+  border-radius: 18px 18px 0 0;
+  padding: 14px 14px calc(env(safe-area-inset-bottom) + 14px);
+  display: grid;
+  gap: 4px;
+  box-shadow: 0 -10px 30px #0004;
+}
+
+.msg-sheet-head {
+  padding: 4px 6px 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+
+.msg-sheet-head b {
+  display: block;
+  font-size: 14px;
+  color: var(--heading-ink);
+}
+
+.msg-sheet-head small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-sheet button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  padding: 12px 8px;
+  border-radius: 10px;
+  font: 600 14px var(--font);
+  color: var(--ink);
+  text-align: left;
+}
+
+.msg-sheet button:hover:not(:disabled) {
+  background: var(--canvas);
+}
+
+.msg-sheet button:disabled {
+  opacity: 0.45;
+}
+
+.msg-sheet button.danger {
+  color: #a25d58;
+}
+
+.msg-sheet .msg-sheet-close {
+  justify-content: center;
+  background: var(--canvas);
+  margin-top: 6px;
+}
+
+@media (max-width: 750px) {
+  .log-stage {
+    max-height: none;
+  }
+}
+
+/* 다크 모드 (로그 미리보기 자체는 내보낼 결과와 같게 Roll20 색 그대로) */
+:root[data-theme='dark'] .char-row {
+  background: #142128;
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .char-warn {
+  background: #3a2422;
+  color: #e8aaa3;
+}
+
+:root[data-theme='dark'] .char-warn .text-link {
+  color: #e8aaa3;
+}
+
+:root[data-theme='dark'] .char-more,
+:root[data-theme='dark'] .opt-row {
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .opt-count {
+  background: #33291c;
+  color: #d8b783;
+}
+
+:root[data-theme='dark'] .opt-switch {
+  background: #2e3f45;
+}
+
+:root[data-theme='dark'] .good-callout {
+  background: #1c3229;
+  border-color: #2a4a3c;
+  color: #86c2a4;
+}
+
+:root[data-theme='dark'] .import-summary .warn-line {
+  color: #e8aaa3;
+}
+
+:root[data-theme='dark'] .log-stage {
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .dropzone,
+:root[data-theme='dark'] .pastezone {
+  background: #142128;
+  border-color: var(--d-border);
+}

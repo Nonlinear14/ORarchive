@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { LoadingState } from '../components/LoadingState'
 import { SaveStatusChip } from '../components/SaveStatusChip'
 import { isStructuredHandout } from '../features/handout/model'
+import { isRoll20Log } from '../features/log/roll20/model'
 import { roll20Text } from '../features/handout/roll20'
 import { resolveHandout } from '../features/handout/templates'
 import { contentText, documentPath, documentTypeLabels, type DocumentContent } from '../lib/documents'
@@ -63,6 +64,7 @@ function DocumentEditor({ docId }: { docId: string }) {
   // 스튜디오 형식으로 저장된 핸드아웃은 스튜디오에서 연다 (동기화되지 않은 변경 목록 등에서 온 링크)
   if (doc.type === 'handout' && isStructuredHandout(draft.content))
     return <Navigate to={documentPath('handout', doc.id)} replace />
+  if (doc.type === 'log' && isRoll20Log(draft.content)) return <Navigate to={documentPath('log', doc.id)} replace />
 
   const typeLabel = documentTypeLabels[doc.type]
 

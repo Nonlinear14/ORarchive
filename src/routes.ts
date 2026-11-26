@@ -132,6 +132,7 @@ export function pageLabel(pathname: string): string {
   const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (normalized.startsWith('/documents/')) return '문서'
   if (normalized.startsWith('/studio/handout/')) return '템플릿 에디터'
+  if (normalized.startsWith('/studio/log/roll20/')) return 'Roll20 로그 편집'
   return (
     navRoutes.find((route) => route.path === normalized)?.label ??
     extraTitles[normalized] ??

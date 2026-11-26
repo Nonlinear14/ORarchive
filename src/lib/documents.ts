@@ -47,9 +47,11 @@ export function defaultTitle(type: DocumentType): string {
   return `제목 없는 ${documentTypeLabels[type]}`
 }
 
-/** 문서를 여는 화면 경로: 핸드아웃은 스튜디오, 나머지는 (각 스튜디오가 열리기 전까지) 기본 편집기 */
+/** 문서를 여는 화면 경로: 핸드아웃은 템플릿 에디터, 로그는 Roll20 로그 편집, 나머지는 (각 화면이 생기기 전까지) 기본 편집기 */
 export function documentPath(type: DocumentType, id: string): string {
-  return type === 'handout' ? `/studio/handout/${id}` : `/documents/${id}`
+  if (type === 'handout') return `/studio/handout/${id}`
+  if (type === 'log') return `/studio/log/roll20/${id}`
+  return `/documents/${id}`
 }
 
 /** content.text 를 문자열로 읽는다 (Phase 1 의 단순 본문) */
