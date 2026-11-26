@@ -292,3 +292,26 @@ a:focus-visible {
   object-fit: cover;
   display: block;
 }
+
+/* 필터 버튼 줄 (보관함 · 템플릿 갤러리) */
+.filters {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filter {
+  font-size: 11px;
+  border: 1px solid #e1ded6;
+  border-radius: 7px;
+  padding: 9px 13px;
+  background: #fffefa;
+  color: #818c86;
+}
+
+.filter.active {
+  background: #263d39;
+  color: white;
+  border-color: #263d39;
+}

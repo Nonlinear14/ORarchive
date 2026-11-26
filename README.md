@@ -2,7 +2,14 @@
 
 TRPG(Roll20·코코포리아) 기록 보관·창작 워크스페이스. 핸드아웃 스튜디오(캔버스 직접 편집 + Roll20 서식 복사), 로그 스튜디오(가져오기·편집·내보내기), 캐릭터 시트, 프로젝트·보관함을 Google 로그인과 기기 간 동기화로 제공하는 무료 공개 서비스를 목표로 합니다.
 
-현재는 **Phase 1 — 로그인 · 서버 저장 · 기기 간 동기화** 단계입니다. Google 로그인, 내 보관함(문서 만들기·검색·삭제), 자동 저장되는 기본 문서 편집기(`/documents/:id`), 계정 설정(닉네임·로그아웃·계정 삭제)이 동작합니다. 스튜디오 화면은 아직 자리표시입니다. 디자인 기준은 `mockup/trpg_folio_mockup_v3.html` 입니다.
+현재는 **Phase 2 — 핸드아웃 스튜디오(MVP)** 단계입니다. Phase 1 의 Google 로그인 · 내 보관함 · 자동 저장/기기 간 동기화 위에 다음이 동작합니다.
+
+- **템플릿 갤러리** (`/templates`): 4개 기본 템플릿(달빛의 초대 · 오래된 조사 기록 · 비밀 결사의 인장 · 숲의 기록), 분류 필터, 실제 캔버스 미리보기. "이 템플릿으로 시작"으로 핸드아웃 문서를 만들어 스튜디오를 엽니다.
+- **핸드아웃 스튜디오** (`/studio/handout/:id`, 목록 `/studio/handout`): 캔버스 글자 직접 편집, 템플릿 바꾸기(공통 칸 유지), 테마 · 강조 색 · 글꼴 · https 이미지 주소. 편집은 Phase 1 동기화 계층(`useDocument`)으로 저장되며 충돌 · 오프라인 · 삭제 복구 화면도 그대로 씁니다.
+- **Roll20에 복사**: 표 기반 · 인라인 스타일만 쓰는 HTML(text/html + text/plain)을 클립보드에 넣어 Roll20 핸드아웃 내용 칸에 Ctrl+V 로 붙여 넣습니다. HTML 코드 보기 · HTML 파일 저장도 있습니다.
+- 로그 · 캐릭터 문서는 다음 단계까지 기본 편집기(`/documents/:id`)를 씁니다.
+
+핸드아웃 content 형식과 템플릿 정의는 `src/features/handout/` (`model.ts`, `edits.ts`, `templates/`, `roll20.ts`) 를 보세요. 저장된 content 는 편집할 때 고친 경로만 바뀌고(`edits.ts`), 화면 · Roll20 출력은 그것을 검사 · 정규화한 보기(`resolveHandout`)만 씁니다. 디자인 기준은 `mockup/trpg_folio_mockup_v3.html` 입니다.
 
 ## 기술 스택
 
@@ -26,6 +33,7 @@ npm run dev            # http://localhost:5173/ORarchive/
 | `npm test -- --run` | Vitest 1회 실행 (`npm test` 는 watch 모드) |
 | `npm run build` | 프로덕션 빌드 + `dist/404.html`, `dist/.nojekyll` 생성 |
 | `npm run preview` | 빌드 결과 미리보기 (http://localhost:4173/ORarchive/) |
+| `python scripts/check_phase2.py` | (preview 실행 중) 가짜 세션으로 갤러리 → 스튜디오 → Roll20 복사를 브라우저에서 확인, `docs/screens/phase2-*.png` 저장. Python Playwright 필요 |
 
 ## 환경 변수
 

@@ -1,0 +1,103 @@
+/* 핸드아웃 캔버스 — 색·글꼴·여백은 블록 정의에서 인라인으로 온다. 여기에는 구조와 편집 상태만 둔다. */
+.hc-canvas {
+  width: 100%;
+  text-align: center;
+}
+
+.hc-canvas > .hc-frame {
+  box-shadow: 0 19px 30px #343c331a;
+}
+
+.hc-canvas *,
+.hc-canvas *::before,
+.hc-canvas *::after {
+  box-sizing: border-box;
+}
+
+.hc-frame {
+  position: relative;
+}
+
+.hc-field,
+.hc-static {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hc-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hc-split-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.hc-split-right {
+  flex: none;
+}
+
+.hc-aside {
+  display: flex;
+  align-items: stretch;
+}
+
+.hc-aside-bar {
+  flex: none;
+}
+
+.hc-seal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hc-seal .hc-field {
+  min-width: 1em;
+}
+
+.hc-meta {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0;
+}
+
+.hc-meta th {
+  text-align: left;
+}
+
+/* 편집 상태 (목업 v3 의 [data-hfield] 규칙) */
+.hc-canvas.editable [data-hfield] {
+  outline: 0;
+  border-radius: 6px;
+  cursor: text;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.hc-canvas.editable [data-hfield]:hover {
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.hc-canvas.editable [data-hfield]:focus {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  box-shadow:
+    0 0 0 2px #ccb18b,
+    0 0 0 6px #ccb18b30;
+}
+
+.hc-canvas.editable [data-hfield]:empty::before {
+  content: attr(data-ph);
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.hc-canvas.editable [data-hfield][aria-multiline='true'] {
+  min-height: 2.2em;
+}

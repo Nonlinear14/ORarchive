@@ -23,28 +23,6 @@
   outline-offset: 1px;
 }
 
-.filters {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.filter {
-  font-size: 11px;
-  border: 1px solid #e1ded6;
-  border-radius: 7px;
-  padding: 9px 13px;
-  background: #fffefa;
-  color: #818c86;
-}
-
-.filter.active {
-  background: #263d39;
-  color: white;
-  border-color: #263d39;
-}
-
 @media (max-width: 750px) {
   .stage .section-top:has(.searchbar) {
     flex-direction: column;

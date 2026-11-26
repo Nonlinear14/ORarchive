@@ -111,3 +111,8 @@
 .doc-recover .doc-text[readonly] {
   background: #f8f6f1;
 }
+
+.handout-moved {
+  margin-bottom: 12px;
+  align-items: center;
+}

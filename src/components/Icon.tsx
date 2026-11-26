@@ -83,6 +83,23 @@ const paths = {
       <path d="M4 4l16 16" />
     </>
   ),
+  download: <path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4" />,
+  copy: (
+    <>
+      <rect x="8" y="8" width="13" height="13" rx="2" />
+      <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </>
+  ),
+  edit: <path d="M4 20h4l12-12-4-4L4 16zM14 6l4 4" />,
+  image: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8" cy="8" r="2" />
+      <path d="m21 16-5-5L5 21" />
+    </>
+  ),
+  check: <path d="m5 12 5 5L20 7" />,
+  code: <path d="m8 8-4 4 4 4m8-8 4 4-4 4m-3-12-2 12" />,
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof paths

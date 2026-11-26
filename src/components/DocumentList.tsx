@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import type { DocumentType } from '../lib/database.types'
-import { documentTypeLabels, visibilityLabels, type DocumentSummary } from '../lib/documents'
+import { documentPath, documentTypeLabels, visibilityLabels, type DocumentSummary } from '../lib/documents'
 import { formatRelativeTime } from '../lib/format'
 import { Icon, type IconName } from './Icon'
 import './DocumentList.css'
@@ -30,7 +30,7 @@ export function DocumentList({ docs, onDelete }: DocumentListProps) {
       {docs.map((doc) => (
         <div className="list-row" role="row" key={doc.id}>
           <div role="cell">
-            <Link to={`/documents/${doc.id}`} className="item-title">
+            <Link to={documentPath(doc.type, doc.id)} className="item-title">
               <span className={`item-square ${squareTone[doc.type]}`} aria-hidden="true">
                 <Icon name={typeIcon[doc.type]} />
               </span>
@@ -58,7 +58,7 @@ export function DocumentList({ docs, onDelete }: DocumentListProps) {
                 <Icon name="trash" />
               </button>
             )}
-            <Link to={`/documents/${doc.id}`} className="row-icon" aria-label={`${doc.title || '제목 없음'} 열기`} title="열기">
+            <Link to={documentPath(doc.type, doc.id)} className="row-icon" aria-label={`${doc.title || '제목 없음'} 열기`} title="열기">
               <Icon name="chev" />
             </Link>
           </div>

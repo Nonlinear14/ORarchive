@@ -111,3 +111,7 @@
   outline: 2px solid #d9ac72;
   outline-offset: 2px;
 }
+
+.modal-card.wide {
+  width: min(760px, 100%);
+}

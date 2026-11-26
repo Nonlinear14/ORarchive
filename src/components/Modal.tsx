@@ -6,10 +6,12 @@ interface ModalProps {
   eyebrow?: string
   onClose(): void
   children: ReactNode
+  /** 넓은 창 (코드 보기 등) */
+  wide?: boolean
 }
 
 /** 목업의 modal-overlay / modal-card. Esc·배경 클릭으로 닫힌다. */
-export function Modal({ title, eyebrow, onClose, children }: ModalProps) {
+export function Modal({ title, eyebrow, onClose, children, wide = false }: ModalProps) {
   const titleId = useId()
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -35,7 +37,7 @@ export function Modal({ title, eyebrow, onClose, children }: ModalProps) {
         if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={cardRef}>
+      <div className={wide ? 'modal-card wide' : 'modal-card'} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={cardRef}>
         <button type="button" className="modal-x" aria-label="닫기" onClick={onClose}>
           ×
         </button>

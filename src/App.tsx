@@ -1,5 +1,7 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router'
 import { AppShell } from './components/AppShell'
+import { LoadingState } from './components/LoadingState'
 import { RequireAuth } from './components/RequireAuth'
 import { AuthRedirects } from './lib/auth/AuthRedirects'
 import { PendingSyncProvider } from './lib/sync/PendingSyncProvider'
@@ -12,8 +14,17 @@ import { PlaceholderPage } from './pages/PlaceholderPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { navRoutes } from './routes'
 
+// 스튜디오 화면은 처음 열 때 불러온다 (첫 화면 번들을 가볍게)
+const TemplateGalleryPage = lazy(() => import('./features/handout/pages/TemplateGalleryPage'))
+const HandoutListPage = lazy(() => import('./features/handout/pages/HandoutListPage'))
+const HandoutStudioPage = lazy(() => import('./features/handout/studio/HandoutStudioPage'))
+
+function Lazy({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<LoadingState label="화면을 불러오는 중…" />}>{children}</Suspense>
+}
+
 /** 실제 화면이 있는 경로 (나머지 내비 경로는 '준비 중' 자리표시) */
-const implemented = new Set(['/', '/library', '/settings'])
+const implemented = new Set(['/', '/library', '/settings', '/templates', '/studio/handout'])
 
 export function App() {
   return (
@@ -27,6 +38,9 @@ export function App() {
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/documents/:id" element={<DocumentPage />} />
+            <Route path="/templates" element={<Lazy><TemplateGalleryPage /></Lazy>} />
+            <Route path="/studio/handout" element={<Lazy><HandoutListPage /></Lazy>} />
+            <Route path="/studio/handout/:id" element={<Lazy><HandoutStudioPage /></Lazy>} />
             {navRoutes
               .filter((route) => !implemented.has(route.path))
               .map((route) => (

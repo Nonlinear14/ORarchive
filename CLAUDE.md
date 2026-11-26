@@ -1,0 +1,55 @@
+# FOLIO (저장소: ORarchive) — Claude 작업 지침
+
+TRPG(Roll20·코코포리아) 핸드아웃·세션 로그·캐릭터 시트를 만들고 보관하는 무료 공개 웹 서비스입니다. 기술 개요, 명령어, DB, 배포는 `README.md`를 보고, 현재 진행 상황과 인계 내용은 `docs/HANDOFF.md`를 먼저 읽으세요.
+
+- 사이트: https://nonlinear14.github.io/ORarchive/ (GitHub Pages, `main`에 push하면 자동 배포)
+- 저장소: https://github.com/Nonlinear14/ORarchive (공개 저장소)
+- Supabase 프로젝트: `uankwfwwhdirrklqacqe` (서울 리전)
+- 디자인 기준: `mockup/trpg_folio_mockup_v3.html`
+
+## 소통
+- 사용자와는 **한국어**로 대화합니다. UI 문구도 한국어입니다.
+
+## 커밋 전 확인
+- `npm run typecheck`, `npm run lint`, `npm test -- --run`, `npm run build`가 모두 통과해야 합니다.
+- `.env`, 비밀 키, 개인정보(개인 이메일, 실명)가 커밋에 들어가지 않았는지 확인합니다.
+- push한 뒤에는 GitHub Actions 배포가 성공했는지 확인합니다.
+
+## 지켜야 할 원칙
+- **사용자 텍스트는 절대 조용히 잃거나 바꾸지 않습니다.**
+  - 편집한 내용은 충돌 없는 버전 업데이트로 서버에 반영되거나, 사용자가 직접 정리할 때까지 IndexedDB에 남아 있어야 합니다.
+  - 동기화 계층(`src/lib/documentSync.ts`, `pendingStore.ts`, `backgroundSync.ts`, `documentCache.ts`, `locks.ts`)은 여러 차례 검수를 거쳤습니다. 수정할 때는 파일 상단의 동시성 불변식 주석을 지키고, 회귀 테스트를 추가합니다.
+- **저장된 값은 사용자가 그 값을 고칠 때만 바꿉니다.**
+  - 핸드아웃 content는 `edits.ts`로 고친 경로만 바꿉니다.
+  - 화면과 출력에는 검사·정규화된 보기(`resolveHandout`)만 씁니다.
+- **Roll20 복사 규칙**
+  - 표 기반 레이아웃을 쓰고, 스타일은 모두 인라인으로 넣습니다. `<style>`, `<script>`, `class`는 쓰지 않습니다.
+  - 장식은 실제 요소로 만듭니다.
+  - 사용자 텍스트는 이스케이프합니다.
+  - 공백은 `&nbsp;`로, 탭은 공백 4칸으로, 줄바꿈은 `<br>`로 바꿉니다.
+  - 클립보드에는 `text/html`과 `text/plain`을 함께 넣습니다.
+- **보안**
+  - Supabase는 RLS로 본인 행만 접근하게 합니다.
+  - publishable 키만 클라이언트에 둡니다.
+  - service_role 키, secret 키, DB 비밀번호, OAuth Client Secret은 저장소나 채팅에 절대 넣지 않습니다.
+- **DB 스키마 변경**
+  - `supabase/migrations/000N_*.sql`을 새로 추가합니다.
+  - Claude는 DB 관리자 권한이 없습니다. 사용자에게 SQL Editor에서 실행해 달라고 안내합니다.
+
+## 확정된 결정
+| 항목 | 결정 |
+|---|---|
+| 서비스 | 공개 무료. Google 로그인만 사용(카카오 제외). 기기 간 동기화 |
+| 배포 | GitHub Pages(별도 계정 Nonlinear14) + Supabase 무료 플랜. 도메인 없음 |
+| 공개 시점 | 5단계(공개 베타: 보안, 약관, 신고)까지 마친 뒤 |
+| 핸드아웃 | 캔버스 직접 편집, 템플릿 4종, Roll20 서식 복사. **스티커 기능은 제외** |
+| 캐릭터 시트 | 캔버스 직접 편집 적용. 첫 룰은 범용 시트 + 크툴루의 부름(Chaosium 팬 정책 확인) |
+| 로그 | 목업처럼 대사를 클릭해 수정. Roll20은 수정과 HTML 출력. 코코포리아는 이미지 삽입, 캐릭터별 필터·재배열, 주사위 표시 형식, HTML 출력. EPUB은 나중에 |
+| 서비스 이름 | FOLIO는 가칭. 나중에 변경 |
+| 커밋 작성자 | 이 저장소의 커밋은 개인 계정이 드러나지 않게 합니다. 작업자 본인 GitHub 계정이나 Nonlinear14 noreply를 씁니다 |
+
+## 로드맵
+0 뼈대·배포 ✅ → 1 Google 로그인·동기화 ✅ → 2 핸드아웃 스튜디오 → 3 로그 스튜디오 → 4 캐릭터 시트 → 5 공개 베타 → 6 확장(EPUB, 룰 팩, 이미지 업로드 등)
+
+## 자주 쓰는 명령
+`npm run dev` · `npm run typecheck` · `npm run lint` · `npm test -- --run` · `npm run build` · `npm run preview` · `python scripts/check_phase2.py`(preview 실행 중일 때)

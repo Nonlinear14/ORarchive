@@ -107,6 +107,7 @@ const extraTitles: Record<string, string> = {
 export function pageLabel(pathname: string): string {
   const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (normalized.startsWith('/documents/')) return '문서'
+  if (normalized.startsWith('/studio/handout/')) return '핸드아웃 스튜디오'
   return (
     navRoutes.find((route) => route.path === normalized)?.label ??
     extraTitles[normalized] ??
