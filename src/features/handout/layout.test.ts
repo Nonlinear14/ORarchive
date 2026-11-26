@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { DocumentContent } from '../../lib/documents'
 import { deepFreeze } from '../../test/json'
 import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
-import { layoutOf, resolveLayout, type LayoutRow } from './layout'
-import { addBlock, moveBlock, removeBlock, setBlockStyle, setBlockText, setRowSplit, swapRow } from './layoutEdits'
+import { layoutOf, lineSegments, resolveLayout, type LayoutRow } from './layout'
+import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockStyle, setBlockText, setRowSplit, swapRow } from './layoutEdits'
 import { serializeHandout } from './model'
 import { createHandoutContent } from './templates'
 
@@ -105,6 +105,27 @@ describe('블록 편집 연산', () => {
     expect(ids(resolveLayout(stored).rows)).toEqual(['f-cap', 'f-title', 'n1', 'r-0', 'f-body', 'f-signature', 's-1', 's-2', 'n2'])
     stored = removeBlock('r-0')(stored)
     expect(ids(resolveLayout(stored).rows)).not.toContain('r-0')
+  })
+})
+
+describe('구분선 모양', () => {
+  it('lineSegments: 길이를 채우고 마지막 조각은 자른다 · 굵기에 맞춘 선분 · 점 · 간격', () => {
+    expect(lineSegments(100, 'solid', 3)).toEqual([{ on: true, w: 100 }])
+    expect(lineSegments(10, 'dotted', 1)).toEqual([
+      { on: true, w: 1 }, { on: false, w: 3 }, { on: true, w: 1 }, { on: false, w: 3 }, { on: true, w: 1 }, { on: false, w: 1 },
+    ])
+    const dd = lineSegments(60, 'dashdotdot', 2) // 선분 8 · 간격 4 · 점 2
+    expect(dd.slice(0, 6).map((s) => s.w)).toEqual([8, 4, 2, 4, 2, 4])
+    expect(dd.reduce((n, s) => n + s.w, 0)).toBe(60)
+  })
+
+  it('롤꾸 복사: 구분선 조각은 표 칸 (선분 · 점은 bgcolor, 간격은 빈 칸), 길이 · 굵기 그대로', () => {
+    const stored = setBlockRule('r-0', { length: 40, thickness: 2, style: 'dotted' })(start('moonlit'))
+    const html = blockRoll20Html(resolveLayout(stored))
+    const table = html.match(/<table width="40"[^>]*>.*?<\/table>/)![0]
+    expect(table.match(/<td /g)).toHaveLength(14) // (점 2 + 간격 4) × 6 + 점 2 + 간격 2
+    expect(table).toContain('<td width="2" height="2" bgcolor="#9c795f"')
+    expect(table).toContain('<td width="4" height="2" style=')
   })
 })
 

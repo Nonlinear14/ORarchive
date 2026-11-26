@@ -65,7 +65,24 @@ export interface ImageBlock {
   marginTop?: number
   marginBottom?: number
   /** 이미지가 없을 때 그리는 구분선 */
-  rule?: { widthPercent: number; color: string }
+  rule?: RuleSpec
+}
+
+export type LineStyle = 'solid' | 'dotted' | 'dashdot' | 'dashdotdot'
+export const LINE_STYLES: LineStyle[] = ['solid', 'dotted', 'dashdot', 'dashdotdot']
+export const MIN_RULE_LENGTH = 10
+export const MIN_THICKNESS = 1
+export const MAX_THICKNESS = 10
+
+/** 구분선: 길이는 length(px)가 있으면 그것, 없으면 내용 칸 너비의 widthPercent */
+export interface RuleSpec {
+  widthPercent: number
+  color: string
+  length?: number
+  /** px, 없으면 1 */
+  thickness?: number
+  /** 없으면 실선 */
+  style?: LineStyle
 }
 
 export type LayoutBlock = TextBlock | ImageBlock
@@ -112,6 +129,43 @@ export interface HandoutLayout {
   rows: LayoutRow[]
   /** 새 텍스트 블록의 기본 모양 (본문) */
   bodyStyle: TextBlockStyle
+  /** 내용 칸 너비(px): 폭에서 틀의 좌우 여백 · 테두리를 뺀 값 (구분선 최대 길이) */
+  contentWidth: number
+}
+
+/** 그릴 구분선 길이(px) */
+export function ruleLength(rule: RuleSpec, contentWidth: number): number {
+  const raw = rule.length ?? Math.round((rule.widthPercent / 100) * contentWidth)
+  return Math.round(Math.min(contentWidth, Math.max(MIN_RULE_LENGTH, raw)))
+}
+
+/** 선 모양 → 칠할 조각(on)과 빈 조각(off)의 폭(px) 목록. 길이를 채우고 마지막 조각은 자른다 */
+export function lineSegments(length: number, style: LineStyle = 'solid', thickness = 1): { on: boolean; w: number }[] {
+  if (style === 'solid') return [{ on: true, w: length }]
+  const dash = Math.max(6, thickness * 4)
+  const gap = Math.max(3, thickness * 2)
+  const dot = thickness
+  const unit =
+    style === 'dotted'
+      ? [dot, gap]
+      : style === 'dashdot'
+        ? [dash, gap, dot, gap]
+        : [dash, gap, dot, gap, dot, gap]
+  const out: { on: boolean; w: number }[] = []
+  let used = 0
+  for (let i = 0; used < length; i++) {
+    const w = Math.min(unit[i % unit.length], length - used)
+    out.push({ on: i % 2 === 0, w })
+    used += w
+  }
+  return out
+}
+
+function paddingLR(padding: string): number {
+  const v = padding.trim().split(/\s+/).map((p) => parseFloat(p) || 0)
+  const right = v.length === 1 ? v[0] : v[1]
+  const left = v.length === 4 ? v[3] : right
+  return left + right
 }
 
 type JsonObject = { [key: string]: Json | undefined }
@@ -300,7 +354,15 @@ function parseBlock(raw: Json | undefined, fallback: TextBlockStyle): LayoutBloc
     if (mb) block.marginBottom = mb
     if (isObject(raw.rule)) {
       const color = normalizeHex(raw.rule.color)
-      if (color) block.rule = { widthPercent: num(raw.rule.widthPercent, 1, 100) ?? 100, color }
+      if (color) {
+        const rule: RuleSpec = { widthPercent: num(raw.rule.widthPercent, 1, 100) ?? 100, color }
+        const length = num(raw.rule.length, MIN_RULE_LENGTH, 4000)
+        if (length !== undefined) rule.length = Math.round(length)
+        const thickness = num(raw.rule.thickness, MIN_THICKNESS, MAX_THICKNESS)
+        if (thickness !== undefined) rule.thickness = Math.round(thickness)
+        if (typeof raw.rule.style === 'string' && (LINE_STYLES as string[]).includes(raw.rule.style)) rule.style = raw.rule.style as LineStyle
+        block.rule = rule
+      }
     }
     return block
   }
@@ -355,7 +417,11 @@ export function layoutOf(content: HandoutContent, raw: Json[] | null = null, raw
   const bodyStyle = bodyStyleOf(derived, look)
   const rows = raw ? parseRows(raw, bodyStyle) : derived
   const background = (isObject(rawStyle) ? normalizeHex(rawStyle.background) : null) ?? look.colors.paper
-  return { width: look.template.width, background, frames, align, rows, bodyStyle }
+  const contentWidth = Math.max(
+    MIN_RULE_LENGTH,
+    look.template.width - frames.reduce((sum, f) => sum + paddingLR(f.padding) + 2 * (parseFloat(f.border ?? '0') || 0), 0),
+  )
+  return { width: look.template.width, background, frames, align, rows, bodyStyle, contentWidth }
 }
 
 export function findBlock(layout: HandoutLayout, id: string | null): LayoutBlock | null {

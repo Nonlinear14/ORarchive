@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { ensureViewerFonts } from '../../../lib/pretendard'
-import { blockBoxCss, boxedCss, frameCss, imageCss, ruleCss, sealCss, textCss } from '../blockStyles'
-import { blockImage, BLOCK_FONT_STACK, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type TextBlock } from '../layout'
+import { blockBoxCss, boxedCss, frameCss, imageCss, ruleBoxCss, sealCss, textCss } from '../blockStyles'
+import { blockImage, BLOCK_FONT_STACK, lineSegments, ruleLength, type RuleSpec, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type TextBlock } from '../layout'
 import type { DropTarget } from '../layoutEdits'
 import type { Css } from '../styles'
 import type { FieldDef } from '../templates'
@@ -51,10 +51,23 @@ function TextBody({ block, editing }: { block: TextBlock; editing?: BlockEditing
   return body
 }
 
-function ImageBody({ block, editing }: { block: ImageBlock; editing: boolean }) {
+/** 구분선: 실선 · 점선 · 1점 쇄선 · 2점 쇄선 (롤꾸 복사와 같은 조각) */
+export function RuleLine({ rule, contentWidth }: { rule: RuleSpec; contentWidth: number }) {
+  const length = ruleLength(rule, contentWidth)
+  const thickness = rule.thickness ?? 1
+  return (
+    <div className="hc-rule" style={rs(ruleBoxCss(length, thickness))} data-style={rule.style ?? 'solid'}>
+      {lineSegments(length, rule.style, thickness).map((seg, i) => (
+        <span key={i} style={{ flex: 'none', width: seg.w, height: '100%', background: seg.on ? rule.color : 'transparent' }} />
+      ))}
+    </div>
+  )
+}
+
+function ImageBody({ block, editing, contentWidth }: { block: ImageBlock; editing: boolean; contentWidth: number }) {
   const image = blockImage(block)
   if (image) return <img src={image.url} alt={image.alt} referrerPolicy="no-referrer" style={rs(imageCss())} draggable={false} />
-  if (block.rule) return <div className="hc-rule" style={rs(ruleCss(block.rule))} />
+  if (block.rule) return <RuleLine rule={block.rule} contentWidth={contentWidth} />
   return editing ? <div className="hb-image-empty">이미지 블록 · 오른쪽 디자인 설정에서 이미지 주소를 넣어 주세요</div> : null
 }
 
@@ -222,6 +235,20 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
       <div className="hb-divider" aria-hidden="true" />
     )
 
+  /** 블록 칸 스타일. 편집 화면의 구분선은 고르기 쉽게 위아래 12px 영역을 넓히고 그만큼 여백을 줄인다 (보이는 자리는 그대로) */
+  const editBox = (block: LayoutBlock): Css => {
+    const css = blockBox(inTwo.has(block.id) ? withoutMargins(block) : block, layout.align)
+    if (!editing || block.type !== 'image' || !block.rule || blockImage(block)) return css
+    const HIT = 12
+    return {
+      ...css,
+      paddingTop: `${HIT}px`,
+      paddingBottom: `${HIT}px`,
+      marginTop: `${(block.marginTop ?? 0) - HIT}px`,
+      marginBottom: `${(block.marginBottom ?? 0) - HIT}px`,
+    }
+  }
+
   const renderBlock = (block: LayoutBlock): ReactNode => {
     const selected = editing?.selectedId === block.id
     const cls = ['hb-block', editing ? 'is-editable' : '', selected ? 'is-selected' : '', drag?.id === block.id ? 'is-dragging' : '']
@@ -234,7 +261,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         data-block-id={block.id}
         data-block-type={block.type}
         data-rule={block.type === 'image' && block.rule && !blockImage(block) ? 'true' : undefined}
-        style={rs(blockBox(inTwo.has(block.id) ? withoutMargins(block) : block, layout.align))}
+        style={rs(editBox(block))}
         onPointerDown={
           editing
             ? (event) => {
@@ -249,7 +276,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         onPointerUp={editing ? endDrag : undefined}
         onFocus={editing ? () => editing.selectedId !== block.id && editing.onSelect(block.id) : undefined}
       >
-        {block.type === 'text' ? <TextBody block={block} editing={editing} /> : <ImageBody block={block} editing={!!editing} />}
+        {block.type === 'text' ? <TextBody block={block} editing={editing} /> : <ImageBody block={block} editing={!!editing} contentWidth={layout.contentWidth} />}
         {selected && (
           <div className="hb-bubble">
             <button

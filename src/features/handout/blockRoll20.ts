@@ -5,7 +5,7 @@
  * 2열 행은 칸 두 개짜리 표로 그린다.
  */
 import { blockBoxCss, boxedCss, frameCss, imageCss, sealCss, textCss } from './blockStyles'
-import { blockImage, BLOCK_FONT_STACK, layoutText, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from './layout'
+import { blockImage, BLOCK_FONT_STACK, lineSegments, ruleLength, layoutText, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from './layout'
 import { escapeHtml, normalizeText, whitespaceHtml } from './roll20'
 import { inline } from './styles'
 
@@ -38,17 +38,27 @@ function textHtml(block: TextBlock, align: Align): string {
   )
 }
 
-function blockHtml(block: LayoutBlock, align: Align): string {
+function blockHtml(block: LayoutBlock, align: Align, contentWidth: number): string {
   if (block.type === 'text') return textHtml(block, align)
   const margin = `margin:${block.marginTop ?? 0}px 0 ${block.marginBottom ?? 0}px;`
   const image = blockImage(block)
   if (image)
     return `<p style="${NO_BORDER}${margin}padding:0;text-align:center;line-height:0;"><img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" width="100%" style="${inline(imageCss())}"></p>`
   if (block.rule) {
-    const { widthPercent, color } = block.rule
+    // 장식은 실제 요소로: 선의 조각(선분 · 점)을 표 칸으로 하나씩 그린다
+    const { color } = block.rule
+    const length = ruleLength(block.rule, contentWidth)
+    const t = block.rule.thickness ?? 1
+    const cells = lineSegments(length, block.rule.style, t)
+      .map((seg) =>
+        seg.on
+          ? `<td width="${seg.w}" height="${t}" bgcolor="${color}" style="${NO_BORDER}padding:0;width:${seg.w}px;height:${t}px;line-height:1px;font-size:1px;background-color:${color};">&nbsp;</td>`
+          : `<td width="${seg.w}" height="${t}" style="${NO_BORDER}padding:0;width:${seg.w}px;height:${t}px;line-height:1px;font-size:1px;">&nbsp;</td>`,
+      )
+      .join('')
     return (
-      `<table width="${widthPercent}%" ${TABLE_ATTRS} align="center" style="${TABLE_RESET}margin:${block.marginTop ?? 0}px auto ${block.marginBottom ?? 0}px;width:${widthPercent}%;">` +
-      `<tbody><tr><td height="1" bgcolor="${color}" style="${NO_BORDER}padding:0;height:1px;line-height:1px;font-size:1px;background-color:${color};">&nbsp;</td></tr></tbody></table>`
+      `<table width="${length}" ${TABLE_ATTRS} align="center" style="${TABLE_RESET}margin:${block.marginTop ?? 0}px auto ${block.marginBottom ?? 0}px;width:${length}px;max-width:100%;">` +
+      `<tbody><tr>${cells}</tr></tbody></table>`
     )
   }
   return ''
@@ -58,14 +68,14 @@ function blockHtml(block: LayoutBlock, align: Align): string {
 export function blockRoll20Html(layout: HandoutLayout): string {
   const rows = layout.rows
     .map((row) => {
-      if (row.blocks.length === 1) return blockHtml(row.blocks[0], layout.align)
+      if (row.blocks.length === 1) return blockHtml(row.blocks[0], layout.align, layout.contentWidth)
       // 2열: 왼쪽 너비 %(split) · 두 칸은 같은 높이(표 칸) · 내용은 세로 가운데 · 여백은 줄에 한 번
       const split = splitOf(row)
       const widths = [split, 100 - split]
       const cells = row.blocks
         .map(
           (b, i) =>
-            `<td width="${widths[i]}%" valign="middle" style="${NO_BORDER}padding:0 ${i === 0 ? 8 : 0}px 0 ${i === 0 ? 0 : 8}px;width:${widths[i]}%;vertical-align:middle;">${blockHtml(withoutMargins(b), layout.align)}</td>`,
+            `<td width="${widths[i]}%" valign="middle" style="${NO_BORDER}padding:0 ${i === 0 ? 8 : 0}px 0 ${i === 0 ? 0 : 8}px;width:${widths[i]}%;vertical-align:middle;">${blockHtml(withoutMargins(b), layout.align, layout.contentWidth)}</td>`,
         )
         .join('')
       const { top, bottom } = rowMargins(row)

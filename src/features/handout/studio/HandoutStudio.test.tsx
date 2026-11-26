@@ -472,7 +472,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.submit(screen.getByLabelText('구분선 색 HEX 코드'))
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(blockOf(saved().content, rule.dataset.blockId!)).toMatchObject({ rule: { widthPercent: 70, color: '#335577' } })
-    expect(rule.querySelector<HTMLElement>('.hc-rule')!.style.backgroundColor).toBe('rgb(51, 85, 119)')
+    expect(rule.querySelector<HTMLElement>('.hc-rule > span')!.style.background).toBe('rgb(51, 85, 119)')
 
     // 구분선 추가: 고른 구분선 아래 · 새 구분선 색은 템플릿 구분선 색
     fireEvent.click(screen.getByRole('button', { name: /구분선 추가/ }))
@@ -481,6 +481,32 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     const at = rows.findIndex((r) => r.blocks[0].id === rule.dataset.blockId)
     expect(rows[at + 1].blocks[0]).toMatchObject({ type: 'image', rule: { widthPercent: 100, color: '#335577' } })
     expect(screen.getByText('구분선 편집')).toBeInTheDocument()
+  })
+
+  it('구분선 편집: 길이(px, 10–내용 칸 너비) · 굵기(1–10px) · 스타일(실선 · 점선 · 1점 쇄선 · 2점 쇄선)', async () => {
+    const { saved } = await openStudio()
+    const rule = document.querySelector<HTMLElement>('.hb-canvas.editable [data-block-type="image"]')!
+    const id = rule.dataset.blockId!
+    fireEvent.pointerDown(rule)
+    // 달빛의 초대: 폭 430 − 틀 여백·테두리 = 내용 칸 346px (430 − 16·2 − 1·2 − 24·2 − 1·2), 템플릿 구분선은 70% → 242px
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('242')
+    expect(screen.getByLabelText('구분선 굵기 (px)')).toHaveValue('1')
+    expect(screen.getByRole('button', { name: /실선/ })).toHaveAttribute('aria-pressed', 'true')
+    vi.useFakeTimers()
+    const len = screen.getByLabelText('구분선 길이 (px)')
+    fireEvent.change(len, { target: { value: '999' } })
+    fireEvent.blur(len)
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('346')
+    fireEvent.click(screen.getByRole('button', { name: '구분선 굵게' }))
+    fireEvent.click(screen.getByRole('button', { name: /1점 쇄선/ }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 346, thickness: 2, style: 'dashdot' } })
+    const line = rule.querySelector<HTMLElement>('.hc-rule')!
+    expect(line.style.width).toBe('346px')
+    expect(line.style.height).toBe('2px')
+    expect(line.children.length).toBeGreaterThan(10)
+    // 고르기 쉽게 편집 화면에서만 위아래 영역을 넓힌다 (보이는 자리는 그대로)
+    expect(rule.style.paddingTop).toBe('12px')
   })
 
   it('이미지를 빼면 빈 이미지 블록(이미지 고르기)이 남는다', async () => {

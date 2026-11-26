@@ -1,7 +1,7 @@
 /**
  * 블록 → CSS. 편집 화면(React style)과 Roll20 복사(인라인 style 문자열)가 같은 값을 쓰도록 한 곳에서 계산한다.
  */
-import { BLOCK_FONT_STACK, type Align, type FrameBox, type ImageBlock, type TextBlockStyle } from './layout'
+import { BLOCK_FONT_STACK, type Align, type FrameBox, type TextBlockStyle } from './layout'
 import type { Css } from './styles'
 
 const px = (n: number) => `${n}px`
@@ -66,8 +66,9 @@ export function imageCss(): Css {
   }
 }
 
-export function ruleCss(rule: NonNullable<ImageBlock['rule']>): Css {
-  return { width: `${rule.widthPercent}%`, height: '1px', backgroundColor: rule.color, margin: '0 auto', fontSize: '0', lineHeight: '0' }
+/** 구분선 상자: 길이(px) · 굵기(px) · 가운데 (조각은 lineSegments 로 그린다) */
+export function ruleBoxCss(length: number, thickness: number): Css {
+  return { width: px(length), maxWidth: '100%', height: px(thickness), margin: '0 auto', display: 'flex', overflow: 'hidden', fontSize: '0', lineHeight: '0' }
 }
 
 /** 바깥 틀 한 겹 */

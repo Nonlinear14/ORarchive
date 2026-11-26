@@ -447,3 +447,41 @@
   color: #f4efe4;
   border-color: #213a35;
 }
+
+.rule-tools {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 6px;
+}
+
+.rule-tool-label {
+  font-size: 11.5px;
+  color: #5f6b66;
+}
+
+.rule-tools .size-stepper {
+  margin-left: 0;
+  justify-self: end;
+}
+
+.line-styles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.line-styles .btn {
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 4px;
+  font-size: 11px;
+}
+
+.line-styles .btn.active {
+  background: #213a35;
+  color: #f4efe4;
+  border-color: #213a35;
+}

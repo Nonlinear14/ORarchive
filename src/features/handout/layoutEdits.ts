@@ -8,7 +8,7 @@
 import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { HANDOUT_CONTENT_VERSION, isStructuredHandout } from './model'
-import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type TextBlockStyle } from './layout'
+import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type RuleSpec, type TextBlockStyle } from './layout'
 import { resolveHandout } from './templates'
 
 export type LayoutEdit = (stored: DocumentContent) => DocumentContent
@@ -88,7 +88,7 @@ export const setBlockImage = (id: string, patch: { url?: string; alt?: string; r
   patchBlock(id, (block) => assign(block, patch))
 
 /** 구분선 색 (rule.color) */
-export const setBlockRule = (id: string, patch: { color: string }): LayoutEdit =>
+export const setBlockRule = (id: string, patch: Partial<Pick<RuleSpec, 'color' | 'length' | 'thickness' | 'style'>>): LayoutEdit =>
   patchBlock(id, (block) => ({ ...block, rule: assign({ ...(isObject(block.rule) ? block.rule : {}) }, patch) }))
 
 function patchRow(rowId: string, patch: (row: JsonObject) => JsonObject): LayoutEdit {

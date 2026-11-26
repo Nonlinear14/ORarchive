@@ -1,6 +1,20 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Icon } from '../../../components/Icon'
-import { MAX_FONT_SIZE, MIN_FONT_SIZE, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from '../layout'
+import {
+  LINE_STYLES,
+  lineSegments,
+  MAX_FONT_SIZE,
+  MAX_THICKNESS,
+  MIN_FONT_SIZE,
+  MIN_RULE_LENGTH,
+  MIN_THICKNESS,
+  ruleLength,
+  type Align,
+  type HandoutLayout,
+  type LayoutBlock,
+  type LineStyle,
+  type TextBlock,
+} from '../layout'
 import { removeBlock, setBackground, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
 import { MAX_ALT_LENGTH, normalizeHex, validateImageUrl, type HandoutImage } from '../model'
 
@@ -95,10 +109,27 @@ function BackgroundSection({ layout, onEdit }: PanelProps) {
   )
 }
 
-function SizeStepper({ value, onChange }: { value: number; onChange(size: number): void }) {
+/** − 숫자 + (1px 단위, 범위 밖 값은 범위로 맞춘다) */
+function NumberStepper({
+  value,
+  min,
+  max,
+  label,
+  less,
+  more,
+  onChange,
+}: {
+  value: number
+  min: number
+  max: number
+  label: string
+  less: string
+  more: string
+  onChange(value: number): void
+}) {
   const id = useId()
   const [draft, setDraft] = useState(String(value))
-  const clamp = (n: number) => Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(n)))
+  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n)))
   const set = (n: number) => {
     const next = clamp(n)
     setDraft(String(next))
@@ -106,11 +137,11 @@ function SizeStepper({ value, onChange }: { value: number; onChange(size: number
   }
   return (
     <div className="size-stepper">
-      <button type="button" className="btn small icon-only" aria-label="글자 작게" disabled={value <= MIN_FONT_SIZE} onClick={() => set(value - 1)}>
+      <button type="button" className="btn small icon-only" aria-label={less} disabled={value <= min} onClick={() => set(value - 1)}>
         −
       </button>
       <label className="sr-only" htmlFor={id}>
-        글자 크기 (px)
+        {label}
       </label>
       <input
         id={id}
@@ -127,7 +158,7 @@ function SizeStepper({ value, onChange }: { value: number; onChange(size: number
         }}
       />
       <span className="size-unit">px</span>
-      <button type="button" className="btn small icon-only" aria-label="글자 크게" disabled={value >= MAX_FONT_SIZE} onClick={() => set(value + 1)}>
+      <button type="button" className="btn small icon-only" aria-label={more} disabled={value >= max} onClick={() => set(value + 1)}>
         +
       </button>
     </div>
@@ -180,7 +211,16 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
         >
           <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
         </button>
-        <SizeStepper key={`${block.id}:${style.size}`} value={style.size} onChange={(size) => onEdit(setBlockStyle(block.id, { size }))} />
+        <NumberStepper
+          key={`${block.id}:${style.size}`}
+          value={style.size}
+          min={MIN_FONT_SIZE}
+          max={MAX_FONT_SIZE}
+          label="글자 크기 (px)"
+          less="글자 작게"
+          more="글자 크게"
+          onChange={(size) => onEdit(setBlockStyle(block.id, { size }))}
+        />
       </div>
       <span className="field-label sub" id={`align-${block.id}`}>
         정렬
@@ -361,22 +401,91 @@ function ImageSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: '
   )
 }
 
-function RuleSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit, group?: string): void }) {
+const LINE_LABELS: Record<LineStyle, string> = { solid: '실선', dotted: '점선', dashdot: '1점 쇄선', dashdotdot: '2점 쇄선' }
+
+function LineIcon({ style }: { style: LineStyle }) {
+  const segs = lineSegments(36, style, 2)
+  const starts = segs.map((_, i) => segs.slice(0, i).reduce((sum, seg) => sum + seg.w, 0))
+  return (
+    <svg viewBox="0 0 36 4" width="36" height="4" aria-hidden="true">
+      {segs.map((seg, i) => (seg.on ? <rect key={i} x={starts[i]} y="1" width={seg.w} height="2" fill="currentColor" /> : null))}
+    </svg>
+  )
+}
+
+function RuleSection({
+  block,
+  contentWidth,
+  onEdit,
+}: {
+  block: Extract<LayoutBlock, { type: 'image' }>
+  contentWidth: number
+  onEdit(edit: LayoutEdit, group?: string): void
+}) {
   const rule = block.rule!
+  const current = rule.style ?? 'solid'
+  const length = ruleLength(rule, contentWidth)
+  const thickness = rule.thickness ?? 1
   return (
     <div className="panel-section">
       <span className="field-label">구분선 편집</span>
       <span className="field-label sub">선 색</span>
       <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }), `rule:${block.id}`)} />
+      <span className="field-label sub">길이 · 굵기</span>
+      <div className="rule-tools">
+        <span className="rule-tool-label">길이</span>
+        <NumberStepper
+          key={`${block.id}:len:${length}`}
+          value={length}
+          min={MIN_RULE_LENGTH}
+          max={contentWidth}
+          label="구분선 길이 (px)"
+          less="구분선 짧게"
+          more="구분선 길게"
+          onChange={(value) => onEdit(setBlockRule(block.id, { length: value }))}
+        />
+        <span className="rule-tool-label">굵기</span>
+        <NumberStepper
+          key={`${block.id}:t:${thickness}`}
+          value={thickness}
+          min={MIN_THICKNESS}
+          max={MAX_THICKNESS}
+          label="구분선 굵기 (px)"
+          less="구분선 얇게"
+          more="구분선 굵게"
+          onChange={(value) => onEdit(setBlockRule(block.id, { thickness: value }))}
+        />
+      </div>
+      <span className="field-label sub" id={`line-${block.id}`}>
+        스타일
+      </span>
+      <div className="line-styles" role="group" aria-labelledby={`line-${block.id}`}>
+        {LINE_STYLES.map((style) => {
+          const active = style === current
+          return (
+            <button
+              key={style}
+              type="button"
+              className={active ? 'btn small active' : 'btn small'}
+              aria-pressed={active}
+              title={LINE_LABELS[style]}
+              onClick={() => !active && onEdit(setBlockRule(block.id, { style }))}
+            >
+              <LineIcon style={style} />
+              <span>{LINE_LABELS[style]}</span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
 /** 고른 블록에 맞는 편집 옵션: 글상자 · 이미지 · 구분선 */
-function EditSection({ selected, onEdit }: PanelProps) {
+function EditSection({ selected, layout, onEdit }: PanelProps) {
   if (selected?.type === 'text') return <TextSection block={selected} onEdit={onEdit} />
   if (selected?.type === 'image') {
-    if (selected.rule && !selected.url) return <RuleSection block={selected} onEdit={onEdit} />
+    if (selected.rule && !selected.url) return <RuleSection block={selected} contentWidth={layout.contentWidth} onEdit={onEdit} />
     return <ImageSection block={selected} onEdit={onEdit} />
   }
   return (
