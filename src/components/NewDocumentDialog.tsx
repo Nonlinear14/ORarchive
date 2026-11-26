@@ -73,7 +73,7 @@ export function NewDocumentDialog({ initialType = 'handout', onClose }: NewDocum
           <p className="field-help">
             ‘{getTemplate('moonlit').name}’ 템플릿으로 시작해요. 스튜디오에서 언제든 바꿀 수 있어요.{' '}
             <Link to="/templates" className="text-link">
-              템플릿 갤러리에서 고르기 <Icon name="arrow" />
+              템플릿 아카이브에서 고르기 <Icon name="arrow" />
             </Link>
           </p>
         )}

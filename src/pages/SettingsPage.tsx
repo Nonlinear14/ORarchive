@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Icon } from '../components/Icon'
 import { PageHeading } from '../components/PageHeading'
 import { useAuth } from '../lib/auth/context'
+import { setTheme, useTheme } from '../lib/theme'
 import { NICKNAME_MAX, avatarUrl, displayName, validateNickname } from '../lib/auth/helpers'
 import './SettingsPage.css'
 
@@ -92,6 +93,36 @@ function AccountCard() {
   )
 }
 
+/** 모바일에서는 사이드바가 없어서 여기서도 테마를 바꿀 수 있게 한다 */
+function ThemeCard() {
+  const theme = useTheme()
+  return (
+    <section className="settings-card">
+      <h3>화면 모드</h3>
+      <p>이 기기에서만 적용돼요.</p>
+      <div className="segmented" role="radiogroup" aria-label="화면 모드">
+        {(
+          [
+            ['light', '라이트모드'],
+            ['dark', '다크모드'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            className={theme === value ? 'active' : ''}
+            onClick={() => setTheme(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function SyncCard() {
   return (
     <section className="settings-card">
@@ -166,12 +197,13 @@ export function SettingsPage() {
     <>
       <PageHeading
         title="계정 설정"
-        eyebrow="ACCOUNT / SETTINGS"
+        eyebrow="SETTING / ACCOUNT"
         description="프로필, 로그인 연결, 기기 간 동기화 상태를 확인하세요."
       />
       <div className="settings-grid">
         <ProfileCard />
         <AccountCard />
+        <ThemeCard />
         <SyncCard />
         <DangerCard />
       </div>

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { DeletedRecovery } from '../../../components/document/DeletedRecovery'
 import '../../../components/document/DocumentEditor.css'
@@ -9,7 +9,9 @@ import { SaveStatusChip } from '../../../components/SaveStatusChip'
 import { Toast } from '../../../components/Toast'
 import type { DocumentDraft, DocumentRecord } from '../../../lib/documents'
 import type { SaveStatus } from '../../../lib/documentSync'
+import { useAuth } from '../../../lib/auth/context'
 import { formatRelativeTime } from '../../../lib/format'
+import { recordRecentView } from '../../../lib/recentViews'
 import { useDocument } from '../../../lib/useDocument'
 import { useToast } from '../../../lib/useToast'
 import { NotFoundPage } from '../../../pages/NotFoundPage'
@@ -77,7 +79,7 @@ function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, c
       <title>{`${draft.title || '제목 없음'} · 핸드아웃 스튜디오 · FOLIO`}</title>
       <div className="editor-header">
         <div className="doc-title-wrap">
-          <div className="eyebrow">STUDIO / HANDOUT DESIGNER</div>
+          <div className="eyebrow">STUDIO / TEMPLATE EDITOR</div>
           <label className="sr-only" htmlFor="doc-title">
             문서 제목
           </label>
@@ -166,6 +168,12 @@ function HandoutStudio({ docId }: { docId: string }) {
   // 저장된 content(draft.content)가 기준이다. 보기는 그것을 검사·정규화해 그릴 때만 쓴다
   const stored = draft?.content
   const content = useMemo(() => (stored ? resolveHandout(stored) : null), [stored])
+  const { user } = useAuth()
+  const openedId = phase === 'ready' && doc?.type === 'handout' ? doc.id : null
+  // 홈 화면 "최근 조회한 템플릿" 기록 (이 기기에만)
+  useEffect(() => {
+    if (user && openedId) recordRecentView(user.id, openedId, 'handout')
+  }, [user, openedId])
 
   if (phase === 'loading') return <LoadingState label="핸드아웃을 불러오는 중…" />
   if (phase === 'notfound') return <NotFoundPage />

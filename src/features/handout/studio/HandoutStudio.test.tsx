@@ -663,7 +663,7 @@ describe('템플릿 갤러리 · 보관함 연결', () => {
   it('분류 필터와 "이 템플릿으로 시작" → 핸드아웃 생성 후 스튜디오', async () => {
     const fake = createFakeSupabase()
     renderApp('/templates', { client: fake.client })
-    expect(await screen.findByRole('heading', { level: 1, name: '템플릿 갤러리' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '핸드아웃 템플릿' })).toBeInTheDocument()
     expect(screen.getAllByRole('article')).toHaveLength(4)
 
     fireEvent.click(screen.getByRole('button', { name: '미스터리' }))
@@ -696,7 +696,7 @@ describe('템플릿 갤러리 · 보관함 연결', () => {
     const fake = createFakeSupabase()
     renderApp('/library?new=handout', { client: fake.client })
     const dialog = await screen.findByRole('dialog', { name: '새 문서' })
-    expect(within(dialog).getByRole('link', { name: /템플릿 갤러리에서 고르기/ })).toHaveAttribute('href', '/templates')
+    expect(within(dialog).getByRole('link', { name: /템플릿 아카이브에서 고르기/ })).toHaveAttribute('href', '/templates')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     await screen.findByRole('group', { name: '핸드아웃 캔버스' })

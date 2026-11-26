@@ -1,6 +1,8 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { createFakeSupabase } from '../test/fakeSupabase'
+import { newHandoutDocument } from '../features/handout/templates'
+import { readRecentViews, recordRecentView } from '../lib/recentViews'
 import { renderApp } from '../test/renderApp'
 
 function seeded() {
@@ -12,23 +14,65 @@ function seeded() {
   return fake
 }
 
-describe('대시보드', () => {
-  it('내 문서 수를 유형별로 세고 최근 문서를 보여준다 (삭제 문서 제외)', async () => {
-    renderApp('/', { client: seeded().client })
+describe('홈', () => {
+  it('최근에 연 핸드아웃 4개만 최근 연 순서로 보여 준다 (삭제·다른 종류 제외)', async () => {
+    const fake = createFakeSupabase()
+    const ids = ['하나', '둘', '셋', '넷', '다섯'].map(
+      (title) => fake.control.insertDocument({ type: 'handout', title, content: newHandoutDocument().content }).id,
+    )
+    const gone = fake.control.insertDocument({ type: 'handout', title: '지운 핸드아웃', deleted_at: '2026-11-01T00:00:00Z' })
+    const log = fake.control.insertDocument({ type: 'log', title: '세션 로그' })
+    ids.forEach((id, i) => recordRecentView('user-1', id, 'handout', 1000 + i))
+    recordRecentView('user-1', gone.id, 'handout', 5000)
+    recordRecentView('user-1', log.id, 'handout', 6000)
 
-    expect(await screen.findByLabelText('전체 문서 3개')).toBeInTheDocument()
-    expect(screen.getByLabelText('핸드아웃 2개')).toBeInTheDocument()
-    expect(screen.getByLabelText('세션 로그 1개')).toBeInTheDocument()
-    expect(screen.getByLabelText('캐릭터 시트 0개')).toBeInTheDocument()
-    expect(screen.getByRole('table', { name: '문서 목록' })).toHaveTextContent('저택의 세 번째 밤')
-    expect(screen.queryByText('삭제된 캐릭터')).not.toBeInTheDocument()
+    renderApp('/', { client: fake.client })
+
+    const section = await screen.findByRole('region', { name: '템플릿 아카이브' })
+    await waitFor(() => expect(within(section).getAllByRole('link', { name: / 열기$/ })).toHaveLength(4))
+    const names = within(section)
+      .getAllByRole('link', { name: / 열기$/ })
+      .map((link) => link.getAttribute('aria-label'))
+    expect(names).toEqual(['다섯 열기', '넷 열기', '셋 열기', '둘 열기'])
+    expect(within(section).getByRole('link', { name: '다섯 열기' })).toHaveAttribute('href', `/studio/handout/${ids[4]}`)
+    expect(within(section).queryByText('지운 핸드아웃')).not.toBeInTheDocument()
   })
 
-  it('문서가 없으면 빈 상태를 보여준다', async () => {
+  it('에디터 2분할 버튼과 빈 상태를 보여준다', async () => {
     renderApp('/', { client: createFakeSupabase().client })
 
-    expect(await screen.findByText('아직 만든 문서가 없어요.')).toBeInTheDocument()
-    expect(screen.getByLabelText('전체 문서 0개')).toBeInTheDocument()
+    expect(await screen.findByText('아직 열어 본 템플릿이 없어요.')).toBeInTheDocument()
+    expect(screen.getByText('아직 캐릭터가 없어요.')).toBeInTheDocument()
+    const launch = screen.getByRole('region', { name: '에디터 바로가기' })
+    expect(within(launch).getByRole('link', { name: /템플릿 에디터/ })).toHaveAttribute('href', '/studio/handout')
+    expect(within(launch).getByRole('link', { name: /로그 에디터/ })).toHaveAttribute('href', '/studio/log/roll20')
+  })
+
+  it('핸드아웃을 열면 최근 조회에 기록된다', async () => {
+    const fake = createFakeSupabase()
+    const doc = fake.control.insertDocument({ type: 'handout', title: '달빛 초대장', content: newHandoutDocument().content })
+    renderApp(`/studio/handout/${doc.id}`, { client: fake.client })
+
+    await screen.findByRole('textbox', { name: '문서 제목' })
+    await waitFor(() => expect(readRecentViews('user-1').map((v) => v.id)).toEqual([doc.id]))
+  })
+})
+
+describe('화면 모드', () => {
+  it('사이드바 토글로 다크모드를 켜고 끈다 (이 기기에 기억)', async () => {
+    renderApp('/settings', { client: createFakeSupabase().client })
+
+    const toggle = await screen.findByRole('switch', { name: /라이트모드\/다크모드/ })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(localStorage.getItem('folio-theme')).toBe('dark')
+    // 설정 화면의 선택도 같이 바뀐다
+    expect(screen.getByRole('radio', { name: '다크모드' })).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(screen.getByRole('radio', { name: '라이트모드' }))
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    expect(document.documentElement.dataset.theme).toBe('light')
   })
 })
 

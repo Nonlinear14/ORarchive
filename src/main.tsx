@@ -5,6 +5,7 @@ import { App } from './App'
 import { AuthProvider } from './lib/auth/AuthProvider'
 import './styles/tokens.css'
 import './styles/base.css'
+import './styles/theme-dark.css'
 
 const root = document.getElementById('root')
 if (!root) throw new Error('#root 요소를 찾을 수 없습니다.')

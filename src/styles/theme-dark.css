@@ -1,0 +1,317 @@
+/*
+ * 다크 모드. <html data-theme="dark"> 일 때만 적용된다 (src/lib/theme.ts).
+ * 1) 토큰을 어둡게 바꾸고, 2) 색을 직접 적어 둔 화면 요소를 여기서 덮어쓴다.
+ * 핸드아웃 캔버스(문서 자체)는 실제 출력과 같아야 하므로 건드리지 않는다.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #e6e1d6;
+  --ink2: #cfc8b8;
+  --paper: #10191d;
+  --canvas: #18242a;
+  --card: #1a272d;
+  --line: #2a3a40;
+  --line-strong: #3a4c52;
+  --slate: #93a19f;
+  --muted: #8f9c98;
+  --shadow: 0 9px 25px rgba(0, 0, 0, 0.25), 0 2px 5px rgba(0, 0, 0, 0.2);
+  --heading-ink: #ece5d8;
+  --eyebrow: #c4a276;
+
+  --side-bg: #0c1418;
+  --side-line: #1f2c31;
+  --side-hover: #1a2a30;
+  --side-active: #233a40;
+  --side-card: #16232a;
+
+  --d-surface: #1a272d;
+  --d-surface2: #213038;
+  --d-hover: #24353c;
+  --d-border: #2e3f45;
+  --d-text: #d9d4c8;
+  --d-text-strong: #efe8da;
+  --d-text-muted: #8f9c98;
+}
+
+:root[data-theme='dark'] body {
+  color: var(--d-text);
+}
+
+:root[data-theme='dark'] .sidebar {
+  border-right-color: #1c292e;
+}
+
+/* 공통 컴포넌트 */
+:root[data-theme='dark'] .muted,
+:root[data-theme='dark'] .heading p,
+:root[data-theme='dark'] .section-top p,
+:root[data-theme='dark'] .field-help,
+:root[data-theme='dark'] .empty,
+:root[data-theme='dark'] .loading-state,
+:root[data-theme='dark'] .crumbs {
+  color: var(--d-text-muted);
+}
+
+:root[data-theme='dark'] .section-top h2,
+:root[data-theme='dark'] .crumbs strong,
+:root[data-theme='dark'] .mobile-brand {
+  color: var(--d-text-strong);
+}
+
+:root[data-theme='dark'] .field-label {
+  color: #a9b4b0;
+}
+
+:root[data-theme='dark'] .text-link {
+  color: #d0b083;
+}
+
+:root[data-theme='dark'] .btn {
+  background: var(--d-surface2);
+  border-color: var(--d-border);
+  color: var(--d-text);
+}
+
+:root[data-theme='dark'] .btn.primary {
+  background: #c4a276;
+  border-color: #c4a276;
+  color: #18242a;
+}
+
+:root[data-theme='dark'] .btn.danger {
+  background: #3a2422;
+  border-color: #5a3330;
+  color: #e3a39d;
+}
+
+:root[data-theme='dark'] .btn.danger.solid {
+  background: #b0625c;
+  border-color: #b0625c;
+  color: #fff9f6;
+}
+
+:root[data-theme='dark'] .tag {
+  background: var(--d-surface2);
+  border-color: var(--d-border);
+  color: #a9b4b0;
+}
+
+:root[data-theme='dark'] .tag.gold,
+:root[data-theme='dark'] .pending-trigger {
+  background: #33291c;
+  border-color: #4f3f29;
+  color: #d8b783;
+}
+
+:root[data-theme='dark'] .tag.good {
+  background: #1c3229;
+  border-color: #2a4a3c;
+  color: #86c2a4;
+}
+
+:root[data-theme='dark'] .tag.red,
+:root[data-theme='dark'] .pending-trigger.danger {
+  background: #3a2422;
+  border-color: #5a3330;
+  color: #e3a39d;
+}
+
+:root[data-theme='dark'] .field-input,
+:root[data-theme='dark'] .field-textarea,
+:root[data-theme='dark'] .searchbar,
+:root[data-theme='dark'] .search-trigger {
+  background: #132026;
+  border-color: var(--d-border);
+  color: var(--d-text);
+}
+
+:root[data-theme='dark'] .callout {
+  background: #2a241a;
+  border-color: #453a28;
+  color: #d4bd98;
+}
+
+:root[data-theme='dark'] .callout.danger {
+  background: #3a2422;
+  border-color: #5a3330;
+  color: #e8aaa3;
+}
+
+:root[data-theme='dark'] .filter {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+  color: #a9b4b0;
+}
+
+:root[data-theme='dark'] .filter.active,
+:root[data-theme='dark'] .type-option.active {
+  background: #c4a276;
+  border-color: #c4a276;
+  color: #18242a;
+}
+
+:root[data-theme='dark'] .segmented {
+  background: #132026;
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .segmented button {
+  color: #93a09c;
+}
+
+:root[data-theme='dark'] .segmented button.active {
+  background: var(--d-hover);
+  color: var(--d-text-strong);
+}
+
+:root[data-theme='dark'] ::selection {
+  background: #5b4a30;
+}
+
+/* 상단 바 · 모바일 내비 */
+:root[data-theme='dark'] .topbar {
+  background: rgba(16, 25, 29, 0.93);
+}
+
+:root[data-theme='dark'] .key {
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .iconbtn {
+  background: var(--d-surface);
+  color: #b3bfbb;
+}
+
+:root[data-theme='dark'] .iconbtn:hover,
+:root[data-theme='dark'] .row-icon:hover {
+  background: var(--d-hover);
+}
+
+:root[data-theme='dark'] .mobile-nav {
+  background: #10191def;
+  border-top-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .mobile-nav a {
+  color: #8f9c98;
+}
+
+:root[data-theme='dark'] .mobile-nav a.active {
+  color: #d8b783;
+}
+
+/* 카드형 표면 */
+:root[data-theme='dark'] .library-list,
+:root[data-theme='dark'] .settings-card,
+:root[data-theme='dark'] .template-card,
+:root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .doc-body,
+:root[data-theme='dark'] .doc-title:focus,
+:root[data-theme='dark'] .profile-pop,
+:root[data-theme='dark'] .pending-pop,
+:root[data-theme='dark'] .modal-card,
+:root[data-theme='dark'] .coming-soon-mark {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .list-head {
+  background: var(--d-surface2);
+  color: var(--d-text-muted);
+}
+
+:root[data-theme='dark'] .list-row {
+  color: #9aa6a2;
+  border-bottom-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .list-row:hover,
+:root[data-theme='dark'] .profile-pop-item:hover,
+:root[data-theme='dark'] .pending-row:hover {
+  background: var(--d-hover);
+}
+
+:root[data-theme='dark'] .item-title,
+:root[data-theme='dark'] .template-info strong,
+:root[data-theme='dark'] .profile-pop-head strong,
+:root[data-theme='dark'] .pending-link strong,
+:root[data-theme='dark'] .coming-soon strong,
+:root[data-theme='dark'] .modal-card h2,
+:root[data-theme='dark'] .panel-top h2,
+:root[data-theme='dark'] .profile-pop-item {
+  color: var(--d-text-strong);
+}
+
+:root[data-theme='dark'] .item-square {
+  background: #33291c;
+  color: #d8b783;
+}
+
+:root[data-theme='dark'] .item-square.log {
+  background: #1d3135;
+  color: #8fb8b3;
+}
+
+:root[data-theme='dark'] .item-square.char {
+  background: #2c2533;
+  color: #b9a8cc;
+}
+
+:root[data-theme='dark'] .row-icon,
+:root[data-theme='dark'] .template-info small,
+:root[data-theme='dark'] .template-info p,
+:root[data-theme='dark'] .settings-card p,
+:root[data-theme='dark'] .connected small,
+:root[data-theme='dark'] .profile-pop-head small,
+:root[data-theme='dark'] .pending-link small,
+:root[data-theme='dark'] .pending-pop-head,
+:root[data-theme='dark'] .coming-soon p,
+:root[data-theme='dark'] .modal-card p,
+:root[data-theme='dark'] .confirm-message,
+:root[data-theme='dark'] .editor-header p,
+:root[data-theme='dark'] .canvas-tools,
+:root[data-theme='dark'] .canvas-footer,
+:root[data-theme='dark'] .panel-top {
+  color: var(--d-text-muted);
+}
+
+:root[data-theme='dark'] .coming-soon {
+  background: #152126;
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .modal-x {
+  background: var(--d-surface2);
+  color: #b3bfbb;
+}
+
+:root[data-theme='dark'] .type-option,
+:root[data-theme='dark'] .template-option {
+  background: #132026;
+  border-color: var(--d-border);
+  color: var(--d-text);
+}
+
+:root[data-theme='dark'] .template-option.active {
+  background: #2a241a;
+  border-color: #a78960;
+}
+
+:root[data-theme='dark'] .swatch-default {
+  background: var(--d-surface2);
+  color: #d4bd98;
+}
+
+/* 핸드아웃 편집 작업대 (캔버스 둘레만 어둡게) */
+:root[data-theme='dark'] .preview-workspace {
+  background: #141f24;
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .edit-hint {
+  color: #d4bd98;
+}
+
+:root[data-theme='dark'] .doc-recover .doc-text[readonly] {
+  background: #132026;
+}

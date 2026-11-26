@@ -12,7 +12,7 @@ export function NotFoundPage() {
         description="주소가 바뀌었거나 아직 만들어지지 않은 페이지예요."
         action={
           <Link to="/" className="btn primary">
-            대시보드로 <Icon name="arrow" />
+            홈으로 <Icon name="arrow" />
           </Link>
         }
       />

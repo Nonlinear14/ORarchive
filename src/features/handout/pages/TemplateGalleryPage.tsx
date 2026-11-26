@@ -52,7 +52,7 @@ function TemplateCard({ template, busy, disabled, onStart }: {
   )
 }
 
-/** /templates — 기본 템플릿 갤러리. 고르면 그 템플릿으로 핸드아웃을 만들어 스튜디오를 연다 */
+/** /templates — 템플릿 아카이브 > 핸드아웃 (기본 템플릿 갤러리). 고르면 그 템플릿으로 핸드아웃을 만들어 스튜디오를 연다 */
 export default function TemplateGalleryPage() {
   const [filter, setFilter] = useState<Filter>('전체')
   const { create, busy, error } = useCreateHandout()
@@ -61,7 +61,8 @@ export default function TemplateGalleryPage() {
   return (
     <>
       <PageHeading
-        title="템플릿 갤러리"
+        title="핸드아웃 템플릿"
+        eyebrow="TEMPLATE ARCHIVE / HANDOUT"
         description="취향에 맞는 디자인을 골라 내 핸드아웃으로 시작해 보세요."
         action={
           <Link to="/studio/handout" className="btn">

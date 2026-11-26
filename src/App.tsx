@@ -1,11 +1,11 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Route, Routes } from 'react-router'
+import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from './components/AppShell'
 import { LoadingState } from './components/LoadingState'
 import { RequireAuth } from './components/RequireAuth'
 import { AuthRedirects } from './lib/auth/AuthRedirects'
 import { PendingSyncProvider } from './lib/sync/PendingSyncProvider'
-import { DashboardPage } from './pages/DashboardPage'
+import { HomePage } from './pages/HomePage'
 import { DocumentPage } from './pages/DocumentPage'
 import { LibraryPage } from './pages/LibraryPage'
 import { LoginPage } from './pages/LoginPage'
@@ -34,13 +34,15 @@ export function App() {
         <Route element={<AppShell />}>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
-            <Route index element={<DashboardPage />} />
+            <Route index element={<HomePage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/documents/:id" element={<DocumentPage />} />
             <Route path="/templates" element={<Lazy><TemplateGalleryPage /></Lazy>} />
             <Route path="/studio/handout" element={<Lazy><HandoutListPage /></Lazy>} />
             <Route path="/studio/handout/:id" element={<Lazy><HandoutStudioPage /></Lazy>} />
+            {/* 예전 주소 */}
+            <Route path="/studio/log" element={<Navigate to="/studio/log/roll20" replace />} />
             {navRoutes
               .filter((route) => !implemented.has(route.path))
               .map((route) => (

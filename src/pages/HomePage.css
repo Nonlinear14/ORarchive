@@ -1,0 +1,178 @@
+/* 홈: 최근 템플릿 · 에디터 2분할 · 최근 캐릭터 */
+.home-section {
+  margin-bottom: 30px;
+}
+
+.recent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.recent-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 13px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: 0.16s;
+  color: inherit;
+}
+
+.recent-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px #242e2e18;
+}
+
+.recent-card .template-preview {
+  height: 190px;
+  --tp-scale: 0.42;
+}
+
+.recent-card.skeleton {
+  height: 250px;
+  background: linear-gradient(100deg, var(--card) 30%, var(--canvas) 50%, var(--card) 70%);
+  background-size: 300% 100%;
+  animation: recent-shimmer 1.4s infinite linear;
+}
+
+@keyframes recent-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+.recent-preview-empty {
+  height: 190px;
+  display: grid;
+  place-items: center;
+  background: var(--canvas);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.recent-info {
+  padding: 12px 14px 14px;
+  min-width: 0;
+}
+
+.recent-info strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--heading-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-info small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.recent-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 13px;
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.9;
+  background: var(--card);
+}
+
+/* 에디터 2분할 버튼 */
+.editor-launch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.launch-tile {
+  position: relative;
+  min-height: 168px;
+  border-radius: 16px;
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  color: #f4ecdf;
+  box-shadow: var(--shadow);
+  transition: 0.17s;
+}
+
+.launch-tile::after {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -80px;
+  top: -110px;
+  border: 1px solid #ffffff22;
+  border-radius: 50%;
+}
+
+.launch-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px #17242a30;
+}
+
+.launch-template {
+  background: linear-gradient(120deg, #1b2d32, #294340 76%, #304a42);
+}
+
+.launch-log {
+  background: linear-gradient(120deg, #3a2f28, #5b4836 76%, #6a543c);
+}
+
+.launch-kicker {
+  font: 11px Georgia, serif;
+  letter-spacing: 3px;
+  color: #d3bd98;
+}
+
+.launch-tile strong {
+  font: normal 26px/1.3 var(--font-serif);
+  letter-spacing: -0.8px;
+}
+
+.launch-desc {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #d5d9d2;
+  max-width: 340px;
+}
+
+.launch-go {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ead7b4;
+}
+
+@media (max-width: 1050px) {
+  .recent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 750px) {
+  .editor-launch {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-tile {
+    min-height: 140px;
+  }
+}

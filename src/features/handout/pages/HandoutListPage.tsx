@@ -5,7 +5,7 @@ import { LoadingState } from '../../../components/LoadingState'
 import { PageHeading } from '../../../components/PageHeading'
 import { useMyDocuments } from '../../../lib/useMyDocuments'
 
-/** /studio/handout — 내 핸드아웃 목록. 새 핸드아웃은 템플릿 갤러리에서 시작한다 */
+/** /studio/handout — 템플릿 에디터: 내 핸드아웃 목록. 새 핸드아웃은 템플릿 아카이브에서 시작한다 */
 export default function HandoutListPage() {
   const { status, docs, error, reload } = useMyDocuments()
   const handouts = docs.filter((doc) => doc.type === 'handout')
@@ -13,8 +13,8 @@ export default function HandoutListPage() {
   return (
     <>
       <PageHeading
-        title="핸드아웃 스튜디오"
-        eyebrow="STUDIO / HANDOUT DESIGNER"
+        title="템플릿 에디터"
+        eyebrow="STUDIO / TEMPLATE EDITOR"
         description="캔버스의 글자를 직접 클릭해 수정하고, 완성된 디자인을 Roll20 핸드아웃에 바로 붙여넣어 보세요."
         action={
           <Link to="/templates" className="btn primary">
@@ -48,7 +48,7 @@ export default function HandoutListPage() {
             아직 만든 핸드아웃이 없어요.
             <br />
             <Link to="/templates" className="text-link">
-              템플릿 갤러리에서 시작하기 <Icon name="arrow" />
+              템플릿 아카이브에서 시작하기 <Icon name="arrow" />
             </Link>
           </div>
         ))}

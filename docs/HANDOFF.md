@@ -28,6 +28,11 @@
 7. 이미지 주소 검사가 사설·루프백 IP도 허용합니다(`model.ts` `validateImageUrl`).
 8. 강조 색 입력칸의 `maxLength=7` 때문에 앞에 공백이 붙은 값을 붙여 넣으면 잘립니다.
 
+**사이드바·홈 개편 (브랜치 `redesign/sidebar-home`, 사용자 확인 대기)**
+- 메뉴: 템플릿 아카이브(핸드아웃 `/templates`, Roll20 코드 `/templates/roll20`) · 템플릿 에디터(`/studio/handout`) · 로그 에디터(Roll20 `/studio/log/roll20`, 코코포리아 `/studio/log/ccfolia`) · 캐릭터 아카이브(`/characters`) · Setting(계정 설정, 라이트/다크 토글). WORKSPACE 묶음(대시보드·내 프로젝트·내 보관함)은 메뉴에서 뺐습니다. `/library` 화면은 주소로 계속 열립니다.
+- 홈(`/`): 최근 연 템플릿 4개(핸드아웃+Roll20 코드) · 에디터 2분할 버튼 · 최근 연 캐릭터 4개. 최근 조회 기록은 기기별 localStorage(`src/lib/recentViews.ts`), 서버에 저장하지 않습니다. 캐릭터·Roll20 코드 화면을 만들 때 `recordRecentView`를 호출해야 홈에 나옵니다.
+- 다크 모드: `src/lib/theme.ts` + `src/styles/theme-dark.css`. 새 화면을 만들 때 색을 직접 적었다면 다크 모드 덮어쓰기도 추가합니다.
+
 ## 2. 주요 주소와 계정
 | 항목 | 주소 | 비고 |
 |---|---|---|

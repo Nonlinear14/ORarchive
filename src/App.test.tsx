@@ -11,9 +11,29 @@ describe('앱 셸', () => {
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
     expect(screen.getAllByText('FOLIO').length).toBeGreaterThan(0)
     expect(screen.getByText('TRPG WORKSPACE')).toBeInTheDocument()
-    for (const group of ['WORKSPACE', 'CREATIVE STUDIO', 'ACCOUNT']) {
-      expect(within(sidebar).getByText(group)).toBeInTheDocument()
+    for (const section of ['템플릿 아카이브', '템플릿 에디터', '로그 에디터', '캐릭터 아카이브', 'Setting']) {
+      expect(within(sidebar).getByText(section)).toBeInTheDocument()
     }
+    // 예전 WORKSPACE 묶음은 없다
+    for (const removed of ['대시보드', '내 프로젝트', '내 보관함', 'WORKSPACE']) {
+      expect(within(sidebar).queryByText(removed)).not.toBeInTheDocument()
+    }
+    // 하위 메뉴는 각각 링크
+    for (const [name, href] of [
+      ['핸드아웃', '/templates'],
+      ['Roll20 코드', '/templates/roll20'],
+      ['템플릿 에디터', '/studio/handout'],
+      ['Roll20 로그 편집', '/studio/log/roll20'],
+      ['코코포리아 로그 편집', '/studio/log/ccfolia'],
+      ['캐릭터 아카이브', '/characters'],
+      ['계정 설정', '/settings'],
+    ]) {
+      expect(within(sidebar).getByRole('link', { name })).toHaveAttribute('href', href)
+    }
+    // 하위 메뉴가 있는 상위 메뉴 제목은 링크가 아니다
+    expect(within(sidebar).queryByRole('link', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
+    expect(within(sidebar).queryByRole('link', { name: '로그 에디터' })).not.toBeInTheDocument()
+    expect(within(sidebar).getByRole('switch', { name: /라이트모드\/다크모드/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '알림' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: '모바일 메뉴' }).querySelectorAll('a')).toHaveLength(5)
@@ -25,28 +45,37 @@ describe('앱 셸', () => {
 })
 
 describe('라우트 (로그인 상태)', () => {
-  const cases: [string, string][] = [
-    ['/', '대시보드'],
-    ['/projects', '내 프로젝트'],
-    ['/library', '내 보관함'],
-    ['/templates', '템플릿 갤러리'],
-    ['/studio/handout', '핸드아웃 스튜디오'],
-    ['/studio/log', '로그 스튜디오'],
-    ['/characters', '캐릭터 시트'],
-    ['/settings', '계정 설정'],
+  // [경로, 화면 제목, 브레드크럼, 사이드바에서 활성화되는 메뉴(없으면 null)]
+  const cases: [string, string, string, string | null][] = [
+    ['/', '홈', '홈', null],
+    ['/library', '내 보관함', '내 보관함', null],
+    ['/templates', '핸드아웃 템플릿', '핸드아웃', '핸드아웃'],
+    ['/templates/roll20', 'Roll20 코드', 'Roll20 코드', 'Roll20 코드'],
+    ['/studio/handout', '템플릿 에디터', '템플릿 에디터', '템플릿 에디터'],
+    ['/studio/log/roll20', 'Roll20 로그 편집', 'Roll20 로그 편집', 'Roll20 로그 편집'],
+    ['/studio/log/ccfolia', '코코포리아 로그 편집', '코코포리아 로그 편집', '코코포리아 로그 편집'],
+    ['/characters', '캐릭터 아카이브', '캐릭터 아카이브', '캐릭터 아카이브'],
+    ['/settings', '계정 설정', '계정 설정', '계정 설정'],
   ]
 
-  it.each(cases)('%s → "%s" 제목·브레드크럼·활성 메뉴', async (path, label) => {
+  it.each(cases)('%s → "%s" 제목·브레드크럼·활성 메뉴', async (path, heading, crumb, activeLabel) => {
     const { client } = createFakeSupabase()
     renderApp(path, { client })
 
-    expect(await screen.findByRole('heading', { level: 1, name: label })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
     const crumbs = screen.getByRole('navigation', { name: '현재 위치' })
-    expect(within(crumbs).getByText(label)).toBeInTheDocument()
+    expect(within(crumbs).getByText(crumb)).toBeInTheDocument()
 
     const sidebar = screen.getByRole('navigation', { name: '주 메뉴' })
-    const active = within(sidebar).getByRole('link', { current: 'page' })
-    expect(active).toHaveTextContent(label)
+    if (activeLabel) expect(within(sidebar).getByRole('link', { current: 'page' })).toHaveTextContent(activeLabel)
+    else expect(within(sidebar).queryByRole('link', { current: 'page' })).not.toBeInTheDocument()
+  })
+
+  it('예전 /studio/log 주소는 Roll20 로그 편집으로 보낸다', async () => {
+    const { client } = createFakeSupabase()
+    renderApp('/studio/log', { client })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Roll20 로그 편집' })).toBeInTheDocument()
   })
 
   it('알 수 없는 경로는 404 페이지를 보여준다 (로그인 불필요)', async () => {
@@ -113,8 +142,8 @@ describe('basename="/ORarchive" (GitHub Pages)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: '내 보관함' })).toBeInTheDocument()
     const sidebar = screen.getByRole('navigation', { name: '주 메뉴' })
-    expect(within(sidebar).getByRole('link', { name: /대시보드/ })).toHaveAttribute('href', '/ORarchive')
-    expect(within(sidebar).getByRole('link', { name: /내 보관함/ })).toHaveAttribute('href', '/ORarchive/library')
+    expect(screen.getAllByRole('link', { name: 'FOLIO 홈으로 이동' })[0]).toHaveAttribute('href', '/ORarchive')
+    expect(within(sidebar).getByRole('link', { name: '핸드아웃' })).toHaveAttribute('href', '/ORarchive/templates')
   })
 
   it('basename 아래에서도 비로그인 사용자를 /ORarchive/login 으로 보낸다', async () => {

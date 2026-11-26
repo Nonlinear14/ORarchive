@@ -10,7 +10,7 @@ export function Brandmark() {
 
 export function SidebarBrand() {
   return (
-    <Link to="/" className="brand" aria-label="FOLIO 대시보드로 이동">
+    <Link to="/" className="brand" aria-label="FOLIO 홈으로 이동">
       <Brandmark />
       <div className="brandtext">
         <div className="brandname">FOLIO</div>
@@ -22,7 +22,7 @@ export function SidebarBrand() {
 
 export function MobileBrand() {
   return (
-    <Link to="/" className="mobile-brand" aria-label="FOLIO 대시보드로 이동">
+    <Link to="/" className="mobile-brand" aria-label="FOLIO 홈으로 이동">
       <Brandmark />
       FOLIO
     </Link>

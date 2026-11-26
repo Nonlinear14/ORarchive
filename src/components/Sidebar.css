@@ -55,45 +55,97 @@
   padding: 20px 12px;
 }
 
-.nav-heading {
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--side-heading);
-  padding: 18px 14px 8px;
-  font-weight: 700;
+/* 상위 메뉴: 큰 제목. 하위 메뉴가 없으면 제목 자체가 링크 */
+.nav-section {
+  margin: 4px 0 18px;
 }
 
-.nav-item {
+.nav-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 13px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--side-title);
+  border-radius: 10px;
+}
+
+.nav-title .ico,
+.nav-sub .ico {
+  display: none;
+}
+
+.nav-title-link {
+  transition: 0.17s;
+}
+
+/* 하위 메뉴: 각각 누르는 링크 */
+.nav-sub {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
   color: var(--side-item);
-  border-radius: 10px;
-  padding: 12px 13px;
-  margin: 3px 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 9px;
+  padding: 9px 13px 9px 16px;
+  margin: 2px 0;
   transition: 0.17s;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.nav-item .ico {
-  width: 18px;
-  height: 18px;
-  opacity: 0.9;
-}
-
-.nav-item:hover {
+.nav-title-link:hover,
+.nav-sub:hover {
   background: var(--side-hover);
   color: #f0f0e9;
 }
 
-.nav-item.active {
+.nav-title-link.active,
+.nav-sub.active {
   background: var(--side-active);
   color: var(--side-active-text);
   box-shadow: inset 3px 0 0 var(--side-accent);
 }
 
-.nav-item.active .ico {
-  color: #d8b989;
+/* 라이트/다크 토글 스위치 */
+.theme-toggle {
+  justify-content: space-between;
+}
+
+.switch {
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: #3c4d53;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.17s;
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #e9e2d4;
+  transition: transform 0.17s;
+}
+
+.theme-toggle[aria-checked='true'] .switch {
+  background: var(--side-accent);
+}
+
+.theme-toggle[aria-checked='true'] .switch-knob {
+  transform: translateX(15px);
 }
 
 .side-footer {
@@ -194,8 +246,9 @@
   }
 
   .brand .brandtext,
-  .nav-heading,
-  .nav-item span,
+  .nav-title span,
+  .nav-sub span:not(.switch):not(.switch-knob),
+  .nav-section[role='group'] > .nav-title,
   .side-footer .quota,
   .profile-mini > :not(.avatar) {
     display: none;
@@ -205,12 +258,19 @@
     padding: 16px 9px;
   }
 
-  .nav-item {
+  .nav-section {
+    margin: 0;
+  }
+
+  .nav-title-link,
+  .nav-sub {
     justify-content: center;
     padding: 14px 4px;
   }
 
-  .nav-item .ico {
+  .nav-title .ico,
+  .nav-sub .ico {
+    display: block;
     width: 21px;
     height: 21px;
   }

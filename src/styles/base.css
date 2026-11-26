@@ -315,3 +315,29 @@ a:focus-visible {
   color: white;
   border-color: #263d39;
 }
+
+/* 분할 선택 버튼 (목업 .segmented) */
+.segmented {
+  display: flex;
+  border: 1px solid #dedad0;
+  border-radius: 8px;
+  background: #f6f5f0;
+  padding: 3px;
+  gap: 2px;
+}
+
+.segmented button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 7px 6px;
+  border-radius: 6px;
+  color: #848c86;
+  font-size: 12px;
+}
+
+.segmented button.active {
+  background: white;
+  color: #384a42;
+  box-shadow: 0 1px 3px #0001;
+}
