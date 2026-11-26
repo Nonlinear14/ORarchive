@@ -5,7 +5,7 @@ import { Modal } from '../../../../components/Modal'
 import type { ToastTone } from '../../../../lib/useToast'
 import { countMatches, removeSpeakerMessages, replaceAll, setCharacter, setOption, type LogEdit } from '../edits'
 import { DESC_KEY, isUsableAvatar, isWebUrl, speakersOf, type CharacterSetting, type LogOptions, type Roll20LogContent } from '../model'
-import { displayName } from '../render'
+import { displayName, extensionSetsDescItalic } from '../render'
 import { imageFileToAvatar } from './avatarImage'
 
 interface PanelProps {
@@ -298,6 +298,20 @@ function DescRow({ content, apply }: { content: Roll20LogContent; apply(op: LogE
             ))}
           </div>
         </div>
+      </div>
+      <div className="char-foot">
+        <label className="mini-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            className="opt-switch"
+            checked={setting.italic !== false}
+            aria-label="desc 서술 기울이기"
+            onChange={(e) => apply(setCharacter(DESC_KEY, 'italic', e.target.checked ? undefined : false))}
+          />
+          <span aria-hidden="true">기울이기</span>
+        </label>
+        {extensionSetsDescItalic(content) && <small className="char-note">확장 프로그램 설정이 우선 적용돼요</small>}
       </div>
     </div>
   )

@@ -65,7 +65,15 @@ const OPTION_CSS = `
 
 /** 로그 전체 CSS: Roll20 기본 → 캠페인 시트 → 확장 프로그램 꾸밈 → 표시 설정 (원래 페이지와 같은 순서) */
 export function logCss(content: Roll20LogContent): string {
-  return [ROLL20_CHAT_CSS, content.sheetCss, content.extCss, OPTION_CSS].filter(Boolean).join('\n')
+  // desc 서술 기울임 끄기: 확장 프로그램 꾸밈보다 앞에 둔다 — 확장 프로그램이 정한 글꼴 모양이 있으면 그쪽이 우선
+  const descItalicOff =
+    content.characters[DESC_KEY]?.italic === false ? '.textchatcontainer .desc,.textchatcontainer .emote{font-style:normal}' : ''
+  return [ROLL20_CHAT_CSS, content.sheetCss, descItalicOff, content.extCss, OPTION_CSS].filter(Boolean).join('\n')
+}
+
+/** 확장 프로그램 꾸밈이 desc 서술의 기울임(font-style)을 정했는가 */
+export function extensionSetsDescItalic(content: Roll20LogContent): boolean {
+  return /\.desc[^{}]*\{[^}]*font-style/i.test(content.extCss)
 }
 
 export interface RenderedMessage {

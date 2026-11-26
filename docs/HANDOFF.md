@@ -110,6 +110,8 @@
 - CSS 순서(`logCss`): Roll20 기본 → 시트(title=charsheet) → 확장 꾸밈 → 표시 설정. 캐릭터 색은 !important.
 - desc 서술은 characters['__desc__'] (배경·대사 색만). 이름이 GM 인 화자는 일반 캐릭터.
 - 메시지는 그 자리에서 수정(contentEditable, `editor/inlineText.ts`), 수정 중 이름·저널 클릭으로 화자 바꾸기.
+- 로그 속 이미지(저널 제외)를 누르면 이미지 바꾸기 창(`editor/ImageDialog.tsx`): 파일은 긴 쪽 800px 이하로 줄여 로그 안에 data URL 로 저장, 또는 https 링크. `setMessageImage` 는 그 이미지의 src 만 바꾼다.
+- desc 서술 기울이기 토글(characters['__desc__'].italic=false). 끄는 규칙은 확장 꾸밈보다 앞에 두어 확장 프로그램 설정이 우선.
 - 미리보기에만 Pretendard 웹폰트(`editor/viewerFonts.ts`). 내보내기에는 넣지 않는다. 글꼴 메뉴는 만들지 않기로 함.
 - 실제 샘플 확인: `src/features/log/roll20/samples.local.test.ts`(저장소 제외, `*.local.test.ts`)를 만들어 `SAMPLE_DIR` 의 저장본을 읽어 볼 수 있다.
 

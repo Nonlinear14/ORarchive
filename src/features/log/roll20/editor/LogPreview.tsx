@@ -48,6 +48,10 @@ const OVERLAY_CSS = `
 .speaker-menu img,.speaker-menu .sp-av{width:20px;height:20px;border-radius:4px;object-fit:cover;flex:none;background:#e6dfd2;display:grid;place-items:center;font-size:9px;color:#6b5a48}
 .msg-flag{position:absolute;right:10px;top:9px;font:600 10px var(--font, sans-serif);color:#93524d;background:#f8ecea;border:1px solid #efd5d0;border-radius:6px;padding:3px 7px;font-style:normal}
 .log-msg.is-hidden-kind>.message{opacity:.6}
+.log-msg .message img{cursor:pointer}
+.log-msg .message img:hover{outline:2px solid #caa574;outline-offset:2px}
+.log-msg .avatar img{cursor:inherit}
+.log-msg:not(.is-editing) .avatar img:hover{outline:none}
 .log-empty{padding:40px 16px;text-align:center;color:#666;font:13px var(--font, sans-serif)}
 `
 
@@ -245,15 +249,37 @@ interface RowProps {
   onSaveText(message: LogMessage, text: string): void
   onCancelEdit(): void
   onChangeSpeaker(message: LogMessage, target: SpeakerTarget): void
+  onImage(message: LogMessage, index: number, src: string): void
 }
 
-function ViewMessage({ content, message, showHeader, onOpen }: { content: Roll20LogContent; message: LogMessage; showHeader: boolean; onOpen(): void }) {
+function ViewMessage({
+  content,
+  message,
+  showHeader,
+  onOpen,
+  onImage,
+}: {
+  content: Roll20LogContent
+  message: LogMessage
+  showHeader: boolean
+  onOpen(): void
+  onImage(index: number, src: string): void
+}) {
   const styleRef = useImportantStyle(messageStyle(content, message))
   return (
     <div
       ref={styleRef}
       className={messageClass(content, message)}
-      onClick={onOpen}
+      onClick={(e) => {
+        // 로그 속 이미지(저널 제외)를 누르면 이미지 바꾸기
+        const img = (e.target as Element).closest('img')
+        if (img && !img.closest('.avatar')) {
+          const images = [...e.currentTarget.querySelectorAll('img')].filter((el) => !el.closest('.avatar'))
+          onImage(images.indexOf(img), img.getAttribute('src') ?? '')
+          return
+        }
+        onOpen()
+      }}
       dangerouslySetInnerHTML={{ __html: messageInnerHtml(content, message, showHeader) }}
     />
   )
@@ -274,6 +300,7 @@ const MessageRow = memo(function MessageRow({
   onSaveText,
   onCancelEdit,
   onChangeSpeaker,
+  onImage,
 }: RowProps) {
   const editable = isEditable(message)
   const hasHead = showHeader && !!message.speaker && message.kind !== 'desc' && message.kind !== 'emote'
@@ -313,7 +340,13 @@ const MessageRow = memo(function MessageRow({
           onChangeSpeaker={(target) => onChangeSpeaker(message, target)}
         />
       ) : (
-        <ViewMessage content={content} message={message} showHeader={showHeader} onOpen={() => onOpen(message)} />
+        <ViewMessage
+          content={content}
+          message={message}
+          showHeader={showHeader}
+          onOpen={() => onOpen(message)}
+          onImage={(index, src) => onImage(message, index, src)}
+        />
       )}
       {message.kind === 'hidden' && <span className="msg-flag">숨긴 메시지 · 전체 다듬기에서 지울 수 있어요</span>}
       {active && !editing && (
@@ -360,6 +393,8 @@ interface LogPreviewProps {
   onCancelEdit(): void
   onOpenMenu(message: LogMessage): void
   onChangeSpeaker(message: LogMessage, target: SpeakerTarget): void
+  /** 로그 속 이미지를 눌렀을 때 (이미지 바꾸기) */
+  onImage(message: LogMessage, index: number, src: string): void
 }
 
 export function LogPreview({
@@ -372,6 +407,7 @@ export function LogPreview({
   onCancelEdit,
   onOpenMenu,
   onChangeSpeaker,
+  onImage,
 }: LogPreviewProps) {
   const [shadow, setShadow] = useState<ShadowRoot | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -421,6 +457,7 @@ export function LogPreview({
                     onSaveText={onSaveText}
                     onCancelEdit={onCancelEdit}
                     onChangeSpeaker={onChangeSpeaker}
+                    onImage={onImage}
                   />
                 ))}
               </div>

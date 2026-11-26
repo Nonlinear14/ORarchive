@@ -45,6 +45,8 @@ export interface CharacterSetting {
   avatar?: string
   /** 이 캐릭터의 메시지를 숨김 */
   hidden?: boolean
+  /** desc 서술 전용: false 면 기울임을 끈다 (없거나 true 면 Roll20 기본 기울임) */
+  italic?: boolean
 }
 
 export type AvatarShape = 'square' | 'circle' | 'none'
@@ -134,6 +136,7 @@ function readCharacter(raw: unknown): CharacterSetting {
   const avatar = str(raw.avatar)
   if (avatar !== undefined) setting.avatar = avatar
   if (raw.hidden === true) setting.hidden = true
+  if (raw.italic === false) setting.italic = false
   return setting
 }
 

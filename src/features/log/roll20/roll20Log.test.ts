@@ -9,13 +9,14 @@ import {
   removeSpeakerMessages,
   replaceAll,
   setCharacter,
+  setMessageImage,
   setMessageText,
   setOption,
 } from './edits'
 import { inlineCss, logBlogCode, logFileName, logHtmlFile } from './export'
 import { isRoll20Log, resolveLog, serializeLog } from './model'
 import { detectRule, parseRoll20Log, Roll20ParseError } from './parse'
-import { logCss, renderMessagesHtml, textToHtml, visibleMessages } from './render'
+import { extensionSetsDescItalic, logCss, renderMessagesHtml, textToHtml, visibleMessages } from './render'
 import { editableHtmlToText } from './editor/inlineText'
 import { isUsableAvatar } from './model'
 
@@ -185,6 +186,31 @@ describe('확장 프로그램 꾸밈', () => {
     expect(css.indexOf('.sheet-rolltemplate-coc-1')).toBeLessThan(css.indexOf('background-color:#f00'))
     expect(css.indexOf('background-color:#f00')).toBeLessThan(css.indexOf('.nodivider'))
     expect(css).toContain('.textchatcontainer.nodivider .message .spacer{background:transparent!important')
+  })
+})
+
+describe('로그 속 이미지 · desc 서술 기울이기', () => {
+  it('메시지 안의 n번째 이미지 주소만 바꾼다 (다른 HTML 은 그대로)', () => {
+    const stored = serializeLog({
+      ...parsed().content,
+      messages: [{ id: 'i1', kind: 'desc', html: '<a href="https://x.example">링크</a> <img src="./a_files/1.png"> 사이 <img src="./a_files/2.png">' }],
+    })
+    const after = resolveLog(setMessageImage('i1', 1, 'https://i.imgur.com/new.png')(stored))
+    expect(after.messages[0].html).toBe('<a href="https://x.example">링크</a> <img src="./a_files/1.png"> 사이 <img src="https://i.imgur.com/new.png">')
+    expect(setMessageImage('i1', 5, 'https://x')(stored)).toBe(stored)
+    expect(setMessageImage('없음', 0, 'https://x')(stored)).toBe(stored)
+  })
+
+  it('기울이기 끄기는 확장 프로그램 꾸밈보다 앞에 둬서, 확장 프로그램 설정이 있으면 그쪽이 우선', () => {
+    const base = parsed().content
+    expect(logCss(base)).not.toContain('.textchatcontainer .desc,.textchatcontainer .emote{font-style:normal}')
+    const off = { ...base, characters: { __desc__: { italic: false } }, extCss: '.textchatcontainer .desc{font-style: oblique}' }
+    const css = logCss(off)
+    expect(css.indexOf('.textchatcontainer .desc,.textchatcontainer .emote{font-style:normal}')).toBeGreaterThan(css.indexOf('.textchatcontainer .desc{font-style:italic'))
+    expect(css.indexOf('{font-style:normal}')).toBeLessThan(css.indexOf('font-style: oblique'))
+    expect(extensionSetsDescItalic(off)).toBe(true)
+    expect(extensionSetsDescItalic(base)).toBe(false)
+    expect(resolveLog(serializeLog(off)).characters['__desc__']).toEqual({ italic: false })
   })
 })
 

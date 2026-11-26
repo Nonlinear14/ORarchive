@@ -21,6 +21,7 @@ import {
   moveMessageBeside,
   newMessageId,
   removeMessage,
+  setMessageImage,
   setMessageSpeaker,
   setMessageText,
   setRule,
@@ -31,6 +32,7 @@ import { isEditable, isRoll20Log, resolveLog, RULE_SUGGESTIONS, speakersOf, type
 import { visibleMessages } from '../render'
 import '../../../handout/studio/HandoutStudio.css'
 import '../roll20Log.css'
+import { ImageDialog } from './ImageDialog'
 import { LogPanel } from './LogPanel'
 import { LogPreview, type MessageAction, type SpeakerTarget } from './LogPreview'
 
@@ -250,6 +252,10 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
   )
   const onCancelEdit = useCallback(() => setEditingId(null), [])
   const speakers = useMemo(() => speakersOf(content), [content])
+  const [imageTarget, setImageTarget] = useState<{ id: string; index: number; src: string } | null>(null)
+  const onImage = useCallback((message: LogMessage, index: number, src: string) => {
+    if (index >= 0) setImageTarget({ id: message.id, index, src })
+  }, [])
   const onChangeSpeaker = useCallback(
     (message: LogMessage, target: SpeakerTarget) => apply(setMessageSpeaker(message.id, target)),
     [apply],
@@ -336,6 +342,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             onOpenMenu={onOpenMenu}
             speakers={speakers}
             onChangeSpeaker={onChangeSpeaker}
+            onImage={onImage}
           />
           <div className="log-export-bar" role="group" aria-label="내보내기">
             <button type="button" className="btn primary" onClick={() => downloadTextFile(logFileName(draft.title), logHtmlFile(content, draft.title))}>
@@ -371,6 +378,13 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
           last={menuIndex === rows.length - 1}
           onAction={(action) => onAction(action, rows[menuIndex].message)}
           onClose={() => setMenuId(null)}
+        />
+      )}
+      {imageTarget && (
+        <ImageDialog
+          current={imageTarget.src}
+          onApply={(src) => apply(setMessageImage(imageTarget.id, imageTarget.index, src))}
+          onClose={() => setImageTarget(null)}
         />
       )}
       <Toast toast={toast} />

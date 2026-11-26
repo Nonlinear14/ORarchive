@@ -145,7 +145,7 @@ describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서
     expect(rows[1]).not.toHaveTextContent('desc 서술')
     const desc = rows[0] as HTMLElement
     expect(within(desc).queryByRole('button', { name: /이름 색/ })).not.toBeInTheDocument()
-    expect(within(desc).queryByRole('switch')).not.toBeInTheDocument()
+    expect(within(desc).queryByRole('switch', { name: /숨기기/ })).not.toBeInTheDocument()
     expect(within(desc).queryByRole('button', { name: /삭제/ })).not.toBeInTheDocument()
     fireEvent.click(within(desc).getByRole('button', { name: /desc 서술 배경 색/ }))
     const picker = within(desc).getByLabelText('desc 서술 배경 색 고르기') as HTMLInputElement
@@ -153,6 +153,43 @@ describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서
     picker.dispatchEvent(new Event('change'))
     await waitFor(() => expect(saved().characters['__desc__']).toEqual({ bg: '#222222' }), { timeout: 3000 })
     expect(row(root, '-d1').querySelector<HTMLElement>('.message')!.style.getPropertyPriority('background-color')).toBe('important')
+  })
+
+  it('로그 속 이미지를 누르면 바꾸기 창 → 외부 링크로 바꾼다 (저널 이미지는 아님)', async () => {
+    const fake = createFakeSupabase()
+    const html = SAMPLE.replace('1923년 가을, 아컴.', '<img src="./x_files/scene.png">')
+    const doc = fake.control.insertDocument({ type: 'log', title: '이미지', content: serializeLog(parseRoll20Log(html).content) })
+    const saved = () => resolveLog(fake.control.tables.documents.find((d) => d.id === doc.id)!.content as never)
+    renderApp(`/studio/log/roll20/${doc.id}`, { client: fake.client })
+    const root = await stage()
+    // 저널 이미지를 눌러도 바꾸기 창은 뜨지 않는다 (수정 상태로)
+    fireEvent.click(row(root, '-g1').querySelector('.avatar img')!)
+    expect(screen.queryByRole('dialog', { name: '이미지 바꾸기' })).not.toBeInTheDocument()
+    fireEvent.keyDown(within(root).getByRole('textbox', { name: '메시지 내용' }), { key: 'Escape' })
+
+    fireEvent.click(row(root, '-d1').querySelector('img')!)
+    const dialog = screen.getByRole('dialog', { name: '이미지 바꾸기' })
+    expect(within(dialog).getByText(/PC 폴더 경로라/)).toBeInTheDocument()
+    fireEvent.change(within(dialog).getByLabelText('바꿀 이미지 주소'), { target: { value: 'https://i.imgur.com/scene.png' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '적용' }))
+    expect(screen.queryByRole('dialog', { name: '이미지 바꾸기' })).not.toBeInTheDocument()
+    expect(row(root, '-d1').querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/scene.png')
+    await waitFor(() => expect(saved().messages[0].html).toContain('src="https://i.imgur.com/scene.png"'), { timeout: 3000 })
+  })
+
+  it('desc 서술 기울이기 토글: 기본 켜짐, 끄면 기울임 해제', async () => {
+    const { client, row: doc, saved } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    const panel = screen.getByRole('complementary', { name: '로그 편집' })
+    const toggle = within(panel).getByRole('switch', { name: 'desc 서술 기울이기' })
+    expect(toggle).toBeChecked()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(saved().characters['__desc__']).toEqual({ italic: false }), { timeout: 3000 })
+    expect(root.querySelector('style')?.textContent).toContain('.textchatcontainer .desc,.textchatcontainer .emote{font-style:normal}')
+    expect(within(panel).queryByText('확장 프로그램 설정이 우선 적용돼요')).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(saved().characters['__desc__']).toEqual({}), { timeout: 3000 })
   })
 
   it('미리보기 위에 저장·글꼴 안내', async () => {

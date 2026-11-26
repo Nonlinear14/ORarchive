@@ -130,6 +130,21 @@ export const setMessageSpeaker =
     return withMessages(stored, list)
   }
 
+/** 메시지 안의 index 번째 이미지(저널 제외) 주소를 바꾼다. 다른 HTML 은 그대로 둔다 */
+export const setMessageImage =
+  (id: string, index: number, src: string): LogEdit =>
+  (stored) => {
+    const list = [...messagesOf(stored)]
+    const i = list.findIndex((m) => isObject(m) && m.id === id)
+    if (i < 0 || typeof list[i].html !== 'string') return stored
+    const doc = new DOMParser().parseFromString(`<body>${list[i].html as string}</body>`, 'text/html')
+    const img = doc.body.querySelectorAll('img')[index]
+    if (!img || img.getAttribute('src') === src) return stored
+    img.setAttribute('src', src)
+    list[i] = { ...list[i], html: doc.body.innerHTML }
+    return withMessages(stored, list)
+  }
+
 /** 캐릭터 설정 한 항목을 바꾼다 (빈 값이면 지운다) */
 export const setCharacter =
   <K extends keyof CharacterSetting>(speaker: string, key: K, value: CharacterSetting[K] | undefined): LogEdit =>
@@ -138,7 +153,8 @@ export const setCharacter =
     const current = isObject(characters[speaker]) ? (characters[speaker] as JsonObject) : {}
     if (current[key] === value) return stored
     const next: JsonObject = { ...current }
-    if (value === undefined || value === '' || value === false) delete next[key]
+    // 빈 값은 지운다 (italic 은 false 자체가 설정 — 기울임 끄기)
+    if (value === undefined || value === '' || (value === false && key !== 'italic')) delete next[key]
     else next[key] = value as Json
     return { ...stored, characters: { ...characters, [speaker]: next } }
   }
