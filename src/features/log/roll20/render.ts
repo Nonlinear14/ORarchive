@@ -1,4 +1,4 @@
-import type { LogMessage, Roll20LogContent } from './model'
+import { DESC_KEY, type LogMessage, type Roll20LogContent } from './model'
 
 /**
  * 로그 → Roll20 채팅 모양 HTML. 미리보기(그림자 DOM)와 내보내기가 같은 결과를 쓴다.
@@ -31,7 +31,6 @@ export const ROLL20_CHAT_CSS = `
 .textchatcontainer.withoutavatars .avatar{display:none}
 .textchatcontainer.withoutavatars .message{padding-left:15px}
 .textchatcontainer.withoutavatars .message .spacer{margin-left:-15px}
-.textchatcontainer.nodivider .message .spacer{background-color:transparent}
 .textchatcontainer .message.desc,.textchatcontainer .message.emote{padding-left:15px}
 .textchatcontainer .message.desc .spacer,.textchatcontainer .message.emote .spacer{margin-left:-15px}
 .textchatcontainer .message.you{background-color:#d3e5f5}
@@ -58,6 +57,16 @@ export const ROLL20_CHAT_CSS = `
 .textchatcontainer .diceroll.critfail .didroll{color:#730505;font-weight:bold}
 .textchatcontainer img{max-width:100%}
 `
+
+/** 표시 설정이 확장 프로그램 꾸밈보다 우선하도록 맨 뒤에 붙이는 규칙 */
+const OPTION_CSS = `
+.textchatcontainer.nodivider .message .spacer{background:transparent!important;background-color:transparent!important;border:0!important;box-shadow:none!important}
+`
+
+/** 로그 전체 CSS: Roll20 기본 → 캠페인 시트 → 확장 프로그램 꾸밈 → 표시 설정 (원래 페이지와 같은 순서) */
+export function logCss(content: Roll20LogContent): string {
+  return [ROLL20_CHAT_CSS, content.sheetCss, content.extCss, OPTION_CSS].filter(Boolean).join('\n')
+}
 
 export interface RenderedMessage {
   message: LogMessage
@@ -123,7 +132,7 @@ export function messageInnerHtml(content: Roll20LogContent, m: LogMessage, showH
     const avatar = setting.avatar?.trim() || m.avatar
     const name = displayName(content, m.speaker)
     const label = m.whisper === 'from' ? `(From ${name})` : m.whisper === 'to' ? `(To ${name})` : name
-    const color = setting.color ? ` style="color:${setting.color}"` : ''
+    const color = setting.color ? ` style="color:${setting.color} !important"` : ''
     head =
       '<div class="spacer"></div>' +
       (avatar ? `<div class="avatar"><img src="${escapeHtml(avatar)}" alt=""></div>` : '') +
@@ -136,9 +145,13 @@ export function messageInnerHtml(content: Roll20LogContent, m: LogMessage, showH
 
 /** 캐릭터별 메시지 배경색·대사 색 (style 속성 값, 없으면 빈 글자) */
 export function messageStyle(content: Roll20LogContent, m: LogMessage): string {
-  const setting = m.speaker ? content.characters[m.speaker] : undefined
+  const key = m.kind === 'desc' || m.kind === 'emote' ? DESC_KEY : m.speaker
+  const setting = key ? content.characters[key] : undefined
   if (!setting) return ''
-  return [setting.bg ? `background-color:${setting.bg}` : '', setting.text ? `color:${setting.text}` : ''].filter(Boolean).join(';')
+  // !important: 사용자가 직접 고른 색이 확장 프로그램 꾸밈(!important 포함)보다 우선
+  return [setting.bg ? `background-color:${setting.bg} !important` : '', setting.text ? `color:${setting.text} !important` : '']
+    .filter(Boolean)
+    .join(';')
 }
 
 export function renderMessagesHtml(content: Roll20LogContent): string {

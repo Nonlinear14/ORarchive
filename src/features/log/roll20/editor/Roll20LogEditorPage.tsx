@@ -21,17 +21,18 @@ import {
   moveMessageBeside,
   newMessageId,
   removeMessage,
+  setMessageSpeaker,
   setMessageText,
   setRule,
   type LogEdit,
 } from '../edits'
 import { logBlogCode, logFileName, logHtmlFile } from '../export'
-import { isEditable, isRoll20Log, resolveLog, RULE_SUGGESTIONS, type LogMessage, type Roll20LogContent } from '../model'
+import { isEditable, isRoll20Log, resolveLog, RULE_SUGGESTIONS, speakersOf, type LogMessage, type Roll20LogContent } from '../model'
 import { visibleMessages } from '../render'
 import '../../../handout/studio/HandoutStudio.css'
 import '../roll20Log.css'
 import { LogPanel } from './LogPanel'
-import { LogPreview, type MessageAction } from './LogPreview'
+import { LogPreview, type MessageAction, type SpeakerTarget } from './LogPreview'
 
 const HISTORY_LIMIT = 50
 const TOUCH_QUERY = '(max-width: 750px), (hover: none)'
@@ -248,6 +249,11 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
     [apply],
   )
   const onCancelEdit = useCallback(() => setEditingId(null), [])
+  const speakers = useMemo(() => speakersOf(content), [content])
+  const onChangeSpeaker = useCallback(
+    (message: LogMessage, target: SpeakerTarget) => apply(setMessageSpeaker(message.id, target)),
+    [apply],
+  )
   const onOpenMenu = useCallback((message: LogMessage) => setMenuId(message.id), [])
   const menuIndex = menuId ? rows.findIndex((r) => r.message.id === menuId) : -1
 
@@ -313,7 +319,12 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             </span>
           </div>
           <div className="callout log-notice">
-            <Icon name="lock" /> <span>원본 파일은 서버에 올리지 않아요. 편집본만 내 계정에 비공개로 저장돼요.</span>
+            <Icon name="lock" />
+            <span>
+              원본 파일은 서버에 올리지 않아요. 편집본만 내 계정에 비공개로 저장돼요.
+              <br />
+              현재 화면의 글꼴은 뷰어에만 적용됩니다. 로그 백업 시 적용되지 않습니다.
+            </span>
           </div>
           <LogPreview
             content={content}
@@ -323,6 +334,8 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             onSaveText={onSaveText}
             onCancelEdit={onCancelEdit}
             onOpenMenu={onOpenMenu}
+            speakers={speakers}
+            onChangeSpeaker={onChangeSpeaker}
           />
           <div className="log-export-bar" role="group" aria-label="내보내기">
             <button type="button" className="btn primary" onClick={() => downloadTextFile(logFileName(draft.title), logHtmlFile(content, draft.title))}>

@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify'
+import { cleanPastedStyle, filterExtensionCss, rulesFromPastedMessages } from './extensionCss'
 import {
   defaultLogOptions,
   isWebUrl,
@@ -29,6 +30,8 @@ export interface ParseStats {
   /** 메시지 안의 PC 폴더 경로 이미지 수 */
   brokenImages: number
   sheetCss: boolean
+  /** 확장 프로그램 꾸밈을 찾았는가 (저장 파일의 스타일 블록, 또는 붙여넣은 내용의 style 속성) */
+  extension: boolean
 }
 
 export interface ParseResult {
@@ -148,11 +151,21 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
       'Roll20 채팅 메시지를 찾지 못했어요. 채팅 아카이브에서 저장한 HTML 파일이나, 아카이브 페이지를 전체 선택해 복사한 내용인지 확인해 주세요.',
     )
 
-  const sheetCss = [...doc.querySelectorAll('style')]
-    .map((s) => s.textContent ?? '')
-    .filter((css) => css.includes('sheet-rolltemplate'))
-    .map(sanitizeCss)
+  // <style> 블록 나누기: Roll20 의 캠페인 시트(title="charsheet") / 확장 프로그램이 넣은 것 / 그 밖(Roll20 화면용)
+  const styleBlocks = [...doc.querySelectorAll('style')].map((el) => ({ el, css: el.textContent ?? '' }))
+  const isExtensionBlock = ({ el, css }: { el: Element; css: string }) =>
+    el.hasAttribute('data-source') || (el.getAttribute('title') !== 'charsheet' && /\.textchatcontainer/.test(css) && css.length > 300)
+  const sheetCss = styleBlocks
+    .filter((b) => !isExtensionBlock(b) && (b.el.getAttribute('title') === 'charsheet' || b.css.includes('sheet-rolltemplate')))
+    .map((b) => sanitizeCss(b.css))
     .join('\n')
+  const fileExtensionCss = filterExtensionCss(sanitizeCss(styleBlocks.filter(isExtensionBlock).map((b) => b.css).join('\n')))
+  // 붙여넣기: 확장 프로그램을 쓴 페이지를 복사하면 메시지·구분선·이름에 style 속성이 붙어 온다 (숨긴 메시지의 Roll20 기본 style 은 제외)
+  const styled = elements.filter((el) => !el.classList.contains('hidden-message'))
+  const pastedExtension = styled.some(
+    (el) => el.hasAttribute('style') || el.querySelector(':scope > .spacer[style], :scope > .by[style]') !== null,
+  )
+  const extCss = [fileExtensionCss, pastedExtension ? rulesFromPastedMessages(styled) : ''].filter(Boolean).join('\n')
 
   const messages: LogMessage[] = []
   let prev: LogMessage | undefined
@@ -189,6 +202,8 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
     const body = el.cloneNode(true) as Element
     for (const child of [...body.children]) if (SKIP_CHILD(child)) child.remove()
     for (const menu of body.querySelectorAll('[id^="menu-"], .flyout')) menu.remove()
+    // 확장 프로그램을 쓴 페이지에서 붙여 넣었다면 본문 속 style 속성도 정리 (글꼴 제외, 굳은 표 폭 제거)
+    if (pastedExtension) for (const styledEl of body.querySelectorAll('[style]')) cleanPastedStyle(styledEl)
 
     const text = kind === 'hidden' || kind === 'roll' ? null : toEditableText(body)
     if (text !== null) message.text = text
@@ -217,6 +232,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
     characters: {},
     options: { ...defaultLogOptions },
     sheetCss,
+    extCss,
     rule: detectRule(messages.map((m) => m.html ?? '').join('') + sheetCss),
     source: { ...(fileName ? { name: fileName } : {}), importedAt: new Date().toISOString() },
   }
@@ -232,6 +248,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
       brokenAvatars,
       brokenImages,
       sheetCss: sheetCss.length > 0,
+      extension: extCss.length > 0,
       rule: content.rule,
     },
   }

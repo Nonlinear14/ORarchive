@@ -689,3 +689,25 @@
 :root[data-theme='dark'] .char-foot {
   border-color: var(--d-border);
 }
+
+.desc-av {
+  font: 700 9.5px/1 var(--font);
+  letter-spacing: 0.3px;
+  background: #e6dfd2;
+  color: #6b5a48;
+  width: 36px;
+  height: 36px;
+}
+
+.import-summary .ext-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.import-summary .ext-line .ico {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}

@@ -102,6 +102,34 @@ export const insertMessageAfter =
     return withMessages(stored, list)
   }
 
+/**
+ * 메시지의 화자를 바꾼다. target 이 null 이면 desc 서술로, 이름이면 그 캐릭터의 대사로.
+ * 저널(아바타)·'내 메시지' 표시는 그 캐릭터의 다른 메시지에서 가져온다.
+ */
+export const setMessageSpeaker =
+  (id: string, target: string | null): LogEdit =>
+  (stored) => {
+    const list = [...messagesOf(stored)]
+    const i = list.findIndex((m) => isObject(m) && m.id === id)
+    if (i < 0) return stored
+    const { speaker: _s, avatar: _a, you: _y, whisper: _w, ...rest } = list[i]
+    void _s
+    void _a
+    void _y
+    void _w
+    if (target === null) {
+      list[i] = { ...rest, kind: 'desc' }
+    } else {
+      const sample = list.find((m) => isObject(m) && m.speaker === target && m.id !== id)
+      const next: JsonObject = { ...rest, kind: rest.kind === 'desc' || rest.kind === 'emote' ? 'general' : rest.kind, speaker: target }
+      if (sample && typeof sample.avatar === 'string') next.avatar = sample.avatar
+      if (sample && sample.you === true) next.you = true
+      if (next.kind === 'whisper') next.kind = 'general'
+      list[i] = next
+    }
+    return withMessages(stored, list)
+  }
+
 /** 캐릭터 설정 한 항목을 바꾼다 (빈 값이면 지운다) */
 export const setCharacter =
   <K extends keyof CharacterSetting>(speaker: string, key: K, value: CharacterSetting[K] | undefined): LogEdit =>

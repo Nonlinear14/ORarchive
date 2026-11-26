@@ -72,6 +72,8 @@ export interface Roll20LogContent {
   options: LogOptions
   /** 캠페인 시트의 롤템플릿 CSS (저장 파일에 들어 있을 때만) */
   sheetCss: string
+  /** 확장 프로그램이 입힌 메시지·판정 표 꾸밈 (찾았을 때만) */
+  extCss: string
   /** 룰 이름 (불러올 때 감지하거나 사용자가 입력). 목록에서 content->>rule 로 읽는다 */
   rule: string
   source?: { name?: string; importedAt: string }
@@ -169,6 +171,7 @@ export function resolveLog(stored: DocumentContent): Roll20LogContent {
     characters,
     options: readOptions(raw.options),
     sheetCss: str(raw.sheetCss) ?? '',
+    extCss: str(raw.extCss) ?? '',
     rule: str(raw.rule) ?? '',
     ...(source ? { source } : {}),
   }
@@ -194,6 +197,9 @@ export function isUsableAvatar(url: string | undefined): boolean {
 
 /** 룰 이름 후보 (룰 칸의 자동 완성) */
 export const RULE_SUGGESTIONS = ['크툴루의 부름', '인세인', 'D&D 5판', '패스파인더', '네크로니카', '마기카로기아', '기타']
+
+/** 캐릭터 설정에서 desc 서술 메시지 전체를 가리키는 열쇠 (배경색·대사색만) */
+export const DESC_KEY = '__desc__'
 
 /** 화자 목록 (메시지 수 순) */
 export function speakersOf(content: Roll20LogContent): { speaker: string; count: number; avatar?: string }[] {

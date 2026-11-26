@@ -15,7 +15,8 @@ import {
 import { inlineCss, logBlogCode, logFileName, logHtmlFile } from './export'
 import { isRoll20Log, resolveLog, serializeLog } from './model'
 import { detectRule, parseRoll20Log, Roll20ParseError } from './parse'
-import { renderMessagesHtml, textToHtml, visibleMessages } from './render'
+import { logCss, renderMessagesHtml, textToHtml, visibleMessages } from './render'
+import { editableHtmlToText } from './editor/inlineText'
 import { isUsableAvatar } from './model'
 
 /** 실제 Roll20 채팅 아카이브와 같은 구조의 작은 예시 (대사는 지어낸 내용) */
@@ -133,6 +134,70 @@ describe('Roll20 로그 편집 연산 (고친 경로만 바뀐다)', () => {
   })
 })
 
+/** User JavaScript and CSS 확장 프로그램이 넣는 것과 같은 구조 */
+const EXT_STYLE = `<style data-source="User JavaScript and CSS">
+@font-face{font-family:"GSans-M";src:url("https://cdn.example/g.woff")}
+#macrobar{font-family:"GSans-M";height:auto}
+.textchatcontainer .desc{background-color:#ffffff !important;color:#000 !important;font-family:"Pretendard-R" !important;font-size:17px !important}
+.textchatcontainer .message .spacer{background-color:#ffffff}
+.sheet-rolltemplate-coc-1 table{border:transparent;font-family:"Pretendard-R"}
+</style>`
+
+describe('확장 프로그램 꾸밈', () => {
+  it('저장 파일: 확장 프로그램 블록에서 메시지·판정 표 꾸밈만 (글꼴·Roll20 화면 규칙 제외), 시트 CSS 와 분리', () => {
+    const html = SAMPLE.replace('</head>', `<style type="text/css" title="charsheet">.sheet-rolltemplate-coc-1 caption{background:black}</style>${EXT_STYLE}</head>`)
+    const { content, stats } = parseRoll20Log(html)
+    expect(stats.extension).toBe(true)
+    expect(content.extCss).toMatch(/\.textchatcontainer \.desc\{background-color: (#ffffff|rgb\(255, 255, 255\)) !important/)
+    expect(content.extCss).toMatch(/\.textchatcontainer \.message \.spacer\{background-color: (#ffffff|rgb\(255, 255, 255\))\}/)
+    expect(content.extCss).toMatch(/\.sheet-rolltemplate-coc-1 table\{border: transparent\}/)
+    expect(content.extCss).not.toMatch(/font-family|@font-face|macrobar/)
+    expect(content.sheetCss).toContain('caption{background:black}')
+    expect(content.sheetCss).not.toContain('.textchatcontainer .desc')
+    expect(parsed().stats.extension).toBe(false)
+  })
+
+  it('붙여넣기: 크롬이 넣은 style 속성을 메시지 종류별 규칙으로 되살리고, 글꼴·굳은 표 폭은 지운다', () => {
+    const pasted = `<div class="textchatcontainer"><div class="content">
+<div class="message desc" style="background-color: rgb(255, 255, 255); font-family: RIDIBatang; font-weight: bold !important;"><div class="spacer" style="background-color: rgb(255, 255, 255);"></div> 서술</div>
+<div class="message general" style="background-color: rgb(250, 250, 250); color: rgb(0, 0, 0); font-family: RIDIBatang;"><div class="spacer" style="background-color: rgb(255, 255, 255);"></div><div class="avatar"><img src="https://files.d20.io/a.png"></div><span class="by" style="color: rgb(10, 10, 10);">엘리너:</span>대사</div>
+<div class="message general" style="background-color: rgb(250, 250, 250); color: rgb(0, 0, 0);"><div class="spacer"></div><div class="avatar"><img src="https://files.d20.io/a.png"></div><span class="by">엘리너:</span><div class="sheet-rolltemplate-coc-1"><table style="width: 1384px; border: transparent; max-width: 100%;"><caption style="font-family: Pretendard-R; color: rgb(255, 255, 255);">관찰력</caption></table></div></div>
+<div class="message hidden-message" style="font-style: italic; position: relative;"><div class="spacer"></div><span class="by">엘리너:</span>This message has been hidden.</div>
+</div></div>`
+    const { content, stats } = parseRoll20Log(pasted)
+    expect(stats.extension).toBe(true)
+    expect(content.extCss).toContain('.textchatcontainer .message.desc{background-color: rgb(255, 255, 255); font-weight: bold !important}')
+    expect(content.extCss).toContain('.textchatcontainer .message.general{background-color: rgb(250, 250, 250); color: rgb(0, 0, 0)}')
+    expect(content.extCss).toContain('.textchatcontainer .message.general .by{color: rgb(10, 10, 10)}')
+    expect(content.extCss).not.toMatch(/font-family|hidden-message/)
+    const roll = content.messages[2].html ?? ''
+    expect(roll).toContain('border: transparent')
+    expect(roll).not.toMatch(/1384px|font-family/)
+    expect(content.messages[1].text).toBe('대사')
+
+    const plain = pasted.replace(/ style="[^"]*"/g, '').replace('<div class="message hidden-message"', '<div class="message hidden-message" style="font-style: italic;"')
+    expect(parseRoll20Log(plain).stats.extension).toBe(false)
+  })
+
+  it('CSS 순서: Roll20 기본 → 시트 → 확장 프로그램 → 표시 설정(구분선 끄기는 !important 로 모든 메시지에)', () => {
+    const content = { ...parsed().content, extCss: '.textchatcontainer .message .spacer{background-color:#f00}' }
+    const css = logCss(content)
+    expect(css.indexOf('.sheet-rolltemplate-coc-1')).toBeLessThan(css.indexOf('background-color:#f00'))
+    expect(css.indexOf('background-color:#f00')).toBeLessThan(css.indexOf('.nodivider'))
+    expect(css).toContain('.textchatcontainer.nodivider .message .spacer{background:transparent!important')
+  })
+})
+
+describe('바로 수정한 글자 읽기', () => {
+  it('<b>·<i>·<br>·줄 <div> → 저장 형식', () => {
+    const el = document.createElement('span')
+    el.innerHTML = '가 <b>굵게</b> <i>기울임</i><br>둘째<div>셋째 <strong>강조</strong></div>'
+    expect(editableHtmlToText(el)).toBe('가 **굵게** *기울임*\n둘째\n셋째 **강조**')
+    el.innerHTML = '<b>붙</b><b>은</b> 굵게&nbsp;끝'
+    expect(editableHtmlToText(el)).toBe('**붙은** 굵게 끝')
+  })
+})
+
 describe('룰 감지 · 저널 주소', () => {
   it('시트 롤템플릿 이름으로 룰을 알아낸다', () => {
     expect(detectRule('<div class="sheet-rolltemplate-coc-1">')).toBe('크툴루의 부름')
@@ -176,16 +241,20 @@ describe('Roll20 로그 그리기·내보내기', () => {
       ...content,
       characters: { 엘리너: { name: '엘리너 <B>', color: '#aa3300', avatar: 'https://i.imgur.com/a.png' } },
     })
-    expect(html).toContain('<span class="by" style="color:#aa3300">엘리너 &lt;B&gt;:</span>')
+    expect(html).toContain('<span class="by" style="color:#aa3300 !important">엘리너 &lt;B&gt;:</span>')
     expect(html).toContain('(From 엘리너 &lt;B&gt;):')
     expect(html).toContain('src="https://i.imgur.com/a.png"')
     expect(html).toContain('class="message general you"')
   })
 
-  it('캐릭터의 메시지 배경색·대사 색은 그 캐릭터의 모든 메시지에 (이어지는 메시지 포함)', () => {
+  it('캐릭터의 메시지 배경색·대사 색은 그 캐릭터의 모든 메시지에 (이어지는 메시지 포함), desc 서술은 서술 메시지에', () => {
     const content = parsed().content
-    const html = renderMessagesHtml({ ...content, characters: { 엘리너: { bg: '#ffeeaa', text: '#225588' } } })
-    expect(html.match(/style="background-color:#ffeeaa;color:#225588"/g)).toHaveLength(4)
+    const html = renderMessagesHtml({
+      ...content,
+      characters: { 엘리너: { bg: '#ffeeaa', text: '#225588' }, __desc__: { text: '#333333' } },
+    })
+    expect(html.match(/style="background-color:#ffeeaa !important;color:#225588 !important"/g)).toHaveLength(4)
+    expect(html).toContain('<div class="message desc" style="color:#333333 !important">')
   })
 
   it('HTML 파일: 완성된 페이지에 시트 CSS 포함 · 파일 이름 정리', () => {

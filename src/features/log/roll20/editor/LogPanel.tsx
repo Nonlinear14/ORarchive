@@ -4,7 +4,7 @@ import { Icon } from '../../../../components/Icon'
 import { Modal } from '../../../../components/Modal'
 import type { ToastTone } from '../../../../lib/useToast'
 import { countMatches, removeSpeakerMessages, replaceAll, setCharacter, setOption, type LogEdit } from '../edits'
-import { isUsableAvatar, isWebUrl, speakersOf, type CharacterSetting, type LogOptions, type Roll20LogContent } from '../model'
+import { DESC_KEY, isUsableAvatar, isWebUrl, speakersOf, type CharacterSetting, type LogOptions, type Roll20LogContent } from '../model'
 import { displayName } from '../render'
 import { imageFileToAvatar } from './avatarImage'
 
@@ -21,11 +21,14 @@ const COLOR_LABELS: Record<ColorKey, string> = { color: '이름', bg: '배경', 
 /** 색 동그라미: 누르면 색 고르기와 '기본 색으로'가 나온다 */
 function ColorRound({
   speaker,
+  name,
   colorKey,
   value,
   apply,
 }: {
   speaker: string
+  /** 화면에 보이는 이름 (desc 서술 등) */
+  name: string
   colorKey: ColorKey
   value: string | undefined
   apply(op: LogEdit): void
@@ -33,7 +36,7 @@ function ColorRound({
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const label = `${speaker} ${COLOR_LABELS[colorKey]} 색`
+  const label = `${name} ${COLOR_LABELS[colorKey]} 색`
 
   useEffect(() => {
     if (!open) return
@@ -224,7 +227,7 @@ function CharacterRow({
           <b className="char-name">{name}</b>
           <div className="char-colors">
             {(['color', 'bg', 'text'] as const).map((key) => (
-              <ColorRound key={key} speaker={speaker} colorKey={key} value={setting[key]} apply={apply} />
+              <ColorRound key={key} speaker={speaker} name={name} colorKey={key} value={setting[key]} apply={apply} />
             ))}
           </div>
         </div>
@@ -274,6 +277,28 @@ function CharacterRow({
           }}
         />
       )}
+    </div>
+  )
+}
+
+/** desc 서술: 캐릭터 목록 맨 위. 배경색·대사색만 (저널·이름·숨기기·삭제 없음) */
+function DescRow({ content, apply }: { content: Roll20LogContent; apply(op: LogEdit): void }) {
+  const setting = content.characters[DESC_KEY] ?? {}
+  return (
+    <div className="char-row desc-row">
+      <div className="char-main">
+        <span className="char-av desc-av" aria-hidden="true">
+          desc
+        </span>
+        <div className="char-body">
+          <b className="char-name">desc 서술</b>
+          <div className="char-colors">
+            {(['bg', 'text'] as const).map((key) => (
+              <ColorRound key={key} speaker={DESC_KEY} name="desc 서술" colorKey={key} value={setting[key]} apply={apply} />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -371,7 +396,7 @@ export function LogPanel({ content, apply, notify }: PanelProps) {
       </Section>
 
       <Section label="캐릭터" extra={<em className="opt-count">{speakers.length}명</em>}>
-        {speakers.length === 0 && <p className="field-help">이름이 있는 메시지가 없어요.</p>}
+        <DescRow content={content} apply={apply} />
         {speakers.map((s) => (
           <CharacterRow key={s.speaker} {...s} content={content} apply={apply} />
         ))}

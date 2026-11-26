@@ -1,5 +1,5 @@
 import type { Roll20LogContent } from './model'
-import { containerClass, escapeHtml, renderMessagesHtml, ROLL20_CHAT_CSS } from './render'
+import { containerClass, escapeHtml, logCss, renderMessagesHtml } from './render'
 
 /**
  * 내보내기 두 가지
@@ -24,8 +24,7 @@ export function logHtmlFile(content: Roll20LogContent, title: string): string {
 <title>${safeTitle}</title>
 <style>
 ${PAGE_CSS}
-${ROLL20_CHAT_CSS}
-${content.sheetCss}
+${logCss(content)}
 </style>
 </head>
 <body>
@@ -147,6 +146,6 @@ export function inlineCss(html: string, css: string): string {
 }
 
 export function logBlogCode(content: Roll20LogContent): string {
-  const css = `${ROLL20_CHAT_CSS}\n${content.sheetCss}`
+  const css = logCss(content)
   return `<div style="max-width:760px;margin:0 auto">${inlineCss(logBodyHtml(content), css)}</div>`
 }

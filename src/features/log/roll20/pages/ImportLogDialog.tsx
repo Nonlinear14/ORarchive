@@ -25,6 +25,11 @@ function Summary({ result, fileName }: { result: ParseResult; fileName?: string 
           메시지 {n(stats.messages)}개 · 화자 {n(stats.speakers)}명 · 귓속말 {n(stats.whispers)}개 · 숨긴 메시지 {n(stats.hidden)}개 ·{' '}
           {stats.sheetCss ? '시트 판정 디자인 찾음' : '시트 판정 디자인 없음 (기본 모양)'}
         </span>
+        {stats.extension && (
+          <span className="ext-line">
+            <Icon name="check" /> 확장 프로그램 사용 감지 — 메시지와 판정 표 꾸밈을 그대로 반영해요.
+          </span>
+        )}
         {stats.brokenAvatars > 0 && (
           <span className="warn-line">
             <Icon name="alert" /> 저널 {n(stats.brokenAvatars)}개가 PC 폴더 경로예요. 불러온 뒤 캐릭터 설정에서 주소를 넣을 수 있어요.
@@ -174,7 +179,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
           </ol>
           <textarea className="pastezone" aria-label="채팅 로그 붙여넣기" placeholder="여기를 누르고 Ctrl+V" value="" onChange={() => {}} onPaste={onPaste} />
           <p className="field-help">
-            브라우저 확장 프로그램이 채팅 모양을 바꾸고 있다면 끄고 복사해 주세요. 붙여넣기로는 시트 판정 디자인이 함께 오지 않아 기본 모양으로 보여요.
+            확장 프로그램으로 채팅을 꾸몄다면 그 꾸밈도 함께 반영돼요. 확장 프로그램을 쓰지 않은 페이지를 붙여 넣으면 시트 판정 디자인이 오지 않아 판정 표가 기본 모양으로 보여요.
           </p>
         </div>
       )}

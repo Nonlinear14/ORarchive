@@ -89,6 +89,82 @@ describe('Roll20 로그 편집 — 목록과 불러오기', () => {
   })
 })
 
+describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서술', () => {
+  it('Shift+Enter 는 줄바꿈, Esc 는 취소, 한글 조합 중 Enter 는 적용하지 않는다', async () => {
+    const { client, row: doc, saved } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    let box = within(root).getByRole('textbox', { name: '메시지 내용' })
+    box.textContent = '바뀌면 안 됨'
+    fireEvent.keyDown(box, { key: 'Enter', isComposing: true })
+    expect(within(root).getByRole('textbox', { name: '메시지 내용' })).toBeInTheDocument()
+    fireEvent.keyDown(box, { key: 'Escape' })
+    expect(within(root).queryByRole('textbox')).not.toBeInTheDocument()
+    expect(row(root, '-g1')).toHaveTextContent('서가 번호가 이상해요.')
+
+    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    box = within(root).getByRole('textbox', { name: '메시지 내용' })
+    box.innerHTML = '첫 줄<br>둘째 <i>줄</i>'
+    fireEvent.blur(box) // 메시지 밖을 누르면 적용
+    await waitFor(() => expect(saved().messages[1].text).toBe('첫 줄\n둘째 *줄*'), { timeout: 3000 })
+  })
+
+  it('수정 중에 이름을 누르면 캐릭터 드롭다운 → desc 서술로, 서술은 아이콘으로 다시 캐릭터로', async () => {
+    const { client, row: doc, saved } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    fireEvent.mouseDown(row(root, '-g1').querySelector('.by')!)
+    const menu = within(root).getByRole('menu', { name: '캐릭터 바꾸기' })
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items).toHaveLength(3)
+    expect(items[0]).toHaveTextContent('desc 서술')
+    expect(items[1]).toHaveTextContent('엘리너')
+    expect(items[2]).toHaveTextContent('토마스')
+    expect(items[1]).toHaveAttribute('aria-current', 'true')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /desc 서술/ }))
+    await waitFor(() => expect(saved().messages[1]).toMatchObject({ id: '-g1', kind: 'desc' }), { timeout: 3000 })
+    expect(saved().messages[1].speaker).toBeUndefined()
+
+    // 서술 메시지는 저널·이름이 없으니 마우스를 올리면 나오는 아이콘으로 바꾼다
+    const swap = row(root, '-g1').querySelector<HTMLButtonElement>('.speaker-btn')!
+    expect(swap).toHaveAttribute('aria-label', '캐릭터 바꾸기')
+    fireEvent.mouseDown(swap)
+    fireEvent.click(within(within(root).getByRole('menu')).getByRole('menuitem', { name: /토마스/ }))
+    await waitFor(() => expect(saved().messages[1]).toMatchObject({ kind: 'general', speaker: '토마스', avatar: './x_files/b.png' }), { timeout: 3000 })
+  })
+
+  it('캐릭터 목록 맨 위에 desc 서술: 배경·대사 색만 (이름 색·저널·숨기기·삭제 없음)', async () => {
+    const { client, row: doc, saved } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    const panel = screen.getByRole('complementary', { name: '로그 편집' })
+    const rows = panel.querySelectorAll('.char-row')
+    expect(rows[0]).toHaveTextContent('desc 서술')
+    expect(rows[1]).not.toHaveTextContent('desc 서술')
+    const desc = rows[0] as HTMLElement
+    expect(within(desc).queryByRole('button', { name: /이름 색/ })).not.toBeInTheDocument()
+    expect(within(desc).queryByRole('switch')).not.toBeInTheDocument()
+    expect(within(desc).queryByRole('button', { name: /삭제/ })).not.toBeInTheDocument()
+    fireEvent.click(within(desc).getByRole('button', { name: /desc 서술 배경 색/ }))
+    const picker = within(desc).getByLabelText('desc 서술 배경 색 고르기') as HTMLInputElement
+    picker.value = '#222222'
+    picker.dispatchEvent(new Event('change'))
+    await waitFor(() => expect(saved().characters['__desc__']).toEqual({ bg: '#222222' }), { timeout: 3000 })
+    expect(row(root, '-d1').querySelector<HTMLElement>('.message')!.style.getPropertyPriority('background-color')).toBe('important')
+  })
+
+  it('미리보기 위에 저장·글꼴 안내', async () => {
+    const { client, row: doc } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    await stage()
+    const preview = screen.getByRole('region', { name: '로그 미리보기' })
+    expect(within(preview).getByText(/현재 화면의 글꼴은 뷰어에만 적용됩니다. 로그 백업 시 적용되지 않습니다./)).toBeInTheDocument()
+    expect(document.getElementById('folio-viewer-fonts')?.textContent).toContain('Pretendard-Regular.woff2')
+  })
+})
+
 describe('Roll20 로그 편집 — 편집 화면', () => {
   it('메시지를 클릭해 고치고 적용하면 저장되고, 되돌리기로 돌아간다', async () => {
     const { client, row: doc, saved } = seedLog()
@@ -97,10 +173,13 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     expect(root.querySelector('style')?.textContent).toContain('.sheet-rolltemplate-coc-1 caption')
 
     fireEvent.click(row(root, '-g1').querySelector('.message')!)
-    const textarea = within(root).getByLabelText('메시지 내용')
-    expect(textarea).toHaveValue('서가 번호가 이상해요.')
-    fireEvent.change(textarea, { target: { value: '서가 번호가 **이상해요**.' } })
-    fireEvent.click(within(root).getByRole('button', { name: '적용' }))
+    // 별도 입력 창 없이 그 자리에서 고친다
+    const box = within(root).getByRole('textbox', { name: '메시지 내용' })
+    expect(box.tagName).toBe('SPAN')
+    expect(box).toHaveTextContent('서가 번호가 이상해요.')
+    // Ctrl+B 로 굵게 한 것처럼 <b> 가 생긴 상태 → Enter 로 적용
+    box.innerHTML = '서가 번호가 <b>이상해요</b>.'
+    fireEvent.keyDown(box, { key: 'Enter' })
     expect(row(root, '-g1').innerHTML).toContain('<strong>이상해요</strong>')
     await waitFor(() => expect(saved().messages[1].text).toBe('서가 번호가 **이상해요**.'), { timeout: 3000 })
 
@@ -129,10 +208,10 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
 
     fireEvent.mouseEnter(row(root, '-g1'))
     fireEvent.click(within(row(root, '-g1')).getByRole('button', { name: '아래에 새 메시지' }))
-    const textarea = within(root).getByLabelText('메시지 내용')
-    expect(textarea).toHaveValue('')
-    fireEvent.change(textarea, { target: { value: '새 대사' } })
-    fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true })
+    const box = within(root).getByRole('textbox', { name: '메시지 내용' })
+    expect(box).toHaveTextContent('')
+    box.textContent = '새 대사'
+    fireEvent.keyDown(box, { key: 'Enter' })
     await waitFor(() => expect(saved().messages[2]).toMatchObject({ speaker: '엘리너', text: '새 대사' }), { timeout: 3000 })
   })
 
