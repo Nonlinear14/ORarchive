@@ -5,7 +5,7 @@
  * 2열 행은 칸 두 개짜리 표로 그린다.
  */
 import { blockBoxCss, boxedCss, frameCss, imageCss, sealCss, textCss } from './blockStyles'
-import { blockImage, BLOCK_FONT_STACK, layoutText, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from './layout'
+import { blockImage, BLOCK_FONT_STACK, layoutText, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from './layout'
 import { escapeHtml, normalizeText, whitespaceHtml } from './roll20'
 import { inline } from './styles'
 
@@ -43,7 +43,7 @@ function blockHtml(block: LayoutBlock, align: Align): string {
   const margin = `margin:${block.marginTop ?? 0}px 0 ${block.marginBottom ?? 0}px;`
   const image = blockImage(block)
   if (image)
-    return `<p style="${NO_BORDER}${margin}padding:0;text-align:center;line-height:0;"><img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" width="${block.maxWidth}" style="${inline(imageCss(block))}"></p>`
+    return `<p style="${NO_BORDER}${margin}padding:0;text-align:center;line-height:0;"><img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" width="100%" style="${inline(imageCss())}"></p>`
   if (block.rule) {
     const { widthPercent, color } = block.rule
     return (
@@ -59,13 +59,17 @@ export function blockRoll20Html(layout: HandoutLayout): string {
   const rows = layout.rows
     .map((row) => {
       if (row.blocks.length === 1) return blockHtml(row.blocks[0], layout.align)
+      // 2열: 왼쪽 너비 %(split) · 두 칸은 같은 높이(표 칸) · 내용은 세로 가운데 · 여백은 줄에 한 번
+      const split = splitOf(row)
+      const widths = [split, 100 - split]
       const cells = row.blocks
         .map(
           (b, i) =>
-            `<td width="50%" valign="top" style="${NO_BORDER}padding:0 ${i === 0 ? 8 : 0}px 0 ${i === 0 ? 0 : 8}px;width:50%;vertical-align:top;">${blockHtml(b, layout.align)}</td>`,
+            `<td width="${widths[i]}%" valign="middle" style="${NO_BORDER}padding:0 ${i === 0 ? 8 : 0}px 0 ${i === 0 ? 0 : 8}px;width:${widths[i]}%;vertical-align:middle;">${blockHtml(withoutMargins(b), layout.align)}</td>`,
         )
         .join('')
-      return fullTable(`<tr>${cells}</tr>`)
+      const { top, bottom } = rowMargins(row)
+      return fullTable(`<tr>${cells}</tr>`, `margin:${top}px 0 ${bottom}px;`)
     })
     .join('')
   return layout.frames.reduceRight((inner, frame, index) => {

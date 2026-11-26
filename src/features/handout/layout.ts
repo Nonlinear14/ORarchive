@@ -74,6 +74,27 @@ export interface LayoutRow {
   id: string
   /** 1개 또는 2개 */
   blocks: LayoutBlock[]
+  /** 2열일 때 왼쪽 블록 너비 % (20–80, 정수). 없으면 50 */
+  split?: number
+}
+
+export const MIN_SPLIT = 20
+export const MAX_SPLIT = 80
+export const splitOf = (row: LayoutRow) => row.split ?? 50
+
+/** 2열 줄의 위아래 여백: 두 블록 가운데 큰 값을 줄에 한 번 */
+export function rowMargins(row: LayoutRow): { top: number; bottom: number } {
+  const of = (b: LayoutBlock) => (b.type === 'text' ? b.style : b)
+  return {
+    top: Math.max(...row.blocks.map((b) => of(b).marginTop ?? 0)),
+    bottom: Math.max(...row.blocks.map((b) => of(b).marginBottom ?? 0)),
+  }
+}
+
+/** 2열 칸 안에서는 블록의 위아래 여백을 쓰지 않는다 (줄에 한 번) */
+export function withoutMargins<T extends LayoutBlock>(block: T): T {
+  if (block.type === 'text') return { ...block, style: { ...block.style, marginTop: 0, marginBottom: 0 } }
+  return { ...block, marginTop: 0, marginBottom: 0 }
 }
 
 export interface FrameBox {
@@ -301,7 +322,11 @@ function parseRows(raw: Json[], fallback: TextBlockStyle): LayoutRow[] {
       .filter((b): b is LayoutBlock => b !== null && !seen.has(b.id))
       .slice(0, 2)
     blocks.forEach((b) => seen.add(b.id))
-    if (blocks.length) rows.push({ id: typeof row.id === 'string' && row.id ? row.id : `row-${index}`, blocks })
+    if (!blocks.length) return
+    const out: LayoutRow = { id: typeof row.id === 'string' && row.id ? row.id : `row-${index}`, blocks }
+    const split = num(row.split, MIN_SPLIT, MAX_SPLIT)
+    if (split !== undefined && blocks.length === 2) out.split = Math.round(split)
+    rows.push(out)
   })
   return rows
 }

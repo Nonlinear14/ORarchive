@@ -108,14 +108,49 @@
 }
 
 .hb-row.two {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
+  align-items: stretch;
 }
 
+/* 2열: 두 블록은 같은 높이(더 높은 쪽), 내용은 세로 가운데 */
 .hb-row.two > .hb-block {
-  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
+}
+
+.hb-divider {
+  position: relative;
+}
+
+.hb-canvas.editable .hb-divider {
+  cursor: col-resize;
+  touch-action: none;
+  outline: 0;
+}
+
+.hb-canvas.editable .hb-divider > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.hb-canvas.editable .hb-row.two:hover .hb-divider > span {
+  background: #ccb18b80;
+}
+
+.hb-canvas.editable .hb-divider:hover > span,
+.hb-canvas.editable .hb-divider.is-active > span,
+.hb-canvas.editable .hb-divider:focus-visible > span {
+  background: #427a67;
+  width: 3px;
 }
 
 .hb-block {

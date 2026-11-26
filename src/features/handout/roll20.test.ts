@@ -195,10 +195,11 @@ describe.each(handoutTemplates.map((t) => [t.id, t] as const))('Roll20 HTML — 
     expect(html).toContain('&nbsp;</p>')
   })
 
-  it('이미지: https src · 인라인 width/max-width · alt 이스케이프', () => {
+  it('이미지: https src · 블록 너비 100% · 높이는 비율 · alt 이스케이프', () => {
     const html = roll20Html({ ...base, image: { url: 'https://cdn.example.com/a.png?x=1&y="2"', alt: '지도 <1>' } })
     expectRoll20Safe(html)
-    expect(html).toMatch(/<img src="https:\/\/cdn\.example\.com\/a\.png\?x=1&amp;y=&quot;2&quot;" alt="지도 &lt;1&gt;" width="\d+" style="[^"]*width:100%;max-width:\d+px;height:auto;/)
+    // 이미지는 항상 블록 너비를 꽉 채우고 높이는 원본 비율
+    expect(html).toMatch(/<img src="https:\/\/cdn\.example\.com\/a\.png\?x=1&amp;y=&quot;2&quot;" alt="지도 &lt;1&gt;" width="100%" style="[^"]*width:100%;max-width:100%;height:auto;/)
     expect(roll20Html(base)).not.toContain('<img')
   })
 

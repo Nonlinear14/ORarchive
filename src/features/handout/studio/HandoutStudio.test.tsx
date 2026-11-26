@@ -511,6 +511,84 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(textOf(saved().content, 'signature')).toBe('— 블랙우드 저택의 주인')
   })
 
+  it('되돌리기 · 다시 실행: 버튼과 Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y, 이어서 입력한 글은 한 번에', async () => {
+    const { saved } = await openStudio()
+    const undoBtn = screen.getByRole('button', { name: /되돌리기/ })
+    const redoBtn = screen.getByRole('button', { name: /다시 실행/ })
+    expect(undoBtn).toBeDisabled()
+    select('f-title')
+    vi.useFakeTimers()
+    typeInto(field('title'), '달')
+    typeInto(field('title'), '달빛')
+    typeInto(field('title'), '달빛 편지')
+    fireEvent.click(screen.getByRole('button', { name: '굵게' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(textOf(saved().content, 'title')).toBe('달빛 편지')
+
+    // 굵게 되돌리기 (버튼)
+    fireEvent.click(undoBtn)
+    expect(screen.getByRole('button', { name: '굵게' })).toHaveAttribute('aria-pressed', 'false')
+    // 글상자에서 Ctrl+Z: 이어서 입력한 세 번이 한 번에 되돌아간다
+    fireEvent.keyDown(field('title'), { key: 'z', ctrlKey: true })
+    expect(field('title').textContent).toBe('달빛 아래의 초대장')
+    expect(undoBtn).toBeDisabled()
+    // 다시 실행: Ctrl+Shift+Z · Ctrl+Y
+    fireEvent.keyDown(document.body, { key: 'Z', ctrlKey: true, shiftKey: true })
+    expect(field('title').textContent).toBe('달빛 편지')
+    fireEvent.keyDown(document.body, { key: 'y', metaKey: true })
+    expect(screen.getByRole('button', { name: '굵게' })).toHaveAttribute('aria-pressed', 'true')
+    expect(redoBtn).toBeDisabled()
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-title')).toMatchObject({ text: '달빛 편지', style: { bold: true } })
+    // 입력칸(HEX)에서는 그 칸의 되돌리기 — 에디터 기록은 그대로
+    fireEvent.keyDown(screen.getByLabelText('배경색 HEX 코드'), { key: 'z', ctrlKey: true })
+    expect(field('title').textContent).toBe('달빛 편지')
+  })
+
+  it('글상자 정렬: 왼쪽 · 가운데 · 오른쪽', async () => {
+    const { saved } = await openStudio()
+    select('f-body')
+    expect(screen.getByRole('button', { name: '가운데 정렬' })).toHaveAttribute('aria-pressed', 'true')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: '오른쪽 정렬' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ align: 'right' })
+    expect(block('f-body').style.textAlign).toBe('right')
+  })
+
+  it('2열: 사이 손잡이에서 ← → 키로 좌우를 바꾸고, 두 블록은 같은 줄 높이 · 여백은 줄에 한 번', async () => {
+    const two = {
+      ...serializeHandout(createHandoutContent('moonlit')),
+      layout: {
+        rows: [
+          {
+            id: 'r',
+            split: 70,
+            blocks: [
+              { id: 'a', type: 'text', text: '왼쪽', style: { size: 14, color: '#000000', marginTop: 20 } },
+              { id: 'b', type: 'image', url: 'https://cdn.example.com/x.png', maxWidth: 300 },
+            ],
+          },
+        ],
+      },
+    }
+    const ctx = await openStudio(two as unknown as DocumentContent)
+    const row = document.querySelector<HTMLElement>('.hb-canvas.editable .hb-row.two')!
+    expect(row.style.gridTemplateColumns).toMatch(/70fr\) 16px minmax\(0(px)?, 30fr\)/)
+    expect(row.style.marginTop).toBe('20px')
+    expect(block('a').style.marginTop).toBe('0px')
+    // 이미지는 블록 너비를 꽉 채운다
+    expect(block('b').querySelector('img')!.style.width).toBe('100%')
+    const divider = screen.getByRole('separator', { name: /2열 너비 조절/ })
+    expect(divider).toHaveAttribute('aria-valuenow', '70')
+    vi.useFakeTimers()
+    fireEvent.keyDown(divider, { key: 'ArrowRight' })
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    const saved2 = rowsOf(ctx.saved().content)![0] as unknown as { split: number; blocks: { id: string }[] }
+    expect(saved2.blocks.map((b) => b.id)).toEqual(['b', 'a'])
+    expect(saved2.split).toBe(30)
+  })
+
   it(`${MAX_ALT_LENGTH}자가 넘는 대체 텍스트는 자르지 않고 알리기만 한다`, async () => {
     await openStudio()
     fireEvent.click(screen.getByRole('button', { name: /이미지 추가/ }))

@@ -8,7 +8,7 @@
 import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { HANDOUT_CONTENT_VERSION, isStructuredHandout } from './model'
-import { resolveLayout, storedRows, type LayoutBlock, type TextBlockStyle } from './layout'
+import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type TextBlockStyle } from './layout'
 import { resolveHandout } from './templates'
 
 export type LayoutEdit = (stored: DocumentContent) => DocumentContent
@@ -79,7 +79,7 @@ export const setBlockText = (id: string, text: string): LayoutEdit =>
   patchBlock(id, (block) => (block.text === text ? block : { ...block, text }))
 
 /** 글자 꾸밈: 색·굵게·기울임·크기 */
-export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'size'>>
+export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'size' | 'align'>>
 export const setBlockStyle = (id: string, patch: TextStylePatch): LayoutEdit =>
   patchBlock(id, (block) => ({ ...block, style: assign({ ...(isObject(block.style) ? block.style : {}) }, patch) }))
 
@@ -90,6 +90,32 @@ export const setBlockImage = (id: string, patch: { url?: string; alt?: string; r
 /** 구분선 색 (rule.color) */
 export const setBlockRule = (id: string, patch: { color: string }): LayoutEdit =>
   patchBlock(id, (block) => ({ ...block, rule: assign({ ...(isObject(block.rule) ? block.rule : {}) }, patch) }))
+
+function patchRow(rowId: string, patch: (row: JsonObject) => JsonObject): LayoutEdit {
+  return (stored) => {
+    const { base, rows } = withRows(stored)
+    const index = rows.findIndex((r) => r.id === rowId)
+    if (index < 0) return stored
+    const next = patch({ ...rows[index] })
+    if (JSON.stringify(next) === JSON.stringify(rows[index])) return stored
+    rows[index] = next
+    return save(base, rows)
+  }
+}
+
+/** 2열 줄의 왼쪽 블록 너비 % (MIN_SPLIT–MAX_SPLIT 정수) */
+export const setRowSplit = (rowId: string, split: number): LayoutEdit =>
+  patchRow(rowId, (row) => ({ ...row, split: Math.round(Math.min(MAX_SPLIT, Math.max(MIN_SPLIT, split))) }))
+
+/** 2열 줄의 왼쪽 · 오른쪽 바꾸기 (각 블록의 너비는 따라간다) */
+export const swapRow = (rowId: string): LayoutEdit =>
+  patchRow(rowId, (row) => {
+    const blocks = Array.isArray(row.blocks) ? row.blocks : []
+    if (blocks.length !== 2) return row
+    const next: JsonObject = { ...row, blocks: [blocks[1], blocks[0]] }
+    if (typeof row.split === 'number') next.split = 100 - row.split
+    return next
+  })
 
 /** 배경색 (style.background) */
 export function setBackground(stored: DocumentContent, color: string): DocumentContent {

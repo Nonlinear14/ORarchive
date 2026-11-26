@@ -31,7 +31,9 @@
 - 기존 핸드아웃은 `layout.ts` 의 `deriveRows` 가 템플릿 + `fields` 에서 블록을 만들어 보여 준다(id: `f-칸` · `s-순번` · `r-순번` · `m-칸` · `img`). 처음 고칠 때 `layoutEdits.ts` 가 보이던 블록을 `layout.rows` 에 적고 `fields` 는 그대로 둔다.
 - 화면: `canvas/BlockCanvas.tsx`(고르기 · 손잡이 끌기 · ↑↓ 키 · 2열, 구분선은 2열 불가), 패널 `studio/DesignPanel.tsx`(배경색 → 블록 추가 → 고른 블록 편집), 내보내기 `studio/ExportPanel.tsx`(롤꾸 복사 `blockRoll20.ts`, JPG `exportImage.ts`).
 - 글꼴은 Pretendard(`src/lib/pretendard.ts`). Roll20 에서는 설치된 컴퓨터에서만 Pretendard. JPG 에는 CORS 를 허용하지 않는 다른 사이트 이미지는 빠진다(빠진 수를 알림).
-- 블록 삭제는 되돌리기 없음(확인 창 없음 — 사용자 결정 대기 후 기본안).
+- 되돌리기 · 다시 실행(`src/lib/useEditHistory.ts`, 이 화면을 연 동안 100단계): 디자인 설정 맨 위 버튼과 Ctrl+Z · Ctrl+Shift+Z · Ctrl+Y(글상자 입력 중에도, 제목·HEX 입력칸은 그 칸의 되돌리기). 같은 글상자에 이어서 입력한 글 · 같은 색 고르기는 1초 안에 이어지면 한 단계로 묶는다. 블록 삭제 확인 창은 없음(되돌리기로 복구).
+- 2열 줄: `split`(왼쪽 너비 %, 20–80 정수, 없으면 50). 사이 손잡이를 끌어 조절, 손잡이에서 ← → 키는 좌우 바꾸기(`swapRow`). 두 블록은 같은 높이(더 높은 쪽) · 내용은 세로 가운데 · 위아래 여백은 줄에 한 번(`rowMargins`).
+- 글상자 정렬(왼쪽 · 가운데 · 오른쪽). 이미지는 항상 블록 너비 100%, 높이는 원본 비율(템플릿의 maxWidth 는 쓰지 않음).
 
 **사이드바·홈 개편 (2026-11-26 배포 완료)**
 - 메뉴: 템플릿 아카이브(핸드아웃 `/templates`, Roll20 코드 `/templates/roll20`) · 템플릿 에디터(`/studio/handout`) · 로그 에디터(Roll20 `/studio/log/roll20`, 코코포리아 `/studio/log/ccfolia`) · 캐릭터 아카이브(`/characters`) · 설정(계정 설정, 화면 전환 토글). 상위 메뉴는 아이콘, 하위 메뉴는 아이콘 없이 들여쓰기. 1050px 이하로 접히면 상위 아이콘만 보이고 누르면 하위 메뉴 말풍선.

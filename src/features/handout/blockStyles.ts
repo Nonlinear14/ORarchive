@@ -52,11 +52,12 @@ export function sealCss(seal: NonNullable<TextBlockStyle['seal']>): Css {
   }
 }
 
-export function imageCss(block: ImageBlock): Css {
+/** 이미지: 항상 블록 너비를 꽉 채우고 높이는 원본 비율 */
+export function imageCss(): Css {
   return {
-    display: 'inline-block',
+    display: 'block',
     width: '100%',
-    maxWidth: px(block.maxWidth),
+    maxWidth: '100%',
     height: 'auto',
     margin: '0',
     padding: '0',

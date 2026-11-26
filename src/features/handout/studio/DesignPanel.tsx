@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Icon } from '../../../components/Icon'
-import { MAX_FONT_SIZE, MIN_FONT_SIZE, type HandoutLayout, type LayoutBlock, type TextBlock } from '../layout'
+import { MAX_FONT_SIZE, MIN_FONT_SIZE, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from '../layout'
 import { removeBlock, setBackground, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
 import { MAX_ALT_LENGTH, normalizeHex, validateImageUrl, type HandoutImage } from '../model'
 
@@ -14,8 +14,12 @@ interface PanelProps {
   /** 보기 (검사·정규화한 값) */
   layout: HandoutLayout
   selected: LayoutBlock | null
-  /** 저장된 content 에 적용할 편집 — 고친 경로만 바뀐다 (layoutEdits.ts) */
-  onEdit(edit: LayoutEdit): void
+  /** 저장된 content 에 적용할 편집 — 고친 경로만 바뀐다 (layoutEdits.ts). group 이 같으면 되돌리기 한 번으로 묶인다 */
+  onEdit(edit: LayoutEdit, group?: string): void
+  canUndo: boolean
+  canRedo: boolean
+  onUndo(): void
+  onRedo(): void
   onAddText(): void
   onAddImage(): void
   onAddRule(): void
@@ -86,7 +90,7 @@ function BackgroundSection({ layout, onEdit }: PanelProps) {
   return (
     <div className="panel-section">
       <span className="field-label">배경색</span>
-      <ColorField key={layout.background} label="배경색" value={layout.background} onChange={(hex) => onEdit((stored) => setBackground(stored, hex))} />
+      <ColorField key={layout.background} label="배경색" value={layout.background} onChange={(hex) => onEdit((stored) => setBackground(stored, hex), 'background')} />
     </div>
   )
 }
@@ -130,13 +134,30 @@ function SizeStepper({ value, onChange }: { value: number; onChange(size: number
   )
 }
 
-function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutEdit): void }) {
+const ALIGNS: [Align, string][] = [
+  ['left', '왼쪽'],
+  ['center', '가운데'],
+  ['right', '오른쪽'],
+]
+
+function AlignIcon({ align }: { align: Align }) {
+  const x = (w: number) => (align === 'left' ? 2 : align === 'right' ? 14 - w : (16 - w) / 2)
+  return (
+    <svg viewBox="0 0 16 14" width="14" height="12" aria-hidden="true">
+      {[12, 8, 12, 6].map((w, i) => (
+        <rect key={i} x={x(w)} y={1 + i * 3.4} width={w} height="1.6" rx="0.8" fill="currentColor" />
+      ))}
+    </svg>
+  )
+}
+
+function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutEdit, group?: string): void }) {
   const style = block.style
   return (
     <div className="panel-section">
       <span className="field-label">글상자 편집</span>
       <span className="field-label sub">글자 색</span>
-      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => onEdit(setBlockStyle(block.id, { color }))} />
+      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => onEdit(setBlockStyle(block.id, { color }), `color:${block.id}`)} />
       <span className="field-label sub">꾸밈 · 크기</span>
       <div className="text-tools">
         <button
@@ -160,6 +181,27 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
           <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
         </button>
         <SizeStepper key={`${block.id}:${style.size}`} value={style.size} onChange={(size) => onEdit(setBlockStyle(block.id, { size }))} />
+      </div>
+      <span className="field-label sub" id={`align-${block.id}`}>
+        정렬
+      </span>
+      <div className="align-tools" role="group" aria-labelledby={`align-${block.id}`}>
+        {ALIGNS.map(([value, label]) => {
+          const active = (style.align ?? 'center') === value
+          return (
+            <button
+              key={value}
+              type="button"
+              className={active ? 'btn small active' : 'btn small'}
+              aria-pressed={active}
+              aria-label={`${label} 정렬`}
+              title={`${label} 정렬`}
+              onClick={() => !active && onEdit(setBlockStyle(block.id, { align: value }))}
+            >
+              <AlignIcon align={value} /> {label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -319,13 +361,13 @@ function ImageSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: '
   )
 }
 
-function RuleSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit): void }) {
+function RuleSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit, group?: string): void }) {
   const rule = block.rule!
   return (
     <div className="panel-section">
       <span className="field-label">구분선 편집</span>
       <span className="field-label sub">선 색</span>
-      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }))} />
+      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }), `rule:${block.id}`)} />
     </div>
   )
 }
@@ -345,10 +387,18 @@ function EditSection({ selected, onEdit }: PanelProps) {
   )
 }
 
-/** 오른쪽 디자인 설정: 배경색 · 블록 추가·삭제 · 고른 블록의 편집 옵션 */
+/** 오른쪽 디자인 설정: 되돌리기 · 다시 실행 · 배경색 · 블록 추가·삭제 · 고른 블록의 편집 옵션 */
 export function DesignPanel(props: PanelProps) {
   return (
     <>
+      <div className="panel-section history-tools" role="group" aria-label="되돌리기 · 다시 실행">
+        <button type="button" className="btn small" disabled={!props.canUndo} onClick={props.onUndo} title="되돌리기 (Ctrl+Z)">
+          <Icon name="undo" /> 되돌리기
+        </button>
+        <button type="button" className="btn small" disabled={!props.canRedo} onClick={props.onRedo} title="다시 실행 (Ctrl+Shift+Z · Ctrl+Y)">
+          <Icon name="redo" /> 다시 실행
+        </button>
+      </div>
       <BackgroundSection {...props} />
       <BlockSection {...props} />
       <EditSection {...props} />

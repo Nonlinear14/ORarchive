@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { ensureViewerFonts } from '../../../lib/pretendard'
 import { blockBoxCss, boxedCss, frameCss, imageCss, ruleCss, sealCss, textCss } from '../blockStyles'
-import { blockImage, BLOCK_FONT_STACK, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type TextBlock } from '../layout'
+import { blockImage, BLOCK_FONT_STACK, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type TextBlock } from '../layout'
 import type { DropTarget } from '../layoutEdits'
 import type { Css } from '../styles'
 import type { FieldDef } from '../templates'
@@ -18,6 +18,10 @@ export interface BlockEditing {
   onSelect(id: string | null): void
   onText(id: string, text: string): void
   onMove(id: string, target: DropTarget): void
+  /** 2열 줄의 왼쪽 너비 % */
+  onSplit(rowId: string, split: number): void
+  /** 2열 줄의 왼쪽 · 오른쪽 바꾸기 */
+  onSwap(rowId: string): void
 }
 
 function TextBody({ block, editing }: { block: TextBlock; editing?: BlockEditing }) {
@@ -49,7 +53,7 @@ function TextBody({ block, editing }: { block: TextBlock; editing?: BlockEditing
 
 function ImageBody({ block, editing }: { block: ImageBlock; editing: boolean }) {
   const image = blockImage(block)
-  if (image) return <img src={image.url} alt={image.alt} referrerPolicy="no-referrer" style={rs(imageCss(block))} draggable={false} />
+  if (image) return <img src={image.url} alt={image.alt} referrerPolicy="no-referrer" style={rs(imageCss())} draggable={false} />
   if (block.rule) return <div className="hc-rule" style={rs(ruleCss(block.rule))} />
   return editing ? <div className="hb-image-empty">이미지 블록 · 오른쪽 디자인 설정에서 이미지 주소를 넣어 주세요</div> : null
 }
@@ -128,6 +132,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
   const pending = useRef<{ id: string; x: number; y: number; pointer: number } | null>(null)
 
   const allIds = layout.rows.map((r) => r.id)
+  const inTwo = new Set(layout.rows.filter((r) => r.blocks.length > 1).flatMap((r) => r.blocks.map((b) => b.id)))
   // 미리보기·이미지 파일 글꼴: Pretendard 웹폰트
   useEffect(() => ensureViewerFonts(), [])
 
@@ -171,6 +176,52 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
     }
   }
 
+  // 2열 너비 조절: 끄는 동안은 화면에만, 놓을 때 한 번 저장
+  const [resize, setResize] = useState<{ rowId: string; split: number } | null>(null)
+  function resizeTo(row: LayoutRow, el: HTMLElement, clientX: number) {
+    const rect = el.parentElement!.getBoundingClientRect()
+    const split = Math.round(Math.min(MAX_SPLIT, Math.max(MIN_SPLIT, ((clientX - rect.left) / Math.max(1, rect.width)) * 100)))
+    setResize({ rowId: row.id, split })
+  }
+
+  const renderDivider = (row: LayoutRow, split: number): ReactNode =>
+    editing ? (
+      <div
+        className={resize?.rowId === row.id ? 'hb-divider is-active' : 'hb-divider'}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="2열 너비 조절 (끌어서 조절 · ← → 키로 좌우 바꾸기)"
+        aria-valuenow={split}
+        aria-valuemin={MIN_SPLIT}
+        aria-valuemax={MAX_SPLIT}
+        tabIndex={0}
+        title="끌어서 너비 조절 · ← → 키로 좌우 바꾸기"
+        onPointerDown={(event) => {
+          event.preventDefault()
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+          event.currentTarget.focus()
+          resizeTo(row, event.currentTarget, event.clientX)
+        }}
+        onPointerMove={(event) => {
+          if (resize?.rowId === row.id) resizeTo(row, event.currentTarget, event.clientX)
+        }}
+        onPointerUp={() => {
+          if (resize?.rowId === row.id && resize.split !== splitOf(row)) editing.onSplit(row.id, resize.split)
+          setResize(null)
+        }}
+        onPointerCancel={() => setResize(null)}
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+          event.preventDefault()
+          editing.onSwap(row.id)
+        }}
+      >
+        <span aria-hidden="true" />
+      </div>
+    ) : (
+      <div className="hb-divider" aria-hidden="true" />
+    )
+
   const renderBlock = (block: LayoutBlock): ReactNode => {
     const selected = editing?.selectedId === block.id
     const cls = ['hb-block', editing ? 'is-editable' : '', selected ? 'is-selected' : '', drag?.id === block.id ? 'is-dragging' : '']
@@ -183,7 +234,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         data-block-id={block.id}
         data-block-type={block.type}
         data-rule={block.type === 'image' && block.rule && !blockImage(block) ? 'true' : undefined}
-        style={rs(blockBox(block, layout.align))}
+        style={rs(blockBox(inTwo.has(block.id) ? withoutMargins(block) : block, layout.align))}
         onPointerDown={
           editing
             ? (event) => {
@@ -225,11 +276,29 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
   // 바깥 틀 → 내용 칸
   const content = (
     <>
-      {layout.rows.map((row) => (
-        <div key={row.id} className={row.blocks.length > 1 ? 'hb-row two' : 'hb-row'} data-row-id={row.id}>
-          {row.blocks.map(renderBlock)}
-        </div>
-      ))}
+      {layout.rows.map((row) => {
+        if (row.blocks.length < 2)
+          return (
+            <div key={row.id} className="hb-row" data-row-id={row.id}>
+              {row.blocks.map(renderBlock)}
+            </div>
+          )
+        // 2열: 왼쪽 너비 % · 두 블록은 더 높은 쪽에 맞춘 같은 높이 · 내용은 세로 가운데 · 여백은 줄에 한 번
+        const split = resize?.rowId === row.id ? resize.split : splitOf(row)
+        const { top, bottom } = rowMargins(row)
+        return (
+          <div
+            key={row.id}
+            className="hb-row two"
+            data-row-id={row.id}
+            style={{ gridTemplateColumns: `minmax(0, ${split}fr) 16px minmax(0, ${100 - split}fr)`, marginTop: top, marginBottom: bottom }}
+          >
+            {renderBlock(row.blocks[0])}
+            {renderDivider(row, split)}
+            {renderBlock(row.blocks[1])}
+          </div>
+        )
+      })}
     </>
   )
   const framed = layout.frames.reduceRight<ReactNode>(

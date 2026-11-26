@@ -3,7 +3,7 @@ import type { DocumentContent } from '../../lib/documents'
 import { deepFreeze } from '../../test/json'
 import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
 import { layoutOf, resolveLayout, type LayoutRow } from './layout'
-import { addBlock, moveBlock, removeBlock, setBlockStyle, setBlockText } from './layoutEdits'
+import { addBlock, moveBlock, removeBlock, setBlockStyle, setBlockText, setRowSplit, swapRow } from './layoutEdits'
 import { serializeHandout } from './model'
 import { createHandoutContent } from './templates'
 
@@ -71,6 +71,22 @@ describe('블록 편집 연산', () => {
     const rowId = resolveLayout(stored).rows[0].id
     stored = moveBlock('f-signature', { kind: 'before', rowId })(stored)
     expect(ids(resolveLayout(stored).rows)).toEqual(['f-signature', 'f-cap+f-title', 'r-0', 'f-body', 's-1', 's-2'])
+  })
+
+  it('2열 너비(split): 20–80 정수로 맞추고, 좌우 바꾸기는 블록과 너비를 함께 뒤집는다', () => {
+    let stored = moveBlock('f-signature', { kind: 'beside', blockId: 'f-body', side: 'right' })(start('moonlit'))
+    const rowId = resolveLayout(stored).rows[3].id
+    expect(resolveLayout(stored).rows[3].split).toBeUndefined()
+    stored = setRowSplit(rowId, 91.6)(stored)
+    expect(resolveLayout(stored).rows[3].split).toBe(80)
+    stored = setRowSplit(rowId, 63.4)(stored)
+    expect(setRowSplit(rowId, 63)(stored)).toBe(stored)
+    stored = swapRow(rowId)(stored)
+    const row = resolveLayout(stored).rows[3]
+    expect(row.blocks.map((b) => b.id)).toEqual(['f-signature', 'f-body'])
+    expect(row.split).toBe(37)
+    const html = blockRoll20Html(resolveLayout(stored))
+    expect(html).toMatch(/<td width="37%" valign="middle"[^>]*>.*블랙우드.*<\/td><td width="63%" valign="middle"/)
   })
 
   it('구분선은 2열에 놓을 수 없다 (구분선을 옆에 · 구분선 옆에)', () => {

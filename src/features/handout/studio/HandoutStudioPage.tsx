@@ -13,12 +13,13 @@ import { useAuth } from '../../../lib/auth/context'
 import { formatRelativeTime } from '../../../lib/format'
 import { recordRecentView } from '../../../lib/recentViews'
 import { useDocument } from '../../../lib/useDocument'
+import { useEditHistory } from '../../../lib/useEditHistory'
 import { useToast } from '../../../lib/useToast'
 import { NotFoundPage } from '../../../pages/NotFoundPage'
 import { blockRoll20Text } from '../blockRoll20'
 import { BlockCanvas } from '../canvas/BlockCanvas'
 import { findBlock, resolveLayout, type HandoutLayout, type ImageBlock, type LayoutBlock } from '../layout'
-import { addBlock, moveBlock, newBlockId, setBlockText, type LayoutEdit } from '../layoutEdits'
+import { addBlock, moveBlock, newBlockId, setBlockText, setRowSplit, swapRow } from '../layoutEdits'
 import { RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
 import { resolveHandout, resolveLook } from '../templates'
 import { DesignPanel } from './DesignPanel'
@@ -64,7 +65,24 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
   // 편집은 저장된 content(draft.content)에 연산을 적용해, 고친 경로만 바뀐 content 를 저장한다.
   // 보기(content)는 정규화한 값이라 저장하지 않는다 — 고치지 않은 저장 값은 한 글자도 바뀌지 않는다.
   // 모든 변경은 useDocument 의 edit 로 — 자동 저장 · 오프라인 보관 · 충돌 처리는 동기화 계층이 맡는다
-  const apply = (op: LayoutEdit) => edit({ content: op(draft.content) })
+  // 되돌리기 · 다시 실행: 모든 편집이 이 기록을 거친다 (이 화면을 연 동안만)
+  const { apply, undo, redo, breakGroup, canUndo, canRedo } = useEditHistory(draft.content, edit)
+  // Ctrl+Z 되돌리기 · Ctrl+Shift+Z / Ctrl+Y 다시 실행 (Mac 은 Cmd). 글상자에서 입력 중에도 에디터 기록을 쓴다.
+  // 제목 · HEX 같은 입력칸은 그 칸의 되돌리기를 쓴다
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+      const key = e.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      const target = e.target as HTMLElement | null
+      if (target?.matches('input, textarea, select')) return
+      e.preventDefault()
+      if (key === 'y' || e.shiftKey) redo()
+      else undo()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [undo, redo])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = findBlock(layout, selectedId)
   const snapshot = useRef<HTMLDivElement>(null)
@@ -159,9 +177,14 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
               label="핸드아웃 캔버스"
               editing={{
                 selectedId,
-                onSelect: setSelectedId,
-                onText: (id, text) => apply(setBlockText(id, text)),
+                onSelect: (id) => {
+                  if (id !== selectedId) breakGroup()
+                  setSelectedId(id)
+                },
+                onText: (id, text) => apply(setBlockText(id, text), `text:${id}`),
                 onMove: (id, target) => apply(moveBlock(id, target)),
+                onSplit: (rowId, split) => apply(setRowSplit(rowId, split)),
+                onSwap: (rowId) => apply(swapRow(rowId)),
               }}
             />
           </div>
@@ -182,6 +205,10 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
           </div>
           <DesignPanel
             layout={layout}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
             selected={selected}
             onEdit={apply}
             onAddText={() => addNew('text')}
