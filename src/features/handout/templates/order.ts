@@ -46,12 +46,11 @@ export const order: HandoutTemplate = {
     {
       kind: 'frame',
       padding: '12px',
-      border: { width: 4, color: 'border', style: 'double' },
+      border: { width: 2, color: 'border' },
       children: [
         {
           kind: 'frame',
           padding: '34px 28px 32px',
-          border: { width: 1, color: 'inner' },
           align: 'center',
           children: [
             { kind: 'seal', field: 'seal', size: 76, ring: 'accent', style: { size: 34, lineHeight: 1, color: 'accent' } },

@@ -54,7 +54,6 @@ export const moonlit: HandoutTemplate = {
         {
           kind: 'frame',
           padding: '44px 24px 30px',
-          border: { width: 1, color: 'inner' },
           align: 'center',
           children: [
             { kind: 'field', field: 'cap', style: { size: 11, letterSpacing: 4, color: 'accent', marginBottom: 44 } },

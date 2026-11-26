@@ -6,7 +6,7 @@ import { createTestServices, renderApp } from '../../../test/renderApp'
 import { BlockCanvas } from '../canvas/BlockCanvas'
 import * as exportImage from '../exportImage'
 import { layoutOf } from '../layout'
-import { MAX_ALT_LENGTH, RECOMMENDED_FIELD_LENGTH, serializeHandout, type HandoutContent } from '../model'
+import { RECOMMENDED_FIELD_LENGTH, serializeHandout, type HandoutContent } from '../model'
 import { createHandoutContent } from '../templates'
 
 afterEach(() => {
@@ -350,8 +350,9 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(within(panel).getByLabelText('배경색 HEX 코드')).toHaveValue('#e8ddc9')
     expect(within(panel).getByText(/블록을 고르면 여기에 편집 옵션이 나와요/)).toBeInTheDocument()
     // 순서: 배경색 → 블록 추가 → 편집
-    const labels = [...panel.querySelectorAll('.panel-section > .field-label')].map((el) => el.textContent)
-    expect(labels).toEqual(['배경색', '블록 추가', '편집'])
+    const labels = [...panel.querySelectorAll('.panel-section > .field-label:not(.sub), .border-toggle > .field-label')].map((el) => el.textContent)
+    expect(labels).toEqual(['배경색', '테두리 표시', '블록 추가', '편집'])
+    expect(within(panel).getByRole('button', { name: /초기화/ })).toBeInTheDocument()
     expect(within(panel).getByRole('button', { name: /선택한 블록 삭제/ })).toBeDisabled()
     // 비공개 안내는 미리보기 위, 내보내기는 미리보기 아래
     expect(screen.getByRole('region', { name: '캔버스' })).toHaveTextContent('문서는 기본적으로 비공개로 내 계정에만 저장돼요.')
@@ -446,12 +447,13 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
 
     vi.useFakeTimers()
     fireEvent.change(screen.getByLabelText('이미지 주소 (https)'), { target: { value: 'https://cdn.example.com/map.png' } })
-    fireEvent.change(screen.getByLabelText('대체 텍스트'), { target: { value: '저택 지도' } })
     fireEvent.click(screen.getByRole('button', { name: /이미지 넣기/ }))
     expect(document.querySelector('.hb-canvas.editable img')).toHaveAttribute('src', 'https://cdn.example.com/map.png')
     await act(() => vi.advanceTimersByTimeAsync(800))
     const img = rowsOf(saved().content)!.flatMap((r) => r.blocks).find((b) => b.url)
-    expect(img).toMatchObject({ type: 'image', url: 'https://cdn.example.com/map.png', alt: '저택 지도' })
+    expect(img).toMatchObject({ type: 'image', url: 'https://cdn.example.com/map.png' })
+    // 대체 텍스트 입력은 없다
+    expect(screen.queryByLabelText('대체 텍스트')).not.toBeInTheDocument()
     // 맨 아래에 들어간다 (고른 블록이 없었으므로)
     expect(rowsOf(saved().content)!.at(-1)!.blocks[0].id).toBe(img!.id)
 
@@ -488,25 +490,62 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     const rule = document.querySelector<HTMLElement>('.hb-canvas.editable [data-block-type="image"]')!
     const id = rule.dataset.blockId!
     fireEvent.pointerDown(rule)
-    // 달빛의 초대: 폭 430 − 틀 여백·테두리 = 내용 칸 346px (430 − 16·2 − 1·2 − 24·2 − 1·2), 템플릿 구분선은 70% → 242px
-    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('242')
+    // 달빛의 초대: 폭 430 − 틀 여백·테두리 = 내용 칸 348px (430 − 16·2 − 1·2 − 24·2, 테두리 한 겹), 템플릿 구분선은 70% → 244px
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('244')
     expect(screen.getByLabelText('구분선 굵기 (px)')).toHaveValue('1')
-    expect(screen.getByRole('button', { name: /실선/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^실선/ })).toHaveAttribute('aria-pressed', 'true')
     vi.useFakeTimers()
     const len = screen.getByLabelText('구분선 길이 (px)')
     fireEvent.change(len, { target: { value: '999' } })
     fireEvent.blur(len)
-    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('346')
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('348')
     fireEvent.click(screen.getByRole('button', { name: '구분선 굵게' }))
     fireEvent.click(screen.getByRole('button', { name: /1점 쇄선/ }))
     await act(() => vi.advanceTimersByTimeAsync(800))
-    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 346, thickness: 2, style: 'dashdot' } })
+    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 348, thickness: 2, style: 'dashdot' } })
     const line = rule.querySelector<HTMLElement>('.hc-rule')!
-    expect(line.style.width).toBe('346px')
+    expect(line.style.width).toBe('348px')
     expect(line.style.height).toBe('2px')
     expect(line.children.length).toBeGreaterThan(10)
     // 고르기 쉽게 편집 화면에서만 위아래 영역을 넓힌다 (보이는 자리는 그대로)
     expect(rule.style.paddingTop).toBe('12px')
+  })
+
+  it('테두리: 한 겹 · 끄면 숨기고(설정은 남김) · 켜면 색 · 굵기 · 실선/점선', async () => {
+    const { saved } = await openStudio()
+    const frames = () => [...document.querySelectorAll<HTMLElement>('.hb-canvas.editable .hc-frame, .hb-canvas.editable .hc-frame div')].filter((el) => el.style.border)
+    expect(frames()).toHaveLength(1)
+    expect(frames()[0].style.border).toBe('1px solid rgb(170, 151, 117)')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: '테두리 굵게' }))
+    fireEvent.click(screen.getByRole('button', { name: '테두리 점선' }))
+    fireEvent.click(screen.getByRole('switch', { name: '테두리 표시' }))
+    expect(frames()).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: '테두리 굵게' })).not.toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(saved().content).toMatchObject({ style: { border: { width: 2, style: 'dotted', show: false } } })
+    fireEvent.click(screen.getByRole('switch', { name: '테두리 표시' }))
+    expect(frames()[0].style.border).toBe('2px dotted rgb(170, 151, 117)')
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect((saved().content as unknown as { style: { border: object } }).style.border).toEqual({ width: 2, style: 'dotted' })
+  })
+
+  it('초기화: 확인 뒤 템플릿 처음 모양으로 (제목은 그대로) · 되돌리기로 다시 살린다', async () => {
+    const { saved } = await openStudio()
+    select('f-title')
+    vi.useFakeTimers()
+    typeInto(field('title'), '고친 제목')
+    fireEvent.click(screen.getByRole('button', { name: /글상자 추가/ }))
+    fireEvent.click(screen.getByRole('button', { name: /초기화/ }))
+    const dialog = screen.getByRole('dialog', { name: '템플릿 처음 모양으로 초기화할까요?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '초기화' }))
+    expect(field('title').textContent).toBe('달빛 아래의 초대장')
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(rowsOf(saved().content)).toBeNull()
+    expect(saved().content).toMatchObject({ templateId: 'moonlit', fields: { title: '달빛 아래의 초대장' } })
+    expect(screen.getByLabelText('문서 제목')).toHaveValue('달빛 초대장')
+    fireEvent.click(screen.getByRole('button', { name: /되돌리기/ }))
+    expect(field('title').textContent).toBe('고친 제목')
   })
 
   it('이미지를 빼면 빈 이미지 블록(이미지 고르기)이 남는다', async () => {
@@ -615,16 +654,6 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(saved2.split).toBe(30)
   })
 
-  it(`${MAX_ALT_LENGTH}자가 넘는 대체 텍스트는 자르지 않고 알리기만 한다`, async () => {
-    await openStudio()
-    fireEvent.click(screen.getByRole('button', { name: /이미지 추가/ }))
-    fireEvent.change(screen.getByLabelText('이미지 주소 (https)'), { target: { value: 'https://cdn.example.com/map.png' } })
-    fireEvent.change(screen.getByLabelText('대체 텍스트'), { target: { value: 'a'.repeat(MAX_ALT_LENGTH + 1) } })
-    fireEvent.click(screen.getByRole('button', { name: /이미지 넣기/ }))
-    expect(screen.getByRole('alert')).toHaveTextContent(`지금 ${MAX_ALT_LENGTH + 1}자예요`)
-    expect(screen.getByLabelText('대체 텍스트')).toHaveValue('a'.repeat(MAX_ALT_LENGTH + 1))
-    expect(document.querySelector('.hb-canvas.editable img')).toBeNull()
-  })
 })
 
 describe('핸드아웃 스튜디오 — 내보내기', () => {

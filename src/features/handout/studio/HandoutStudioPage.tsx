@@ -4,6 +4,7 @@ import { DeletedRecovery } from '../../../components/document/DeletedRecovery'
 import '../../../components/document/DocumentEditor.css'
 import { SyncNotices } from '../../../components/document/SyncNotices'
 import { Icon } from '../../../components/Icon'
+import { Modal } from '../../../components/Modal'
 import { LoadingState } from '../../../components/LoadingState'
 import { SaveStatusChip } from '../../../components/SaveStatusChip'
 import { Toast } from '../../../components/Toast'
@@ -19,7 +20,7 @@ import { NotFoundPage } from '../../../pages/NotFoundPage'
 import { blockRoll20Text } from '../blockRoll20'
 import { BlockCanvas } from '../canvas/BlockCanvas'
 import { findBlock, resolveLayout, type HandoutLayout, type ImageBlock, type LayoutBlock } from '../layout'
-import { addBlock, moveBlock, newBlockId, setBlockText, setRowSplit, swapRow } from '../layoutEdits'
+import { addBlock, moveBlock, newBlockId, resetToTemplate, setBlockText, setRowSplit, swapRow } from '../layoutEdits'
 import { RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
 import { resolveHandout, resolveLook } from '../templates'
 import { DesignPanel } from './DesignPanel'
@@ -84,6 +85,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
     return () => document.removeEventListener('keydown', onKey)
   }, [undo, redo])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
   const selected = findBlock(layout, selectedId)
   const snapshot = useRef<HTMLDivElement>(null)
   const stage = useRef<HTMLDivElement>(null)
@@ -209,6 +211,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             canRedo={canRedo}
             onUndo={undo}
             onRedo={redo}
+            onReset={() => setConfirmReset(true)}
             selected={selected}
             onEdit={apply}
             onAddText={() => addNew('text')}
@@ -218,6 +221,31 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
           />
         </aside>
       </div>
+      {confirmReset && (
+        <Modal title="템플릿 처음 모양으로 초기화할까요?" eyebrow="초기화" onClose={() => setConfirmReset(false)}>
+          <p>
+            지금까지 고친 글 · 블록 · 색 · 테두리를 모두 지우고 「{look.template.name}」 템플릿의 처음 모양으로 돌아가요. 문서 제목은 그대로예요.
+            이 화면을 닫기 전까지는 되돌리기로 다시 살릴 수 있어요.
+          </p>
+          <div className="modal-actions">
+            <button type="button" className="btn" onClick={() => setConfirmReset(false)}>
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn primary danger"
+              onClick={() => {
+                apply(resetToTemplate)
+                setSelectedId(null)
+                setConfirmReset(false)
+                show('템플릿 처음 모양으로 초기화했어요. 되돌리기로 다시 살릴 수 있어요.')
+              }}
+            >
+              초기화
+            </button>
+          </div>
+        </Modal>
+      )}
       <Toast toast={toast} />
     </article>
   )

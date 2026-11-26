@@ -67,7 +67,8 @@ export interface TextStyle {
 export interface BorderSpec {
   width: number
   color: ColorKey
-  style?: 'solid' | 'double' | 'dashed'
+  /** 테두리는 한 겹 · 실선이나 점선만 (2026-11-26) */
+  style?: 'solid' | 'dotted'
 }
 
 export type Block =
