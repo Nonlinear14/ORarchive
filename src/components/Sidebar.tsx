@@ -48,9 +48,9 @@ function ThemeToggle() {
       aria-checked={dark}
       className="nav-sub theme-toggle"
       onClick={toggleTheme}
-      title="라이트모드/다크모드 전환"
+      title="화면 전환 (라이트모드/다크모드)"
     >
-      <span>라이트모드/다크모드</span>
+      <span>화면 전환</span>
       <span className="switch" aria-hidden="true">
         <span className="switch-knob" />
       </span>

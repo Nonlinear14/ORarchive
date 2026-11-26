@@ -53,7 +53,7 @@ describe('화면 모드', () => {
   it('사이드바 토글로 다크모드를 켜고 끈다 (이 기기에 기억)', async () => {
     renderApp('/settings', { client: createFakeSupabase().client })
 
-    const toggle = await screen.findByRole('switch', { name: /라이트모드\/다크모드/ })
+    const toggle = await screen.findByRole('switch', { name: /화면 전환/ })
     expect(toggle).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-checked', 'true')

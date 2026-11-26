@@ -11,7 +11,7 @@ describe('앱 셸', () => {
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
     expect(screen.getAllByText('FOLIO').length).toBeGreaterThan(0)
     expect(screen.getByText('TRPG WORKSPACE')).toBeInTheDocument()
-    for (const section of ['템플릿 아카이브', '템플릿 에디터', '로그 에디터', '캐릭터 아카이브', 'Setting']) {
+    for (const section of ['템플릿 아카이브', '템플릿 에디터', '로그 에디터', '캐릭터 아카이브', '설정']) {
       expect(within(sidebar).getByText(section)).toBeInTheDocument()
     }
     // 예전 WORKSPACE 묶음은 없다
@@ -33,7 +33,7 @@ describe('앱 셸', () => {
     // 하위 메뉴가 있는 상위 메뉴 제목은 링크가 아니다
     expect(within(sidebar).queryByRole('link', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
     expect(within(sidebar).queryByRole('link', { name: '로그 에디터' })).not.toBeInTheDocument()
-    expect(within(sidebar).getByRole('switch', { name: /라이트모드\/다크모드/ })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '알림' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: '모바일 메뉴' }).querySelectorAll('a')).toHaveLength(5)
@@ -70,9 +70,9 @@ describe('접힌 사이드바 (≤1050px)', () => {
       // 현재 화면이 속한 상위 메뉴가 활성 표시된다
       expect(within(sidebar).getByRole('button', { name: '템플릿 아카이브' })).toHaveClass('active')
 
-      // Esc 로 닫힘, Setting 말풍선에는 테마 토글
-      fireEvent.click(within(sidebar).getByRole('button', { name: 'Setting' }))
-      expect(within(sidebar).getByRole('switch', { name: /라이트모드\/다크모드/ })).toBeInTheDocument()
+      // Esc 로 닫힘, 설정 말풍선에는 테마 토글
+      fireEvent.click(within(sidebar).getByRole('button', { name: '설정' }))
+      expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
       fireEvent.keyDown(document, { key: 'Escape' })
       expect(within(sidebar).queryByRole('switch')).not.toBeInTheDocument()
       // 하위 메뉴가 없는 상위 메뉴는 그대로 링크

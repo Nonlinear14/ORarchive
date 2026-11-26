@@ -93,7 +93,7 @@ export const navSections: NavSection[] = [
     },
   },
   {
-    label: 'Setting',
+    label: '설정',
     icon: 'settings',
     themeToggle: true,
     children: [
