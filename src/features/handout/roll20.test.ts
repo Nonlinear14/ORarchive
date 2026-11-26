@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { HandoutContent } from './model'
-import { escapeHtml, handoutDocumentHtml, handoutFileName, roll20Html, roll20Text, whitespaceHtml } from './roll20'
+import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
+import { layoutOf } from './layout'
+import { escapeHtml, handoutFileName, whitespaceHtml } from './roll20'
 import { createHandoutContent, getTemplate, handoutTemplates } from './templates'
 
 const NBSP = ' '
+
+/** 템플릿 칸 → 블록 → 롤꾸 복사 (화면과 같은 경로) */
+const roll20Html = (content: HandoutContent) => blockRoll20Html(layoutOf(content))
+const roll20Text = (content: HandoutContent) => blockRoll20Text(layoutOf(content))
 
 function withFields(content: HandoutContent, fields: Record<string, string>): HandoutContent {
   return { ...content, fields: { ...content.fields, ...fields } }
@@ -168,7 +174,8 @@ describe.each(handoutTemplates.map((t) => [t.id, t] as const))('Roll20 HTML — 
     expect(html).not.toContain('\t')
   })
 
-  it('테마 색과 강조 색이 인라인으로 들어간다', () => {
+  it('테마 색과 강조 색이 인라인으로 들어가고, 글꼴은 Pretendard', () => {
+    expect(roll20Html(base)).toContain('font-family:Pretendard')
     for (const theme of template.themes) {
       const html = roll20Html({ ...base, theme: theme.id })
       expect(html).toContain(`background-color:${theme.colors.paper}`)
@@ -177,11 +184,6 @@ describe.each(handoutTemplates.map((t) => [t.id, t] as const))('Roll20 HTML — 
     const accented = roll20Html({ ...base, style: { accent: '#123abc' } })
     expect(accented).toContain('#123abc')
     expect(accented).not.toContain(template.themes[0].colors.accent)
-  })
-
-  it('글꼴 선택이 모든 글자에 적용된다', () => {
-    const html = roll20Html({ ...base, style: { font: 'hand' } })
-    expect(html).toContain('Segoe Print')
   })
 
   it('비어 있는 선택 칸은 빼고, 필수 칸은 자리를 남긴다', () => {
@@ -224,7 +226,7 @@ describe('템플릿별 장식', () => {
     expect(html).toContain('№ 1927-0413')
     expect(html).toContain('CONFIDENTIAL')
     expect(html).toContain('border:2px solid #9b3b2f')
-    expect(roll20Text(createHandoutContent('casefile'))).toContain('사건 번호: № 1927-0413')
+    expect(roll20Text(createHandoutContent('casefile'))).toContain('사건 번호    № 1927-0413')
   })
 
   it('비밀 결사의 인장: 원형 인장 칸', () => {
@@ -238,16 +240,7 @@ describe('템플릿별 장식', () => {
   })
 })
 
-describe('HTML 파일 저장', () => {
-  it('단독 문서: doctype · 제목 이스케이프 · 같은 Roll20 마크업', () => {
-    const content = createHandoutContent('moonlit')
-    const doc = handoutDocumentHtml(content, '달빛 <초대>')
-    expect(doc.startsWith('<!doctype html>')).toBe(true)
-    expect(doc).toContain('<title>달빛 &lt;초대&gt;</title>')
-    expect(doc).toContain(roll20Html(content))
-    expect(doc.toLowerCase()).not.toContain('<style')
-  })
-
+describe('파일 이름', () => {
   it('파일 이름', () => {
     expect(handoutFileName('달빛: 초대/장?')).toBe('달빛 초대장.html')
     expect(handoutFileName('  ')).toBe('orarchive-handout.html')

@@ -16,6 +16,9 @@ export type LayoutEdit = (stored: DocumentContent) => DocumentContent
 type JsonObject = { [key: string]: Json | undefined }
 const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
 
+/** 저장된 블록이 구분선인가 (이미지 주소 없이 선만) */
+const isRuleJson = (block: Json | null | undefined) => isObject(block) && block.type === 'image' && isObject(block.rule) && !block.url
+
 let seq = 0
 export const newBlockId = () => `b${Date.now().toString(36)}${(seq++).toString(36)}`
 
@@ -127,6 +130,12 @@ export const moveBlock =
     if (!from) return stored
     const moving = (rows[from.row].blocks as Json[])[from.index]
     if (target.kind === 'beside' && target.blockId === id) return stored
+    // 구분선은 2열에 놓지 않는다 (구분선을 옆에 놓거나, 구분선 옆에 놓기)
+    if (target.kind === 'beside') {
+      const to = locate(rows, target.blockId)
+      const other = to ? (rows[to.row].blocks as Json[])[to.index] : null
+      if (isRuleJson(moving) || isRuleJson(other)) return stored
+    }
     // 빼낸다 (빈 행은 save 가 지운다 — 자리 계산을 위해 여기서는 남겨 둔다)
     rows[from.row] = { ...rows[from.row], blocks: (rows[from.row].blocks as Json[]).filter((_, i) => i !== from.index) }
     if (target.kind === 'beside') {

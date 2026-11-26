@@ -193,7 +193,7 @@ function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onRe
         <Icon name="trash" /> 선택한 블록 삭제
       </button>
       <p className="field-help">
-        미리보기에서 블록을 고르고 손잡이(⠿)를 끌어 옮겨요. 다른 블록의 왼쪽·오른쪽 끝에 놓으면 한 줄에 2열로 놓여요.
+        미리보기에서 블록을 고르고 손잡이(⠿)를 끌어 옮겨요. 다른 블록의 왼쪽·오른쪽 끝에 놓으면 한 줄에 2열로 놓여요 (구분선은 2열에 놓을 수 없어요).
       </p>
     </div>
   )

@@ -28,16 +28,6 @@ export function getTemplate(id: TemplateId): HandoutTemplate {
   return byId.get(id) ?? moonlit
 }
 
-/** 강조 색 팔레트 (직접 입력한 hex 도 받는다) */
-export const accentPalette: { color: string; label: string }[] = [
-  { color: '#9c795f', label: '고서 갈색' },
-  { color: '#b8975a', label: '금박' },
-  { color: '#9b3b2f', label: '봉랍 빨강' },
-  { color: '#5f7f4f', label: '이끼 초록' },
-  { color: '#4f6d8a', label: '잉크 파랑' },
-  { color: '#7a5a8c', label: '라벤더 보라' },
-]
-
 function defaultFields(template: HandoutTemplate): Record<string, string> {
   return Object.fromEntries(template.fields.map((f) => [f.key, f.defaultText]))
 }

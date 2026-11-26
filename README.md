@@ -5,11 +5,11 @@ TRPG(Roll20·코코포리아) 기록 보관·창작 워크스페이스. 핸드�
 현재는 **Phase 2 — 핸드아웃 스튜디오(MVP)** 단계입니다. Phase 1 의 Google 로그인 · 내 보관함 · 자동 저장/기기 간 동기화 위에 다음이 동작합니다.
 
 - **템플릿 갤러리** (`/templates`): 4개 기본 템플릿(달빛의 초대 · 오래된 조사 기록 · 비밀 결사의 인장 · 숲의 기록), 분류 필터, 실제 캔버스 미리보기. "이 템플릿으로 시작"으로 핸드아웃 문서를 만들어 스튜디오를 엽니다.
-- **핸드아웃 스튜디오** (`/studio/handout/:id`, 목록 `/studio/handout`): 캔버스 글자 직접 편집, 템플릿 바꾸기(공통 칸 유지), 테마 · 강조 색 · 글꼴 · https 이미지 주소. 편집은 Phase 1 동기화 계층(`useDocument`)으로 저장되며 충돌 · 오프라인 · 삭제 복구 화면도 그대로 씁니다.
-- **Roll20에 복사**: 표 기반 · 인라인 스타일만 쓰는 HTML(text/html + text/plain)을 클립보드에 넣어 Roll20 핸드아웃 내용 칸에 Ctrl+V 로 붙여 넣습니다. HTML 코드 보기 · HTML 파일 저장도 있습니다.
+- **핸드아웃 템플릿 에디터** (`/studio/handout/:id`, 시작 `/studio/handout`): 템플릿으로 시작해 글상자 · 이미지 · 구분선 블록을 고치고 추가 · 삭제하고, 손잡이로 끌어 옮깁니다(한 줄 2열). 배경색, 글상자별 색 · 굵게 · 기울임 · 크기, 구분선 색. 편집은 Phase 1 동기화 계층(`useDocument`)으로 저장되며 충돌 · 오프라인 · 삭제 복구 화면도 그대로 씁니다.
+- **롤꾸 복사**: 표 기반 · 인라인 스타일만 쓰는 HTML(text/html + text/plain)을 클립보드에 넣어 Roll20 핸드아웃 내용 칸에 Ctrl+V 로 붙여 넣습니다. **이미지 파일 저장(JPG)** 도 있습니다(html-to-image, 2배 해상도).
 - 로그 · 캐릭터 문서는 다음 단계까지 기본 편집기(`/documents/:id`)를 씁니다.
 
-핸드아웃 content 형식과 템플릿 정의는 `src/features/handout/` (`model.ts`, `edits.ts`, `templates/`, `roll20.ts`) 를 보세요. 저장된 content 는 편집할 때 고친 경로만 바뀌고(`edits.ts`), 화면 · Roll20 출력은 그것을 검사 · 정규화한 보기(`resolveHandout`)만 씁니다. 디자인 기준은 `mockup/trpg_folio_mockup_v3.html` 입니다.
+핸드아웃 content 형식과 템플릿 정의는 `src/features/handout/` (`model.ts`, `layout.ts`, `layoutEdits.ts`, `templates/`, `blockRoll20.ts`) 를 보세요. 저장된 content 는 편집할 때 고친 경로만 바뀌고(`layoutEdits.ts`), 화면 · Roll20 출력은 그것을 검사 · 정규화한 보기(`resolveLayout`)만 씁니다. 디자인 기준은 `mockup/trpg_folio_mockup_v3.html` 입니다.
 
 ## 기술 스택
 

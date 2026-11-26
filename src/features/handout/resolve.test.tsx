@@ -1,8 +1,10 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { randomCorpus, storedCorpus, type StoredCase } from '../../test/handoutCorpus'
-import { HandoutCanvas } from './canvas/HandoutCanvas'
-import { setField } from './edits'
+import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
+import { BlockCanvas } from './canvas/BlockCanvas'
+import { layoutOf, resolveLayout } from './layout'
+import { setBlockText } from './layoutEdits'
 import {
   fontChoices,
   isFontChoice,
@@ -12,7 +14,7 @@ import {
   validateImageUrl,
   type HandoutContent,
 } from './model'
-import { escapeHtml, roll20Html, roll20Text } from './roll20'
+import { escapeHtml } from './roll20'
 import { createHandoutContent, getTemplate, resolveHandout, resolveLook } from './templates'
 
 /*
@@ -93,7 +95,7 @@ describe('Roll20 HTML · 평문 · 캔버스 — 쓸 수 없는 값은 그리지
       const view = resolveHandout(content)
       const look = resolveLook(view)
       const colors = Object.values(look.colors)
-      const html = roll20Html(view)
+      const html = blockRoll20Html(layoutOf(view))
       const url = isPlainObject(content.image) ? expectedImageUrl(content as Stored) : null
       for (const [, attr, value] of html.matchAll(/\s([a-z-]+)="([^"]*)"/g)) {
         expect(value, `${name}: ${attr}`).not.toMatch(DANGEROUS)
@@ -105,8 +107,8 @@ describe('Roll20 HTML · 평문 · 캔버스 — 쓸 수 없는 값은 그리지
       expect(html.includes('<img '), name).toBe(url !== null)
       if (url) expect(html, name).toContain(`src="${escapeHtml(url)}"`)
 
-      const text = roll20Text(view)
-      if (url) expect(text, name).toContain(url)
+      const text = blockRoll20Text(layoutOf(view))
+      if (url) expect(text, name).toContain('[이미지')
       else expect(text, name).not.toContain('[이미지')
       expect(text, name).not.toMatch(/javascript:|data:image|http:\/\//)
     }
@@ -119,7 +121,7 @@ describe('Roll20 HTML · 평문 · 캔버스 — 쓸 수 없는 값은 그리지
       const colors = Object.values(look.colors)
       const allowed = [...colors, ...colors.map(rgb)]
       const url = isPlainObject(content.image) ? expectedImageUrl(content as Stored) : null
-      const { container, unmount } = render(<HandoutCanvas content={view} />)
+      const { container, unmount } = render(<BlockCanvas layout={layoutOf(view)} />)
       const images = Array.from(container.querySelectorAll('img'))
       expect(images.map((img) => img.getAttribute('src')), name).toEqual(url ? [url] : [])
       expect(container.innerHTML, name).not.toMatch(DANGEROUS)
@@ -139,14 +141,14 @@ describe('Roll20 HTML · 평문 · 캔버스 — 쓸 수 없는 값은 그리지
       style: { accent: 'url(javascript:alert(1))', font: 'x;background:url(javascript:alert(1))' },
       image: { url: 'javascript:alert(1)', alt: 'x' },
     } as unknown as HandoutContent
-    const html = roll20Html(unsafe)
+    const html = blockRoll20Html(layoutOf(unsafe))
     expect(html).not.toMatch(DANGEROUS)
     expect(html).not.toContain('<img')
-    expect(roll20Text(unsafe)).not.toContain('javascript:')
+    expect(blockRoll20Text(layoutOf(unsafe))).not.toContain('javascript:')
     const look = resolveLook(unsafe)
     expect(look.colors.accent).toBe(getTemplate('moonlit').themes[0].colors.accent)
     expect(look.font).toBe(getTemplate('moonlit').defaultFont)
-    const { container } = render(<HandoutCanvas content={unsafe} />)
+    const { container } = render(<BlockCanvas layout={layoutOf(unsafe)} />)
     expect(container.querySelector('img')).toBeNull()
     expect(container.innerHTML).not.toMatch(DANGEROUS)
   })
@@ -160,9 +162,9 @@ describe('Roll20 HTML · 평문 · 캔버스 — 쓸 수 없는 값은 그리지
       style: { accent: '#ABC' },
       image: { url: 'https://EXAMPLE.com/map.png', alt: '지도' },
     }
-    const edited = setField(stored, 'body', '새 본문')
+    const edited = setBlockText('f-body', '새 본문')(stored)
     expect(edited).toMatchObject({ style: { accent: '#ABC' }, image: { url: 'https://EXAMPLE.com/map.png' } })
-    const html = roll20Html(resolveHandout(edited))
+    const html = blockRoll20Html(resolveLayout(edited))
     expect(html).toContain('#aabbcc')
     expect(html).not.toContain('#ABC')
     expect(html).toContain('src="https://example.com/map.png"')

@@ -73,6 +73,15 @@ describe('블록 편집 연산', () => {
     expect(ids(resolveLayout(stored).rows)).toEqual(['f-signature', 'f-cap+f-title', 'r-0', 'f-body', 's-1', 's-2'])
   })
 
+  it('구분선은 2열에 놓을 수 없다 (구분선을 옆에 · 구분선 옆에)', () => {
+    const stored = start('moonlit')
+    expect(moveBlock('r-0', { kind: 'beside', blockId: 'f-title', side: 'right' })(stored)).toBe(stored)
+    expect(moveBlock('f-title', { kind: 'beside', blockId: 'r-0', side: 'left' })(stored)).toBe(stored)
+    // 위아래로는 옮길 수 있다
+    const moved = moveBlock('r-0', { kind: 'before', rowId: 'row-f-title' })(stored)
+    expect(ids(resolveLayout(moved).rows).slice(0, 3)).toEqual(['f-cap', 'r-0', 'f-title'])
+  })
+
   it('추가는 고른 블록이 있는 행 아래(없으면 맨 아래), 삭제는 그 블록만', () => {
     let stored = start('moonlit')
     stored = addBlock({ id: 'n1', type: 'text', text: '', style: { size: 14, color: '#000000' } }, 'f-title')(stored)

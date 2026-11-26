@@ -97,8 +97,10 @@ function dropAt(root: HTMLElement, x: number, y: number, dragId: string): { targ
   const rowCount = rowEl.querySelectorAll('[data-block-id]').length
   const draggedInRow = rowEl.querySelector(`[data-block-id="${CSS.escape(dragId)}"]`) !== null
   const fx = (x - r.left) / Math.max(1, r.width)
+  // 구분선은 2열에 놓지 않는다
+  const ruleInvolved = el.dataset.rule === 'true' || root.querySelector(`[data-block-id="${CSS.escape(dragId)}"]`)?.getAttribute('data-rule') === 'true'
   // 한 칸짜리 행(또는 끌고 있는 블록이 같은 행)의 왼쪽/오른쪽 끝 → 2열
-  if ((rowCount === 1 || draggedInRow) && x >= r.left && x <= r.right && (fx < 0.22 || fx > 0.78)) {
+  if (!ruleInvolved && (rowCount === 1 || draggedInRow) && x >= r.left && x <= r.right && (fx < 0.22 || fx > 0.78)) {
     const side = fx < 0.22 ? 'left' : 'right'
     return {
       target: { kind: 'beside', blockId: el.dataset.blockId!, side },
@@ -180,6 +182,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         className={cls}
         data-block-id={block.id}
         data-block-type={block.type}
+        data-rule={block.type === 'image' && block.rule && !blockImage(block) ? 'true' : undefined}
         style={rs(blockBox(block, layout.align))}
         onPointerDown={
           editing

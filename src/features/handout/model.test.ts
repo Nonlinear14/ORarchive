@@ -8,9 +8,7 @@ import {
   serializeHandout,
   validateImageUrl,
 } from './model'
-import { setField, switchTemplate } from './edits'
-import { roll20Html, roll20Text } from './roll20'
-import { createHandoutContent, getTemplate, handoutTemplates, newHandoutDocument, readHandout, resolveHandout, resolveLook } from './templates'
+import { createHandoutContent, getTemplate, handoutTemplates, newHandoutDocument, readHandout, resolveLook } from './templates'
 
 describe('parseHandoutContent (저장된 content 읽기 · 이전 형식 이전)', () => {
   it('빈 {} 는 기본 템플릿 · 빈 필드 · legacy', () => {
@@ -155,34 +153,6 @@ describe('템플릿', () => {
     const doc = newHandoutDocument('casefile')
     expect(doc.title).toBe('아컴 부두 실종 사건')
     expect(doc.content).toMatchObject({ v: 1, templateId: 'casefile', theme: 'manila' })
-  })
-
-  it('템플릿을 바꾸면 두 템플릿에 모두 있는 필드는 유지, 새 필드는 기본 문구, 새 템플릿에 없는 필드도 지우지 않는다', () => {
-    const start = createHandoutContent('moonlit')
-    const stored = serializeHandout({
-      ...start,
-      style: { accent: '#112233' },
-      fields: { ...start.fields, title: '내 제목', body: '내 본문', cap: '내 머리말', signature: '내 서명' },
-    })
-    const next = switchTemplate(stored, 'casefile')
-    const view = resolveHandout(next)
-    expect(view.templateId).toBe('casefile')
-    expect(view.fields).toMatchObject({ title: '내 제목', body: '내 본문', cap: '내 머리말', signature: '내 서명' })
-    expect(view.fields.caseNo).toBe('№ 1927-0413')
-    // 저장된 테마('classic')는 바꾸지 않는다 — 조사 기록에는 없는 테마라 화면 · 출력은 첫 테마로 그린다
-    expect(next.theme).toBe('classic')
-    expect(view.theme).toBe('manila')
-    expect(view.style.accent).toBe('#112233')
-
-    const forest = switchTemplate(setField(setField(next, 'date', '1927년 봄'), 'caseNo', '№ 내 번호'), 'forest')
-    const forestView = resolveHandout(forest)
-    expect(forestView.fields.date).toBe('1927년 봄')
-    // 숲의 기록에는 없는 칸이지만 사용자가 쓴 글이므로 남겨 둔다 (화면 · 출력에는 쓰지 않음)
-    expect(forestView.fields.caseNo).toBe('№ 내 번호')
-    expect(roll20Html(forestView)).not.toContain('№ 내 번호')
-    expect(roll20Text(forestView)).not.toContain('№ 내 번호')
-    // 돌아오면 다시 보인다 (기본 문구로 덮어쓰지 않음)
-    expect(resolveHandout(switchTemplate(forest, 'casefile')).fields.caseNo).toBe('№ 내 번호')
   })
 
   it('resolveLook: 강조 색과 글꼴을 테마 위에 얹는다', () => {

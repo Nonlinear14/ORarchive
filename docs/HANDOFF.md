@@ -19,14 +19,19 @@
 - ✅ **두 기기 충돌 처리:** PC·휴대폰 모두 안내와 두 버튼 정상 (휴대폰은 하단 고정 안내로 수정 후 재확인, 2026-11-26).
 
 **2단계 개선 후보 (검수에서 나온 비차단 항목)**
-1. 강조 색 입력칸에 입력하고 바로 색 견본을 누르면, 첫 클릭이 무시될 수 있습니다(`DesignPanel.tsx` AccentSection).
-2. 상단 "동기화되지 않은 변경" 목록의 링크가 예전 `{text}` 형식 핸드아웃을 기본 편집기로 엽니다(`PendingIndicator.tsx`).
-3. 삭제 복구 화면의 "내용 복사"가 저장된 원문이 아니라 Roll20용으로 정리한 텍스트를 복사합니다(`HandoutStudioPage.tsx`).
-4. 한글을 조합하는 중에 빈 칸을 지우면 입력기 동작이 흔들릴 수 있습니다. 데이터 손실은 없습니다(`EditableField.tsx`).
-5. `plaintext-only`를 지원하지 않는 브라우저에서는 서식 있는 내용을 끌어다 놓으면 화면에만 서식이 남습니다(`EditableField.tsx`).
-6. 새 문서 대화상자가 템플릿 4종을 메인 번들에 포함시킵니다(`NewDocumentDialog.tsx`).
-7. 이미지 주소 검사가 사설·루프백 IP도 허용합니다(`model.ts` `validateImageUrl`).
-8. 강조 색 입력칸의 `maxLength=7` 때문에 앞에 공백이 붙은 값을 붙여 넣으면 잘립니다.
+1. 상단 "동기화되지 않은 변경" 목록의 링크가 예전 `{text}` 형식 핸드아웃을 기본 편집기로 엽니다(`PendingIndicator.tsx`).
+2. 삭제 복구 화면의 "내용 복사"가 저장된 원문이 아니라 Roll20용으로 정리한 텍스트를 복사합니다(`HandoutStudioPage.tsx`).
+3. 한글을 조합하는 중에 빈 칸을 지우면 입력기 동작이 흔들릴 수 있습니다. 데이터 손실은 없습니다(`EditableField.tsx`).
+4. `plaintext-only`를 지원하지 않는 브라우저에서는 서식 있는 내용을 끌어다 놓으면 화면에만 서식이 남습니다(`EditableField.tsx`).
+5. 새 문서 대화상자가 템플릿 4종을 메인 번들에 포함시킵니다(`NewDocumentDialog.tsx`).
+6. 이미지 주소 검사가 사설·루프백 IP도 허용합니다(`model.ts` `validateImageUrl`).
+
+**핸드아웃 블록 편집 (2026-11-26 배포)**
+- 템플릿은 바깥 틀(폭·테두리·여백)과 처음 블록만 정한다. 내용은 `layout.rows`(행마다 블록 1–2개). 블록: 글상자(`text`), 이미지(`image`, 주소 없고 `rule` 이 있으면 구분선). 배경색은 `style.background`.
+- 기존 핸드아웃은 `layout.ts` 의 `deriveRows` 가 템플릿 + `fields` 에서 블록을 만들어 보여 준다(id: `f-칸` · `s-순번` · `r-순번` · `m-칸` · `img`). 처음 고칠 때 `layoutEdits.ts` 가 보이던 블록을 `layout.rows` 에 적고 `fields` 는 그대로 둔다.
+- 화면: `canvas/BlockCanvas.tsx`(고르기 · 손잡이 끌기 · ↑↓ 키 · 2열, 구분선은 2열 불가), 패널 `studio/DesignPanel.tsx`(배경색 → 블록 추가 → 고른 블록 편집), 내보내기 `studio/ExportPanel.tsx`(롤꾸 복사 `blockRoll20.ts`, JPG `exportImage.ts`).
+- 글꼴은 Pretendard(`src/lib/pretendard.ts`). Roll20 에서는 설치된 컴퓨터에서만 Pretendard. JPG 에는 CORS 를 허용하지 않는 다른 사이트 이미지는 빠진다(빠진 수를 알림).
+- 블록 삭제는 되돌리기 없음(확인 창 없음 — 사용자 결정 대기 후 기본안).
 
 **사이드바·홈 개편 (2026-11-26 배포 완료)**
 - 메뉴: 템플릿 아카이브(핸드아웃 `/templates`, Roll20 코드 `/templates/roll20`) · 템플릿 에디터(`/studio/handout`) · 로그 에디터(Roll20 `/studio/log/roll20`, 코코포리아 `/studio/log/ccfolia`) · 캐릭터 아카이브(`/characters`) · 설정(계정 설정, 화면 전환 토글). 상위 메뉴는 아이콘, 하위 메뉴는 아이콘 없이 들여쓰기. 1050px 이하로 접히면 상위 아이콘만 보이고 누르면 하위 메뉴 말풍선.
