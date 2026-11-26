@@ -551,6 +551,25 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(field('title').textContent).toBe('고친 제목')
   })
 
+  it('공백 추가 · 공백 편집(높이 1–200px) · 편집 화면에서만 높이 표시', async () => {
+    const { saved } = await openStudio()
+    select('f-title')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: /공백 추가/ }))
+    expect(screen.getByText('공백 편집')).toBeInTheDocument()
+    expect(screen.getByLabelText('공백 높이 (px)')).toHaveValue('16')
+    fireEvent.click(screen.getByRole('button', { name: '공백 높게' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    const rows = rowsOf(saved().content)!
+    const at = rows.findIndex((r) => r.blocks[0].id === 'f-title')
+    expect(rows[at + 1].blocks[0]).toMatchObject({ type: 'space', height: 17 })
+    const space = block(rows[at + 1].blocks[0].id)
+    expect(space.querySelector<HTMLElement>('.hb-space')!.style.height).toBe('17px')
+    expect(space).toHaveTextContent('공백 17px')
+    // 읽기 전용(JPG 용) 캔버스에는 높이 표시가 없다
+    expect(document.querySelector('.jpg-snapshot')).not.toHaveTextContent('공백 17px')
+  })
+
   it('이미지를 빼면 빈 이미지 블록(이미지 고르기)이 남는다', async () => {
     const { saved } = await openStudio()
     fireEvent.click(screen.getByRole('button', { name: /이미지 추가/ }))
@@ -571,9 +590,11 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     select('f-signature')
     const handle = screen.getByRole('button', { name: '블록 옮기기' })
     vi.useFakeTimers()
+    // 위 줄이 공백이면 한 번에 공백 위로, 두 번이면 본문 위로
     fireEvent.keyDown(handle, { key: 'ArrowUp' })
+    fireEvent.keyDown(screen.getByRole('button', { name: '블록 옮기기' }), { key: 'ArrowUp' })
     await act(() => vi.advanceTimersByTimeAsync(800))
-    const order = rowsOf(saved().content)!.map((r) => r.blocks.map((b) => b.id).join('+'))
+    const order = rowsOf(saved().content)!.map((r) => r.blocks.map((b) => b.id).join('+')).filter((id) => !id.startsWith('sp-'))
     expect(order.indexOf('f-signature')).toBe(order.indexOf('f-body') - 1)
     // 블록 이동은 글자를 바꾸지 않는다
     expect(textOf(saved().content, 'signature')).toBe('— 블랙우드 저택의 주인')

@@ -8,6 +8,8 @@ import {
   MIN_FONT_SIZE,
   MIN_RULE_LENGTH,
   MIN_THICKNESS,
+  MAX_SPACE,
+  MIN_SPACE,
   ruleLength,
   type Align,
   type HandoutLayout,
@@ -15,7 +17,7 @@ import {
   type LineStyle,
   type TextBlock,
 } from '../layout'
-import { removeBlock, setBackground, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
+import { removeBlock, setBackground, setSpaceHeight, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
 import { normalizeHex, validateImageUrl, type HandoutImage } from '../model'
 
 /** 이미지에서 사용자가 고친 부분. url 은 validateImageUrl 로 검사한 주소 */
@@ -39,6 +41,7 @@ interface PanelProps {
   onAddText(): void
   onAddImage(): void
   onAddRule(): void
+  onAddSpace(): void
   onRemoved(): void
 }
 
@@ -312,7 +315,7 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
   )
 }
 
-function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onRemoved }: PanelProps) {
+function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onAddSpace, onRemoved }: PanelProps) {
   return (
     <div className="panel-section">
       <span className="field-label">블록 추가</span>
@@ -323,8 +326,11 @@ function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onRe
         <button type="button" className="btn small" onClick={onAddImage}>
           <Icon name="image" /> 이미지 추가
         </button>
-        <button type="button" className="btn small wide" onClick={onAddRule}>
+        <button type="button" className="btn small" onClick={onAddRule}>
           <span className="rule-icon" aria-hidden="true" /> 구분선 추가
+        </button>
+        <button type="button" className="btn small" onClick={onAddSpace}>
+          <span className="space-icon" aria-hidden="true" /> 공백 추가
         </button>
       </div>
       <button
@@ -340,7 +346,7 @@ function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onRe
         <Icon name="trash" /> 선택한 블록 삭제
       </button>
       <p className="field-help">
-        미리보기에서 블록을 고르고 손잡이(⠿)를 끌어 옮겨요. 다른 블록의 왼쪽·오른쪽 끝에 놓으면 한 줄에 2열로 놓여요 (구분선은 2열에 놓을 수 없어요).
+        미리보기에서 블록을 고르고 손잡이(⠿)를 끌어 옮겨요. 다른 블록의 왼쪽·오른쪽 끝에 놓으면 한 줄에 2열로 놓여요 (구분선 · 공백은 2열에 놓을 수 없어요).
       </p>
     </div>
   )
@@ -510,6 +516,25 @@ function RuleSection({
 /** 고른 블록에 맞는 편집 옵션: 글상자 · 이미지 · 구분선 */
 function EditSection({ selected, layout, onEdit }: PanelProps) {
   if (selected?.type === 'text') return <TextSection block={selected} onEdit={onEdit} />
+  if (selected?.type === 'space')
+    return (
+      <div className="panel-section">
+        <span className="field-label">공백 편집</span>
+        <div className="rule-tools">
+          <span className="rule-tool-label">높이</span>
+          <NumberStepper
+            key={`${selected.id}:${selected.height}`}
+            value={selected.height}
+            min={MIN_SPACE}
+            max={MAX_SPACE}
+            label="공백 높이 (px)"
+            less="공백 낮게"
+            more="공백 높게"
+            onChange={(height) => onEdit(setSpaceHeight(selected.id, height))}
+          />
+        </div>
+      </div>
+    )
   if (selected?.type === 'image') {
     if (selected.rule && !selected.url) return <RuleSection block={selected} contentWidth={layout.contentWidth} onEdit={onEdit} />
     return <ImageSection block={selected} onEdit={onEdit} />
@@ -517,7 +542,7 @@ function EditSection({ selected, layout, onEdit }: PanelProps) {
   return (
     <div className="panel-section">
       <span className="field-label">편집</span>
-      <p className="field-help tight">미리보기에서 블록을 고르면 여기에 편집 옵션이 나와요. 글상자는 글자 색 · 굵게 · 기울임 · 크기, 이미지는 주소, 구분선은 선 색.</p>
+      <p className="field-help tight">미리보기에서 블록을 고르면 여기에 편집 옵션이 나와요. 글상자는 글자 색 · 굵게 · 기울임 · 크기 · 정렬, 이미지는 주소, 구분선은 색 · 길이 · 굵기 · 스타일, 공백은 높이.</p>
     </div>
   )
 }

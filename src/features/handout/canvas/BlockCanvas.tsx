@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { ensureViewerFonts } from '../../../lib/pretendard'
 import { blockBoxCss, boxedCss, frameCss, imageCss, ruleBoxCss, sealCss, textCss } from '../blockStyles'
-import { blockImage, BLOCK_FONT_STACK, lineSegments, ruleLength, type RuleSpec, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type TextBlock } from '../layout'
+import { blockImage, BLOCK_FONT_STACK, isLineBlock, lineSegments, ruleLength, type RuleSpec, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type SpaceBlock, type TextBlock } from '../layout'
 import type { DropTarget } from '../layoutEdits'
 import type { Css } from '../styles'
 import type { FieldDef } from '../templates'
@@ -64,6 +64,15 @@ export function RuleLine({ rule, contentWidth }: { rule: RuleSpec; contentWidth:
   )
 }
 
+/** 공백: 높이만큼 빈 칸. 편집 화면에서만 점선과 높이 표시 */
+function SpaceBody({ block, editing }: { block: SpaceBlock; editing: boolean }) {
+  return (
+    <div className="hb-space" style={{ height: block.height }}>
+      {editing && <span className="hb-space-label">공백 {block.height}px</span>}
+    </div>
+  )
+}
+
 function ImageBody({ block, editing, contentWidth }: { block: ImageBlock; editing: boolean; contentWidth: number }) {
   const image = blockImage(block)
   if (image) return <img src={image.url} alt={image.alt} referrerPolicy="no-referrer" style={rs(imageCss())} draggable={false} />
@@ -74,6 +83,7 @@ function ImageBody({ block, editing, contentWidth }: { block: ImageBlock; editin
 /** 블록 하나의 칸 (여백·정렬) */
 function blockBox(block: LayoutBlock, align: Align): Css {
   if (block.type === 'text') return blockBoxCss(block.style, block.style.align ?? align)
+  if (block.type === 'space') return blockBoxCss({}, 'center')
   return { ...blockBoxCss(block, 'center'), lineHeight: '0' }
 }
 
@@ -115,7 +125,7 @@ function dropAt(root: HTMLElement, x: number, y: number, dragId: string): { targ
   const draggedInRow = rowEl.querySelector(`[data-block-id="${CSS.escape(dragId)}"]`) !== null
   const fx = (x - r.left) / Math.max(1, r.width)
   // 구분선은 2열에 놓지 않는다
-  const ruleInvolved = el.dataset.rule === 'true' || root.querySelector(`[data-block-id="${CSS.escape(dragId)}"]`)?.getAttribute('data-rule') === 'true'
+  const ruleInvolved = el.dataset.line === 'true' || root.querySelector(`[data-block-id="${CSS.escape(dragId)}"]`)?.getAttribute('data-line') === 'true'
   // 한 칸짜리 행(또는 끌고 있는 블록이 같은 행)의 왼쪽/오른쪽 끝 → 2열
   if (!ruleInvolved && (rowCount === 1 || draggedInRow) && x >= r.left && x <= r.right && (fx < 0.22 || fx > 0.78)) {
     const side = fx < 0.22 ? 'left' : 'right'
@@ -238,14 +248,15 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
   /** 블록 칸 스타일. 편집 화면의 구분선은 고르기 쉽게 위아래 12px 영역을 넓히고 그만큼 여백을 줄인다 (보이는 자리는 그대로) */
   const editBox = (block: LayoutBlock): Css => {
     const css = blockBox(inTwo.has(block.id) ? withoutMargins(block) : block, layout.align)
-    if (!editing || block.type !== 'image' || !block.rule || blockImage(block)) return css
-    const HIT = 12
+    if (!editing || !isLineBlock(block)) return css
+    const HIT = block.type === 'space' ? 8 : 12
+    const margins = block.type === 'image' ? block : { marginTop: 0, marginBottom: 0 }
     return {
       ...css,
       paddingTop: `${HIT}px`,
       paddingBottom: `${HIT}px`,
-      marginTop: `${(block.marginTop ?? 0) - HIT}px`,
-      marginBottom: `${(block.marginBottom ?? 0) - HIT}px`,
+      marginTop: `${(margins.marginTop ?? 0) - HIT}px`,
+      marginBottom: `${(margins.marginBottom ?? 0) - HIT}px`,
     }
   }
 
@@ -260,15 +271,15 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         className={cls}
         data-block-id={block.id}
         data-block-type={block.type}
-        data-rule={block.type === 'image' && block.rule && !blockImage(block) ? 'true' : undefined}
+        data-line={isLineBlock(block) ? 'true' : undefined}
         style={rs(editBox(block))}
         onPointerDown={
           editing
             ? (event) => {
                 if ((event.target as Element).closest('.hb-bubble')) return
                 editing.onSelect(block.id)
-                // 이미지 블록은 블록 자체를 끌어서 옮긴다 (글자 블록은 손잡이로 — 글자 선택과 겹치지 않게)
-                if (block.type === 'image' && selected) pending.current = { id: block.id, x: event.clientX, y: event.clientY, pointer: event.pointerId }
+                // 이미지 · 구분선 · 공백 블록은 블록 자체를 끌어서 옮긴다 (글자 블록은 손잡이로 — 글자 선택과 겹치지 않게)
+                if (block.type !== 'text' && selected) pending.current = { id: block.id, x: event.clientX, y: event.clientY, pointer: event.pointerId }
               }
             : undefined
         }
@@ -276,7 +287,13 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         onPointerUp={editing ? endDrag : undefined}
         onFocus={editing ? () => editing.selectedId !== block.id && editing.onSelect(block.id) : undefined}
       >
-        {block.type === 'text' ? <TextBody block={block} editing={editing} /> : <ImageBody block={block} editing={!!editing} contentWidth={layout.contentWidth} />}
+        {block.type === 'text' ? (
+          <TextBody block={block} editing={editing} />
+        ) : block.type === 'space' ? (
+          <SpaceBody block={block} editing={!!editing} />
+        ) : (
+          <ImageBody block={block} editing={!!editing} contentWidth={layout.contentWidth} />
+        )}
         {selected && (
           <div className="hb-bubble">
             <button

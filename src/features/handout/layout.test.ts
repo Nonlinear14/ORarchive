@@ -7,7 +7,9 @@ import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockStyle, setBlock
 import { serializeHandout } from './model'
 import { createHandoutContent } from './templates'
 
-const ids = (rows: LayoutRow[]) => rows.map((r) => r.blocks.map((b) => b.id).join('+'))
+/** 공백 줄을 뺀 내용 줄 */
+const body = (rows: LayoutRow[]) => rows.filter((r) => r.blocks[0].type !== 'space')
+const ids = (rows: LayoutRow[]) => body(rows).map((r) => r.blocks.map((b) => b.id).join('+'))
 const start = (id: Parameters<typeof createHandoutContent>[0]) => deepFreeze(serializeHandout(createHandoutContent(id))) as DocumentContent
 
 describe('템플릿 → 블록', () => {
@@ -16,8 +18,24 @@ describe('템플릿 → 블록', () => {
     expect(ids(layout.rows)).toEqual(['f-cap', 'f-title', 'r-0', 'f-body', 'f-signature', 's-1', 's-2'])
     expect(layout.frames).toHaveLength(2)
     expect(layout.background).toBe('#e8ddc9')
-    const rule = layout.rows[2].blocks[0]
+    const rule = body(layout.rows)[2].blocks[0]
     expect(rule).toMatchObject({ type: 'image', rule: { widthPercent: 70, color: '#9c795f' } })
+  })
+
+  it('블록 사이 간격은 공백 블록 (맞닿은 여백은 큰 쪽), 블록 자체 여백은 0', () => {
+    const rows = layoutOf(createHandoutContent('moonlit')).rows
+    const seq = rows.map((r) => (r.blocks[0].type === 'space' ? `[${r.blocks[0].height}]` : r.blocks[0].id))
+    // 머리 문구 아래 44 · 제목 아래 22 · 구분선 아래 24 · 서명 위 26 · 맺음말 위 40 · 장식 위 18
+    expect(seq).toEqual(['f-cap', '[44]', 'f-title', '[22]', 'r-0', '[24]', 'f-body', '[26]', 'f-signature', '[40]', 's-1', '[18]', 's-2'])
+    for (const r of rows) for (const b of r.blocks) if (b.type === 'text') expect([b.style.marginTop ?? 0, b.style.marginBottom ?? 0]).toEqual([0, 0])
+    const html = blockRoll20Html(layoutOf(createHandoutContent('moonlit')))
+    expect(html).toContain('<td height="44" style=')
+  })
+
+  it('공백은 2열에 놓을 수 없다', () => {
+    const stored = start('moonlit')
+    expect(moveBlock('sp-0', { kind: 'beside', blockId: 'f-title', side: 'right' })(stored)).toBe(stored)
+    expect(moveBlock('f-title', { kind: 'beside', blockId: 'sp-0', side: 'left' })(stored)).toBe(stored)
   })
 
   it('오래된 조사 기록: 머리칸은 2열 행, 서류 칸은 이름표 + 값 2열 행, 머리칸 아래 선은 구분선 블록', () => {
@@ -34,15 +52,15 @@ describe('템플릿 → 블록', () => {
       'f-signature',
       's-3',
     ])
-    expect(layout.rows[0].blocks[1]).toMatchObject({ text: 'CONFIDENTIAL', style: { boxed: true, align: 'right' } })
+    expect(body(layout.rows)[0].blocks[1]).toMatchObject({ text: 'CONFIDENTIAL', style: { boxed: true, align: 'right' } })
   })
 
   it('비밀 결사의 인장은 인장 모양 텍스트 블록, 숲의 기록 본문은 세로 막대가 있는 텍스트 블록', () => {
     const order = layoutOf(createHandoutContent('order'))
-    expect(order.rows[0].blocks[0]).toMatchObject({ id: 'f-seal', style: { seal: { size: 76 } } })
+    expect(body(order.rows)[0].blocks[0]).toMatchObject({ id: 'f-seal', style: { seal: { size: 76 } } })
     const forest = layoutOf(createHandoutContent('forest'))
-    const body = forest.rows.flatMap((r) => r.blocks).find((b) => b.id === 'f-body')!
-    expect(body).toMatchObject({ style: { bar: { width: 3, gap: 16 } } })
+    const bodyBlock = forest.rows.flatMap((r) => r.blocks).find((b) => b.id === 'f-body')!
+    expect(bodyBlock).toMatchObject({ style: { bar: { width: 3, gap: 16 } } })
   })
 })
 
@@ -55,7 +73,7 @@ describe('블록 편집 연산', () => {
     const rows = (twice.layout as unknown as { rows: LayoutRow[] }).rows
     const before = (once.layout as unknown as { rows: LayoutRow[] }).rows
     expect(rows[0]).toEqual(before[0]) // 고치지 않은 행은 그대로
-    expect(resolveLayout(twice).rows[3].blocks[0]).toMatchObject({ style: { bold: true, size: 15 } })
+    expect(body(resolveLayout(twice).rows)[3].blocks[0]).toMatchObject({ style: { bold: true, size: 15 } })
   })
 
   it('옮기기: 다른 블록의 오른쪽에 놓으면 2열, 3열은 안 되고, 빈 행은 지운다', () => {
@@ -68,21 +86,21 @@ describe('블록 편집 연산', () => {
     stored = moveBlock('f-cap', { kind: 'beside', blockId: 'f-title', side: 'left' })(stored)
     expect(ids(resolveLayout(stored).rows)[0]).toBe('f-cap+f-title')
     // 2열에서 빼서 위 행으로
-    const rowId = resolveLayout(stored).rows[0].id
+    const rowId = body(resolveLayout(stored).rows)[0].id
     stored = moveBlock('f-signature', { kind: 'before', rowId })(stored)
     expect(ids(resolveLayout(stored).rows)).toEqual(['f-signature', 'f-cap+f-title', 'r-0', 'f-body', 's-1', 's-2'])
   })
 
   it('2열 너비(split): 20–80 정수로 맞추고, 좌우 바꾸기는 블록과 너비를 함께 뒤집는다', () => {
     let stored = moveBlock('f-signature', { kind: 'beside', blockId: 'f-body', side: 'right' })(start('moonlit'))
-    const rowId = resolveLayout(stored).rows[3].id
-    expect(resolveLayout(stored).rows[3].split).toBeUndefined()
+    const rowId = body(resolveLayout(stored).rows)[3].id
+    expect(body(resolveLayout(stored).rows)[3].split).toBeUndefined()
     stored = setRowSplit(rowId, 91.6)(stored)
-    expect(resolveLayout(stored).rows[3].split).toBe(80)
+    expect(body(resolveLayout(stored).rows)[3].split).toBe(80)
     stored = setRowSplit(rowId, 63.4)(stored)
     expect(setRowSplit(rowId, 63)(stored)).toBe(stored)
     stored = swapRow(rowId)(stored)
-    const row = resolveLayout(stored).rows[3]
+    const row = body(resolveLayout(stored).rows)[3]
     expect(row.blocks.map((b) => b.id)).toEqual(['f-signature', 'f-body'])
     expect(row.split).toBe(37)
     const html = blockRoll20Html(resolveLayout(stored))

@@ -70,7 +70,9 @@ describe('핸드아웃 스튜디오 — 블록 편집도 고친 값만 저장된
     expect(changedPaths(MOONLIT, saved())).toEqual(['layout'])
     const rows = (saved().layout as { rows: { blocks: { id: string; text?: string }[] }[] }).rows
     const blocks = rows.flatMap((r) => r.blocks)
-    expect(blocks.map((b) => b.id)).toEqual(['f-cap', 'f-title', 'r-0', 'f-body', 's-1', 's-2'])
+    expect(blocks.map((b) => b.id).filter((id) => !id.startsWith('sp-'))).toEqual(['f-cap', 'f-title', 'r-0', 'f-body', 's-1', 's-2'])
+    // 블록 사이 간격은 공백 블록
+    expect(blocks.find((b) => b.id === 'sp-0')).toMatchObject({ type: 'space', height: 44 })
     expect(blocks.find((b) => b.id === 'f-body')!.text).toBe('고친 본문')
     // 보이던 모양 그대로 (강조 색 #ABC 가 들어간 머리 문구 색)
     expect(blocks.find((b) => b.id === 'f-cap')).toMatchObject({ style: { color: '#aabbcc', size: 11, letterSpacing: 4 } })

@@ -85,7 +85,21 @@ export interface RuleSpec {
   style?: LineStyle
 }
 
-export type LayoutBlock = TextBlock | ImageBlock
+/** 공백: 블록 사이 간격 (높이만) */
+export interface SpaceBlock {
+  id: string
+  type: 'space'
+  /** px (정수) */
+  height: number
+}
+export const MIN_SPACE = 1
+export const MAX_SPACE = 200
+export const DEFAULT_SPACE = 16
+
+export type LayoutBlock = TextBlock | ImageBlock | SpaceBlock
+
+/** 2열에 놓을 수 없는 블록: 구분선 · 공백 */
+export const isLineBlock = (block: LayoutBlock) => block.type === 'space' || (block.type === 'image' && !!block.rule && !block.url)
 
 export interface LayoutRow {
   id: string
@@ -101,7 +115,7 @@ export const splitOf = (row: LayoutRow) => row.split ?? 50
 
 /** 2열 줄의 위아래 여백: 두 블록 가운데 큰 값을 줄에 한 번 */
 export function rowMargins(row: LayoutRow): { top: number; bottom: number } {
-  const of = (b: LayoutBlock) => (b.type === 'text' ? b.style : b)
+  const of = (b: LayoutBlock): { marginTop?: number; marginBottom?: number } => (b.type === 'text' ? b.style : b.type === 'image' ? b : {})
   return {
     top: Math.max(...row.blocks.map((b) => of(b).marginTop ?? 0)),
     bottom: Math.max(...row.blocks.map((b) => of(b).marginBottom ?? 0)),
@@ -111,6 +125,7 @@ export function rowMargins(row: LayoutRow): { top: number; bottom: number } {
 /** 2열 칸 안에서는 블록의 위아래 여백을 쓰지 않는다 (줄에 한 번) */
 export function withoutMargins<T extends LayoutBlock>(block: T): T {
   if (block.type === 'text') return { ...block, style: { ...block.style, marginTop: 0, marginBottom: 0 } }
+  if (block.type === 'space') return block
   return { ...block, marginTop: 0, marginBottom: 0 }
 }
 
@@ -293,7 +308,26 @@ export function deriveRows(content: HandoutContent, look: HandoutLook, children:
     }
   }
   walk(children, align)
-  return rows
+  return withSpacers(rows)
+}
+
+/**
+ * 템플릿의 블록 사이 간격(위아래 여백)을 공백 블록으로 바꾼다. 맞닿은 여백은 화면에서처럼 큰 쪽 하나.
+ * 블록 자체의 여백은 0 이 되어 블록 높이 = 내용 높이.
+ */
+function withSpacers(rows: LayoutRow[]): LayoutRow[] {
+  const out: LayoutRow[] = []
+  let pending = 0
+  let n = 0
+  rows.forEach((row) => {
+    const { top, bottom } = rowMargins(row)
+    const gap = Math.max(pending, top)
+    if (gap > 0) out.push({ id: `row-sp-${n}`, blocks: [{ id: `sp-${n++}`, type: 'space', height: Math.round(gap) }] })
+    out.push({ ...row, blocks: row.blocks.map((b) => withoutMargins(b)) })
+    pending = bottom
+  })
+  if (pending > 0) out.push({ id: `row-sp-${n}`, blocks: [{ id: `sp-${n}`, type: 'space', height: Math.round(pending) }] })
+  return out
 }
 
 // ── 저장된 layout 읽기 (보기만 만든다 — 쓸 수 없는 값은 보기에서 빠지고, 저장된 값은 그대로) ──
@@ -333,6 +367,9 @@ function parseTextStyle(raw: Json | undefined, fallback: TextBlockStyle): TextBl
 
 function parseBlock(raw: Json | undefined, fallback: TextBlockStyle): LayoutBlock | null {
   if (!isObject(raw) || typeof raw.id !== 'string' || !raw.id) return null
+  if (raw.type === 'space') {
+    return { id: raw.id, type: 'space', height: Math.round(num(raw.height, MIN_SPACE, MAX_SPACE) ?? DEFAULT_SPACE) }
+  }
   if (raw.type === 'text') {
     return { id: raw.id, type: 'text', text: typeof raw.text === 'string' ? raw.text : '', style: parseTextStyle(raw.style, fallback) }
   }
@@ -435,7 +472,7 @@ export function layoutText(layout: HandoutLayout): string {
   return layout.rows
     .map((row) =>
       row.blocks
-        .map((b) => (b.type === 'text' ? b.text : blockImage(b) ? `[이미지: ${b.alt || b.url}]` : ''))
+        .map((b) => (b.type === 'text' ? b.text : b.type === 'image' && blockImage(b) ? `[이미지: ${b.alt || b.url}]` : ''))
         .filter(Boolean)
         .join('    '),
     )

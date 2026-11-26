@@ -40,6 +40,8 @@ function textHtml(block: TextBlock, align: Align): string {
 
 function blockHtml(block: LayoutBlock, align: Align, contentWidth: number): string {
   if (block.type === 'text') return textHtml(block, align)
+  if (block.type === 'space')
+    return fullTable(`<tr><td height="${block.height}" style="${NO_BORDER}padding:0;height:${block.height}px;line-height:1px;font-size:1px;">&nbsp;</td></tr>`)
   const margin = `margin:${block.marginTop ?? 0}px 0 ${block.marginBottom ?? 0}px;`
   const image = blockImage(block)
   if (image)

@@ -195,11 +195,11 @@
 }
 
 /* 구분선 블록은 고르기 쉽게 선 위아래로 넓은 영역을 둔다 (편집 화면에서만 — 실제 여백은 그대로) */
-.hb-canvas.editable .hb-block[data-rule='true'] {
+.hb-canvas.editable .hb-block[data-line='true'] {
   cursor: pointer;
 }
 
-.hb-canvas.editable .hb-block[data-rule='true']:hover:not(.is-selected) {
+.hb-canvas.editable .hb-block[data-line='true']:hover:not(.is-selected) {
   background: #ccb18b1f;
 }
 
@@ -256,4 +256,28 @@
 .hb-canvas.editable [data-hfield]:focus {
   background: transparent;
   box-shadow: none;
+}
+
+/* 공백 블록: 편집 화면에서만 점선 상자와 높이 */
+.hb-space {
+  position: relative;
+}
+
+.hb-canvas.editable .hb-space {
+  outline: 1px dashed #b8975a66;
+  outline-offset: -1px;
+}
+
+.hb-space-label {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 600 9.5px/1 var(--font, sans-serif);
+  color: #8a7552;
+  background: #fffdfacc;
+  padding: 2px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
 }

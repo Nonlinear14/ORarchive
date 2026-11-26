@@ -521,3 +521,12 @@
   background: none;
   cursor: pointer;
 }
+
+.space-icon {
+  display: inline-block;
+  width: 12px;
+  height: 9px;
+  border-top: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  margin-right: 2px;
+}

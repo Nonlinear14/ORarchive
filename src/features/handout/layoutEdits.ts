@@ -17,7 +17,8 @@ type JsonObject = { [key: string]: Json | undefined }
 const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /** 저장된 블록이 구분선인가 (이미지 주소 없이 선만) */
-const isRuleJson = (block: Json | null | undefined) => isObject(block) && block.type === 'image' && isObject(block.rule) && !block.url
+const isRuleJson = (block: Json | null | undefined) =>
+  isObject(block) && (block.type === 'space' || (block.type === 'image' && isObject(block.rule) && !block.url))
 
 let seq = 0
 export const newBlockId = () => `b${Date.now().toString(36)}${(seq++).toString(36)}`
@@ -86,6 +87,9 @@ export const setBlockStyle = (id: string, patch: TextStylePatch): LayoutEdit =>
 /** 이미지 블록의 주소·대체 텍스트 (url 은 validateImageUrl 로 검사한 값, undefined 면 이미지 빼기) */
 export const setBlockImage = (id: string, patch: { url?: string; alt?: string; rule?: undefined }): LayoutEdit =>
   patchBlock(id, (block) => assign(block, patch))
+
+/** 공백 높이 (px) */
+export const setSpaceHeight = (id: string, height: number): LayoutEdit => patchBlock(id, (block) => (block.height === height ? block : { ...block, height }))
 
 /** 구분선 색 (rule.color) */
 export const setBlockRule = (id: string, patch: Partial<Pick<RuleSpec, 'color' | 'length' | 'thickness' | 'style'>>): LayoutEdit =>
@@ -165,7 +169,7 @@ export const moveBlock =
     if (!from) return stored
     const moving = (rows[from.row].blocks as Json[])[from.index]
     if (target.kind === 'beside' && target.blockId === id) return stored
-    // 구분선은 2열에 놓지 않는다 (구분선을 옆에 놓거나, 구분선 옆에 놓기)
+    // 구분선 · 공백은 2열에 놓지 않는다 (옆에 놓거나, 그 옆에 놓기)
     if (target.kind === 'beside') {
       const to = locate(rows, target.blockId)
       const other = to ? (rows[to.row].blocks as Json[])[to.index] : null
