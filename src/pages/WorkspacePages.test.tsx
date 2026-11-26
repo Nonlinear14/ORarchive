@@ -37,6 +37,10 @@ describe('홈', () => {
     const launch = screen.getByRole('region', { name: '에디터 바로가기' })
     expect(within(launch).getByRole('link', { name: /템플릿 에디터/ })).toHaveAttribute('href', '/studio/handout')
     expect(within(launch).getByRole('link', { name: /로그 에디터/ })).toHaveAttribute('href', '/studio/log/roll20')
+    // 순서: 에디터 바로가기 → 템플릿 아카이브 → 캐릭터 아카이브
+    const order = [launch, screen.getByRole('heading', { name: '템플릿 아카이브', level: 2 }), screen.getByRole('heading', { name: '캐릭터 아카이브', level: 2 })]
+    expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('핸드아웃을 열면 최근 조회에 기록된다', async () => {

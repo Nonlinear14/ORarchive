@@ -54,7 +54,7 @@ export function DeletedRecovery({ doc, draft, source, bodyText, restorePath, onR
 
   return (
     <article className="doc-editor doc-recover">
-      <title>{`${draft.title || '제목 없음'} · FOLIO`}</title>
+      <title>{`${draft.title || '제목 없음'} · ORarchive`}</title>
       <div className="callout danger recover-banner" role="alert">
         <Icon name="alert" />
         <div>

@@ -266,7 +266,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
 
   return (
     <article className="doc-editor handout-studio log-editor">
-      <title>{`${draft.title || '제목 없음'} · Roll20 로그 편집 · FOLIO`}</title>
+      <title>{`${draft.title || '제목 없음'} · Roll20 로그 편집 · ORarchive`}</title>
       <div className="editor-header">
         <div className="doc-title-wrap">
           <div className="eyebrow">STUDIO / LOG EDITOR · ROLL20</div>

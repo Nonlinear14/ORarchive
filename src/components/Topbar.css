@@ -114,8 +114,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font: 700 18px Georgia, serif;
-    letter-spacing: 1px;
+    font: 700 18px var(--font, sans-serif);
     color: #273b35;
   }
 
@@ -123,7 +122,6 @@
     width: 27px;
     height: 27px;
     border-radius: 7px;
-    font-size: 19px;
   }
 
   .crumbs {

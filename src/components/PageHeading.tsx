@@ -16,7 +16,7 @@ export function PageHeading({
 }: PageHeadingProps) {
   return (
     <div className="heading">
-      <title>{`${title} · FOLIO`}</title>
+      <title>{`${title} · ORarchive`}</title>
       <div>
         <div className="eyebrow">{eyebrow}</div>
         <h1>{title}</h1>

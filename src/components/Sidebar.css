@@ -30,23 +30,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: Georgia, serif;
-  font-size: 26px;
   box-shadow: inset 0 0 0 1px #d9be9a;
   flex-shrink: 0;
 }
 
+/* 주사위 아이콘: 금색 바탕 위에 사이드바 남색 */
+.brandmark svg {
+  width: 52%;
+  height: 52%;
+  color: var(--side-bg, #17252b);
+}
+
 .brandname {
-  font: 600 21px Georgia, serif;
-  letter-spacing: 2.5px;
+  font: 700 21px/1.1 var(--font, sans-serif);
+  letter-spacing: 0.2px;
   color: #f1ebdf;
 }
 
 .brandsub {
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: #9caeae;
-  margin-top: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #dfe8e3;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
 .side-content {
@@ -240,23 +246,6 @@
   font-size: 10px;
 }
 
-.profile-mini {
-  margin-top: 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 4px;
-  border-radius: 10px;
-}
-
-.profile-mini:hover {
-  background: var(--side-hover);
-}
-
-.profile-mini > .ico {
-  margin-left: auto;
-  color: #98aaac;
-}
 
 .avatar {
   width: 34px;
@@ -272,17 +261,6 @@
   flex-shrink: 0;
 }
 
-.profile-mini strong {
-  display: block;
-  font-size: 12px;
-}
-
-.profile-mini small {
-  display: block;
-  font-size: 10px;
-  color: #98aaac;
-  margin-top: 3px;
-}
 
 /* ≤1050px: 상위 메뉴 아이콘만 보이는 접힌 사이드바 (하위 메뉴는 말풍선) */
 @media (max-width: 1050px) {
@@ -297,8 +275,7 @@
 
   .brand .brandtext,
   .nav-title-text,
-  .side-footer .quota,
-  .profile-mini > :not(.avatar) {
+  .side-footer {
     display: none;
   }
 
@@ -320,15 +297,6 @@
     height: 21px;
   }
 
-  .side-footer {
-    padding: 12px 19px;
-  }
-
-  .profile-mini {
-    margin-top: 0;
-    justify-content: center;
-    padding: 0;
-  }
 }
 
 /* ≤750px: 사이드바 숨김 (하단 모바일 내비 사용) */
@@ -338,13 +306,3 @@
   }
 }
 
-.profile-mini-text {
-  min-width: 0;
-}
-
-.profile-mini-text strong,
-.profile-mini-text small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}

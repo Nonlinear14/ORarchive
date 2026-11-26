@@ -9,8 +9,8 @@ describe('앱 셸', () => {
     renderApp('/', { client })
 
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
-    expect(screen.getAllByText('FOLIO').length).toBeGreaterThan(0)
-    expect(screen.getByText('TRPG WORKSPACE')).toBeInTheDocument()
+    expect(screen.getAllByText('ORarchive').length).toBeGreaterThan(0)
+    expect(screen.getByText('ORPG를 위한 툴 아카이브')).toBeInTheDocument()
     for (const section of ['템플릿 아카이브', '템플릿 에디터', '로그 에디터', '캐릭터 아카이브', '설정']) {
       expect(within(sidebar).getByText(section)).toBeInTheDocument()
     }
@@ -40,7 +40,9 @@ describe('앱 셸', () => {
 
     // Google 이름(프로필 행이 없으면 자동 생성) + 이니셜 아바타
     expect(await screen.findByRole('button', { name: '달빛 기록자 계정 메뉴' })).toBeInTheDocument()
-    expect(screen.getByTitle('달빛 기록자 · 계정 설정')).toHaveTextContent('달')
+    // 사이드바 아래 계정 칸은 없다 (계정은 오른쪽 위 프로필 버튼 · 설정 › 계정 설정)
+    expect(screen.queryByTitle('달빛 기록자 · 계정 설정')).not.toBeInTheDocument()
+    expect(screen.getByText('내 클라우드 공간')).toBeInTheDocument()
   })
 })
 
@@ -185,7 +187,7 @@ describe('basename="/ORarchive" (GitHub Pages)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: '계정 설정' })).toBeInTheDocument()
     const sidebar = screen.getByRole('navigation', { name: '주 메뉴' })
-    expect(screen.getAllByRole('link', { name: 'FOLIO 홈으로 이동' })[0]).toHaveAttribute('href', '/ORarchive')
+    expect(screen.getAllByRole('link', { name: 'ORarchive 홈으로 이동' })[0]).toHaveAttribute('href', '/ORarchive')
     expect(within(sidebar).getByRole('link', { name: '핸드아웃' })).toHaveAttribute('href', '/ORarchive/templates')
   })
 

@@ -76,7 +76,7 @@ function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, c
 
   return (
     <article className="doc-editor handout-studio">
-      <title>{`${draft.title || '제목 없음'} · 핸드아웃 스튜디오 · FOLIO`}</title>
+      <title>{`${draft.title || '제목 없음'} · 핸드아웃 스튜디오 · ORarchive`}</title>
       <div className="editor-header">
         <div className="doc-title-wrap">
           <div className="eyebrow">STUDIO / TEMPLATE EDITOR</div>

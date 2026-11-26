@@ -70,7 +70,7 @@ function DocumentEditor({ docId }: { docId: string }) {
 
   return (
     <article className="doc-editor">
-      <title>{`${draft.title || '제목 없음'} · FOLIO`}</title>
+      <title>{`${draft.title || '제목 없음'} · ORarchive`}</title>
       <div className="editor-header">
         <div className="doc-title-wrap">
           <div className="eyebrow">DOCUMENT / {typeLabel}</div>

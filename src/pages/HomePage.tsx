@@ -158,7 +158,7 @@ function EditorLaunch() {
   )
 }
 
-/** / — 첫 화면: 최근 템플릿 · 에디터 바로가기 · 최근 캐릭터 */
+/** / — 첫 화면: 에디터 바로가기 · 최근 템플릿 · 최근 캐릭터 */
 export function HomePage() {
   const { user, profile } = useAuth()
   const { status, docs, error, reload } = useMyDocuments()
@@ -179,6 +179,7 @@ export function HomePage() {
           </span>
         </div>
       )}
+      <EditorLaunch />
       <RecentSection
         id="home-templates"
         title="템플릿 아카이브"
@@ -196,7 +197,6 @@ export function HomePage() {
           </>
         }
       />
-      <EditorLaunch />
       <RecentSection
         id="home-characters"
         title="캐릭터 아카이브"

@@ -31,7 +31,7 @@ export function LoginPage() {
 
   return (
     <section className="login-wrap">
-      <title>로그인 · FOLIO</title>
+      <title>로그인 · ORarchive</title>
       <div className="login-card">
         <div className="eyebrow">WELCOME TO FOLIO</div>
         <h1>이야기를 이어갈 시간</h1>
