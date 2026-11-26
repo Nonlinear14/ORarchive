@@ -1,6 +1,8 @@
 import type { Json } from '../../../lib/database.types'
 import type { DocumentContent } from '../../../lib/documents'
 import type { CharacterSetting, LogMessage, LogOptions } from './model'
+import { sanitizeMessageHtml } from './parse'
+import { countInHtml, isStyledEditable, replaceInHtml } from './styledText'
 
 /**
  * 로그 편집 연산. 저장된 content(DocumentContent)에 적용해, 고친 경로만 바뀐 새 content 를 돌려준다.
@@ -36,6 +38,21 @@ export const setMessageText =
     const current = list[i]
     if (typeof current.text !== 'string' || current.text === text) return stored
     list[i] = { ...current, text }
+    return withMessages(stored, list)
+  }
+
+/** 꾸민 글자 메시지의 내용을 바꾼다 (수정 칸에서 고친 HTML 을 정리해서 저장) */
+export const setMessageHtml =
+  (id: string, html: string): LogEdit =>
+  (stored) => {
+    const i = indexOf(stored, id)
+    if (i < 0) return stored
+    const list = [...messagesOf(stored)]
+    const current = list[i]
+    if (typeof current.html !== 'string' || typeof current.text === 'string') return stored
+    const clean = sanitizeMessageHtml(html)
+    if (current.html === clean) return stored
+    list[i] = { ...current, html: clean }
     return withMessages(stored, list)
   }
 
@@ -181,11 +198,14 @@ export const setRule =
   (stored) =>
     stored.rule === rule ? stored : { ...stored, rule }
 
-/** 찾아 바꾸기: 수정 가능한 메시지의 글자만 바꾼다 (판정·꾸민 메시지는 건드리지 않는다) */
+/** 찾아 바꾸기: 수정 가능한 메시지의 글자만 바꾼다 (꾸민 글자는 꾸밈을 두고 글자만, 판정·주사위는 건드리지 않는다) */
 export function countMatches(messages: LogMessage[], find: string): number {
   if (!find) return 0
   let count = 0
-  for (const m of messages) if (m.text !== undefined) count += m.text.split(find).length - 1
+  for (const m of messages) {
+    if (m.text !== undefined) count += m.text.split(find).length - 1
+    else if (m.html !== undefined && isStyledEditable(m)) count += countInHtml(m.html, find)
+  }
   return count
 }
 
@@ -195,9 +215,18 @@ export const replaceAll =
     if (!find) return stored
     let changed = false
     const list = messagesOf(stored).map((m) => {
-      if (!isObject(m) || typeof m.text !== 'string' || !m.text.includes(find)) return m
+      if (!isObject(m)) return m
+      if (typeof m.text === 'string') {
+        if (!m.text.includes(find)) return m
+        changed = true
+        return { ...m, text: m.text.split(find).join(replacement) }
+      }
+      if (typeof m.html !== 'string') return m
+      if (!isStyledEditable({ id: String(m.id), kind: m.kind as LogMessage['kind'], html: m.html })) return m
+      const html = replaceInHtml(m.html, find, replacement)
+      if (html === null) return m
       changed = true
-      return { ...m, text: m.text.split(find).join(replacement) }
+      return { ...m, html: sanitizeMessageHtml(html) }
     })
     return changed ? withMessages(stored, list) : stored
   }

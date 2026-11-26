@@ -1,12 +1,14 @@
 import type { Json } from '../../../lib/database.types'
 import type { DocumentContent } from '../../../lib/documents'
+import { isStyledEditable } from './styledText'
 
 /**
  * Roll20 채팅 로그 (documents.type = 'log' 의 content).
  * 원본 파일은 서버에 저장하지 않는다 — 불러올 때 정리한 편집본만 이 형식으로 저장한다.
  *
  * - 수정할 수 있는 메시지(글자·줄바꿈·굵게·기울임만 있는 대사)는 `text` 로 저장한다 (*기울임* **굵게**, 줄바꿈 \n).
- * - 수정할 수 없는 메시지(시트 판정·주사위·인라인 굴림·꾸민 메시지·이미지)는 정리(DOMPurify)한 `html` 로 저장한다.
+ * - 그 밖의 메시지(시트 판정·주사위·인라인 굴림·꾸민 글자·이미지)는 정리(DOMPurify)한 `html` 로 저장한다.
+ *   꾸민 글자는 꾸밈을 둔 채 글자만 고칠 수 있다(`styledText.ts`). 판정·주사위(인라인 판정 포함)는 고칠 수 없다.
  */
 export const ROLL20_LOG_FORMAT = 'roll20-log'
 export const ROLL20_LOG_VERSION = 1
@@ -185,8 +187,8 @@ export function serializeLog(content: Roll20LogContent): DocumentContent {
   return JSON.parse(JSON.stringify(content)) as { [key: string]: Json | undefined }
 }
 
-/** 수정 가능한 메시지인가 (text 로 저장된 메시지) */
-export const isEditable = (message: LogMessage) => message.text !== undefined
+/** 수정 가능한 메시지인가 (text 로 저장된 메시지, 또는 꾸밈은 두고 글자만 고치는 꾸민 글자 메시지) */
+export const isEditable = (message: LogMessage) => message.text !== undefined || isStyledEditable(message)
 
 /** 저널·이미지 주소가 다른 사람도 볼 수 있는 웹 주소인가 (PC 폴더 경로가 아닌가) */
 export function isWebUrl(url: string | undefined): boolean {

@@ -23,6 +23,7 @@ import {
   removeMessage,
   setMessageImage,
   setMessageSpeaker,
+  setMessageHtml,
   setMessageText,
   setRule,
   type LogEdit,
@@ -34,7 +35,7 @@ import '../../../handout/studio/HandoutStudio.css'
 import '../roll20Log.css'
 import { ImageDialog } from './ImageDialog'
 import { LogPanel } from './LogPanel'
-import { LogPreview, type MessageAction, type SpeakerTarget } from './LogPreview'
+import { LogPreview, type MessageAction, type MessageEdit, type SpeakerTarget } from './LogPreview'
 
 const HISTORY_LIMIT = 50
 const TOUCH_QUERY = '(max-width: 750px), (hover: none)'
@@ -131,7 +132,7 @@ function MessageSheet({
           <b>{message.speaker ?? '서술'}</b>
           <small>{preview || ' '}</small>
         </div>
-        {item('edit', 'edit', isEditable(message) ? '수정' : '수정 (판정·꾸민 메시지는 고칠 수 없어요)', !isEditable(message))}
+        {item('edit', 'edit', isEditable(message) ? '수정' : '수정 (판정·주사위·이미지만 있는 메시지는 고칠 수 없어요)', !isEditable(message))}
         {item('duplicate', 'copy', '복제')}
         {item('up', 'up', '위로 옮기기', first)}
         {item('down', 'down', '아래로 옮기기', last)}
@@ -244,8 +245,8 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
   )
 
   const onSaveText = useCallback(
-    (message: LogMessage, text: string) => {
-      apply(setMessageText(message.id, text))
+    (message: LogMessage, value: MessageEdit) => {
+      apply('text' in value ? setMessageText(message.id, value.text) : setMessageHtml(message.id, value.html))
       setEditingId(null)
     },
     [apply],

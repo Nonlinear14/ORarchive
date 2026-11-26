@@ -9,6 +9,7 @@ import {
   removeSpeakerMessages,
   replaceAll,
   setCharacter,
+  setMessageHtml,
   setMessageImage,
   setMessageText,
   setOption,
@@ -18,6 +19,7 @@ import { isRoll20Log, resolveLog, serializeLog } from './model'
 import { detectRule, parseRoll20Log, Roll20ParseError } from './parse'
 import { extensionSetsDescItalic, logCss, renderMessagesHtml, textToHtml, visibleMessages } from './render'
 import { editableHtmlToText } from './editor/inlineText'
+import { isEditable } from './model'
 import { isUsableAvatar } from './model'
 
 /** 실제 Roll20 채팅 아카이브와 같은 구조의 작은 예시 (대사는 지어낸 내용) */
@@ -186,6 +188,44 @@ describe('확장 프로그램 꾸밈', () => {
     expect(css.indexOf('.sheet-rolltemplate-coc-1')).toBeLessThan(css.indexOf('background-color:#f00'))
     expect(css.indexOf('background-color:#f00')).toBeLessThan(css.indexOf('.nodivider'))
     expect(css).toContain('.textchatcontainer.nodivider .message .spacer{background:transparent!important')
+  })
+})
+
+describe('꾸민 글자 메시지 (롤꾸)', () => {
+  const STYLED = `<html><head><title>Chat Log for 꾸밈</title></head><body><div id="textchat" class="textchatcontainer"><div class="content">
+<div class="message desc" data-messageid="-s1"><div class="spacer"></div> <a style="color: #8d7d94 ; text-decoration: none ; font-size: 20px">마법소녀 이야기</a><div id="menu-s1" class="flyout"></div></div>
+<div class="message desc" data-messageid="-s2"><div class="spacer"></div> <a style="color: #8d7d94">HO1</a><a style="color: #333"> 마법소녀</a></div>
+<div class="message general" data-messageid="-s3"><div class="spacer"></div><span class="by">엘리너:</span>마법소녀 판정 <span class="inlinerollresult showtip">마법소녀 15</span></div>
+<div class="message desc" data-messageid="-s4"><div class="spacer"></div> <img src="https://i.imgur.com/a.png"></div>
+<div class="message rollresult" data-messageid="-s5"><div class="spacer"></div><span class="by">엘리너:</span><div class="formula">rolling 1d100 마법소녀</div></div>
+</div></div></body></html>`
+
+  it('꾸민 글자는 html 그대로 두고 고칠 수 있다 · 판정·이미지만 있는 메시지는 아님', () => {
+    const { content } = parseRoll20Log(STYLED)
+    const by = (id: string) => content.messages.find((m) => m.id === id)!
+    expect(by('-s1').html).toContain('font-size: 20px')
+    expect(['-s1', '-s2', '-s3'].map((id) => isEditable(by(id)))).toEqual([true, true, true])
+    expect(['-s4', '-s5'].map((id) => isEditable(by(id)))).toEqual([false, false])
+  })
+
+  it('setMessageHtml: 고친 HTML 을 정리해서 그 메시지만 바꾼다', () => {
+    const stored = serializeLog(parseRoll20Log(STYLED).content)
+    const next = setMessageHtml('-s1', '<a style="color: #8d7d94; font-size: 20px" contenteditable="false" onclick="x()">마법소녀의 노래</a><script>alert(1)</script>')(stored)
+    const m = resolveLog(next).messages[0]
+    expect(m.html).toBe('<a style="color: #8d7d94; font-size: 20px">마법소녀의 노래</a>')
+    expect((next.messages as unknown[])[1]).toBe((stored.messages as unknown[])[1])
+    // 글자 메시지·같은 내용이면 그대로
+    expect(setMessageHtml('-s1', resolveLog(stored).messages[0].html!)(stored)).toBe(stored)
+  })
+
+  it('찾아 바꾸기: 꾸밈은 두고 글자만, 인라인 판정 결과·판정 메시지는 그대로', () => {
+    const { content } = parseRoll20Log(STYLED)
+    expect(countMatches(content.messages, '마법소녀')).toBe(3)
+    const after = resolveLog(replaceAll('마법소녀', '소녀')(serializeLog(content))).messages
+    expect(after[0].html).toContain('font-size: 20px">소녀 이야기</a>')
+    expect(after[1].html).toBe('<a style="color: #8d7d94">HO1</a><a style="color: #333"> 소녀</a>')
+    expect(after[2].html).toContain('소녀 판정 <span class="inlinerollresult showtip">마법소녀 15</span>')
+    expect(after[4].html).toContain('rolling 1d100 마법소녀')
   })
 })
 

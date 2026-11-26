@@ -226,6 +226,29 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     await waitFor(() => expect(saved().messages[1].text).toBe('서가 번호가 **이상해요**.'), { timeout: 3000 })
   })
 
+  it('꾸민 글자(롤꾸)는 꾸밈을 둔 채 바로 고친다 · 인라인 판정은 잠겨 있다', async () => {
+    const fake = createFakeSupabase()
+    const html = SAMPLE.replace(
+      '1923년 가을, 아컴.',
+      '<a style="color: #8d7d94 ; font-size: 20px">안개 낀 도서관</a> <span class="inlinerollresult showtip">15</span>',
+    )
+    const doc = fake.control.insertDocument({ type: 'log', title: '롤꾸', content: serializeLog(parseRoll20Log(html).content) })
+    const saved = () => resolveLog(fake.control.tables.documents.find((d) => d.id === doc.id)!.content as never)
+    renderApp(`/studio/log/roll20/${doc.id}`, { client: fake.client })
+    const root = await stage()
+    fireEvent.click(row(root, '-d1').querySelector('.message a')!)
+    const box = within(root).getByRole('textbox', { name: '메시지 내용' })
+    expect(box.querySelector('a')).toHaveAttribute('style', 'color: #8d7d94 ; font-size: 20px')
+    expect(box.querySelector('.inlinerollresult')).toHaveAttribute('contenteditable', 'false')
+    box.querySelector('a')!.textContent = '안개 낀 서고'
+    fireEvent.keyDown(box, { key: 'Enter' })
+    await waitFor(
+      () => expect(saved().messages[0].html).toBe('<a style="color: #8d7d94 ; font-size: 20px">안개 낀 서고</a> <span class="inlinerollresult showtip">15</span>'),
+      { timeout: 3000 },
+    )
+    expect(row(root, '-d1').querySelector('a')).toHaveTextContent('안개 낀 서고')
+  })
+
   it('마우스를 올리면 편집 버튼: 판정 메시지는 수정이 꺼져 있고, 복제·이동·삭제는 된다', async () => {
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })

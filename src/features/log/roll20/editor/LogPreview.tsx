@@ -4,6 +4,7 @@ import { Icon } from '../../../../components/Icon'
 import { isEditable, type LogMessage, type Roll20LogContent } from '../model'
 import { containerClass, displayName, logCss, messageClass, messageInnerHtml, messageStyle, textToHtml, visibleMessages } from '../render'
 import { editableHtmlToText } from './inlineText'
+import { lockInlineParts } from '../styledText'
 import { ensureViewerFonts, VIEWER_FONT_CSS } from './viewerFonts'
 
 /**
@@ -117,25 +118,32 @@ function EditingMessage({
   onSave,
   onCancel,
   onChangeSpeaker,
+  onImage,
 }: {
   content: Roll20LogContent
   message: LogMessage
   showHeader: boolean
   speakers: SpeakerOption[]
-  onSave(text: string): void
+  onSave(value: MessageEdit): void
   onCancel(): void
   onChangeSpeaker(target: SpeakerTarget): void
+  onImage(index: number, src: string): void
 }) {
   const ref = useRef<HTMLSpanElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const done = useRef(false)
-  const initial = useRef(message.text ?? '')
+  // 꾸민 글자 메시지는 HTML 그대로 고친다 (꾸밈은 두고 글자만)
+  const styled = message.text === undefined
+  const initial = useRef(styled ? (message.html ?? '') : (message.text ?? ''))
   const styleRef = useImportantStyle(messageStyle(content, message))
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    el.innerHTML = textToHtml(initial.current)
+    if (styled) {
+      el.innerHTML = initial.current
+      lockInlineParts(el)
+    } else el.innerHTML = textToHtml(initial.current)
     el.focus()
     const range = document.createRange()
     range.selectNodeContents(el)
@@ -143,12 +151,24 @@ function EditingMessage({
     const sel = window.getSelection()
     sel?.removeAllRanges()
     sel?.addRange(range)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 처음 열 때 한 번만 채운다
   }, [])
 
   const save = () => {
     if (done.current || !ref.current) return
     done.current = true
-    onSave(editableHtmlToText(ref.current))
+    if (styled) {
+      // 잠근 표시(contenteditable)와 브라우저가 붙인 빈 style 은 걷어 낸다 — 글자를 안 고쳤으면 저장 값도 그대로
+      const tidy = (html: string) => {
+        const holder = document.createElement('div')
+        holder.innerHTML = html
+        for (const el of holder.querySelectorAll('[contenteditable]')) el.removeAttribute('contenteditable')
+        for (const el of holder.querySelectorAll('[style=""]')) el.removeAttribute('style')
+        return holder.innerHTML
+      }
+      const edited = tidy(ref.current.innerHTML)
+      onSave({ html: edited === tidy(initial.current) ? initial.current : edited })
+    } else onSave({ text: editableHtmlToText(ref.current) })
   }
   const cancel = () => {
     done.current = true
@@ -209,6 +229,14 @@ function EditingMessage({
           spellCheck={false}
           onKeyDown={onKeyDown}
           onBlur={save}
+          onClick={(e) => {
+            // 글자와 함께 있는 이미지: 고친 글자를 먼저 저장하고 이미지 바꾸기
+            const img = (e.target as Element).closest('img')
+            if (!img) return
+            const images = [...e.currentTarget.querySelectorAll('img')]
+            save()
+            onImage(images.indexOf(img), img.getAttribute('src') ?? '')
+          }}
           onPaste={(e) => {
             e.preventDefault()
             document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
@@ -234,6 +262,9 @@ function EditingMessage({
   )
 }
 
+/** 수정 칸에서 고친 결과: 글자 메시지는 text, 꾸민 글자 메시지는 html */
+export type MessageEdit = { text: string } | { html: string }
+
 interface RowProps {
   content: Roll20LogContent
   message: LogMessage
@@ -246,7 +277,7 @@ interface RowProps {
   onHover(id: string): void
   onOpen(message: LogMessage): void
   onAction(action: MessageAction, message: LogMessage): void
-  onSaveText(message: LogMessage, text: string): void
+  onSaveText(message: LogMessage, value: MessageEdit): void
   onCancelEdit(): void
   onChangeSpeaker(message: LogMessage, target: SpeakerTarget): void
   onImage(message: LogMessage, index: number, src: string): void
@@ -335,7 +366,8 @@ const MessageRow = memo(function MessageRow({
           message={message}
           showHeader={showHeader}
           speakers={speakers}
-          onSave={(text) => onSaveText(message, text)}
+          onSave={(value) => onSaveText(message, value)}
+          onImage={(index, src) => onImage(message, index, src)}
           onCancel={onCancelEdit}
           onChangeSpeaker={(target) => onChangeSpeaker(message, target)}
         />
@@ -355,7 +387,7 @@ const MessageRow = memo(function MessageRow({
             type="button"
             className="msg-act"
             disabled={!editable}
-            title={editable ? '수정' : '판정·주사위·꾸민 메시지는 내용을 고칠 수 없어요'}
+            title={editable ? '수정' : '판정·주사위·이미지만 있는 메시지는 내용을 고칠 수 없어요'}
             aria-label="수정"
             onClick={() => onAction('edit', message)}
           >
@@ -389,7 +421,7 @@ interface LogPreviewProps {
   touchMenu: boolean
   speakers: SpeakerOption[]
   onAction(action: MessageAction, message: LogMessage): void
-  onSaveText(message: LogMessage, text: string): void
+  onSaveText(message: LogMessage, value: MessageEdit): void
   onCancelEdit(): void
   onOpenMenu(message: LogMessage): void
   onChangeSpeaker(message: LogMessage, target: SpeakerTarget): void
