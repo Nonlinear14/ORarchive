@@ -1,75 +1,192 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ConfirmDialog } from '../../../../components/ConfirmDialog'
 import { Icon } from '../../../../components/Icon'
-import { copyText } from '../../../../lib/clipboard'
-import { downloadTextFile } from '../../../../lib/download'
+import { Modal } from '../../../../components/Modal'
 import type { ToastTone } from '../../../../lib/useToast'
-import {
-  countMatches,
-  removeSpeakerMessages,
-  replaceAll,
-  setCharacter,
-  setOption,
-  type LogEdit,
-} from '../edits'
-import { logBlogCode, logFileName, logHtmlFile } from '../export'
-import { isWebUrl, speakersOf, type LogOptions, type Roll20LogContent } from '../model'
+import { countMatches, removeSpeakerMessages, replaceAll, setCharacter, setOption, type LogEdit } from '../edits'
+import { isUsableAvatar, isWebUrl, speakersOf, type CharacterSetting, type LogOptions, type Roll20LogContent } from '../model'
+import { displayName } from '../render'
+import { imageFileToAvatar } from './avatarImage'
 
 interface PanelProps {
   content: Roll20LogContent
-  title: string
   apply(op: LogEdit): void
   notify(message: string, tone?: ToastTone): void
 }
 
-/** 입력이 끝났을 때(포커스가 빠지거나 Enter) 한 번만 반영하는 글자 칸 */
-function CommitInput({
+type ColorKey = 'color' | 'bg' | 'text'
+
+const COLOR_LABELS: Record<ColorKey, string> = { color: '이름', bg: '배경', text: '대사' }
+
+/** 색 동그라미: 누르면 색 고르기와 '기본 색으로'가 나온다 */
+function ColorRound({
+  speaker,
+  colorKey,
   value,
-  onCommit,
-  label,
-  placeholder,
+  apply,
 }: {
-  value: string
-  onCommit(value: string): void
-  label: string
-  placeholder?: string
+  speaker: string
+  colorKey: ColorKey
+  value: string | undefined
+  apply(op: LogEdit): void
 }) {
-  const [draft, setDraft] = useState<string | null>(null)
-  const commit = () => {
-    if (draft !== null && draft !== value) onCommit(draft)
-    setDraft(null)
-  }
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const label = `${speaker} ${COLOR_LABELS[colorKey]} 색`
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  // 색 고르기 창을 닫을 때(change) 한 번만 반영 — 끌며 고르는 동안 저장이 쌓이지 않게
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    const onChange = () => apply(setCharacter(speaker, colorKey, el.value))
+    el.addEventListener('change', onChange)
+    return () => el.removeEventListener('change', onChange)
+  }, [open, apply, speaker, colorKey])
+
   return (
-    <input
-      className="field-input"
-      aria-label={label}
-      placeholder={placeholder}
-      value={draft ?? value}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur()
-        if (e.key === 'Escape') setDraft(null)
-      }}
-    />
+    <div className="color-round" ref={wrapRef}>
+      <button
+        type="button"
+        className={value ? 'round' : 'round is-default'}
+        style={value ? { background: value } : undefined}
+        aria-label={`${label}${value ? ` (${value})` : ' (기본)'}`}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      />
+      <small>{COLOR_LABELS[colorKey]}</small>
+      {open && (
+        <div className="color-pop" role="dialog" aria-label={label}>
+          <label className="color-pick">
+            <input ref={inputRef} type="color" defaultValue={value ?? (colorKey === 'bg' ? '#f1f1f1' : '#000000')} aria-label={`${label} 고르기`} />
+            <span>색 고르기</span>
+          </label>
+          <button
+            type="button"
+            className="btn small"
+            disabled={!value}
+            onClick={() => {
+              apply(setCharacter(speaker, colorKey, undefined))
+              setOpen(false)
+            }}
+          >
+            기본 색으로
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
-/** 색 고르기: 고르기 창을 닫을 때(change) 한 번만 반영 */
-function ColorInput({ value, label, onCommit }: { value: string; label: string; onCommit(value: string): void }) {
-  const ref = useRef<HTMLInputElement>(null)
-  const commit = useRef(onCommit)
-  useEffect(() => {
-    commit.current = onCommit
-  })
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const onChange = () => commit.current(el.value)
-    el.addEventListener('change', onChange)
-    return () => el.removeEventListener('change', onChange)
-  }, [])
-  return <input ref={ref} type="color" className="char-color" aria-label={label} defaultValue={value} key={value} />
+/** 아바타 바꾸기: 이미지 파일 불러오기(줄여서 로그 안에 저장) 또는 링크 주소 */
+function AvatarDialog({
+  speaker,
+  name,
+  setting,
+  original,
+  apply,
+  onClose,
+}: {
+  speaker: string
+  name: string
+  setting: CharacterSetting
+  original?: string
+  apply(op: LogEdit): void
+  onClose(): void
+}) {
+  const [url, setUrl] = useState(setting.avatar && isWebUrl(setting.avatar) ? setting.avatar : '')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const current = setting.avatar || original
+
+  async function fromFile(file: File | undefined) {
+    if (!file) return
+    setBusy(true)
+    setError(null)
+    try {
+      apply(setCharacter(speaker, 'avatar', await imageFileToAvatar(file)))
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal title={`${name} 아바타`} eyebrow="LOG EDITOR / CHARACTER" onClose={onClose}>
+      <div className="avatar-current">
+        {current && isUsableAvatar(current) ? <img src={current} alt="" /> : <span className="char-av broken">?</span>}
+        <span>{current && !isUsableAvatar(current) ? '지금 아바타는 PC 폴더 경로라 다른 사람에게 보이지 않아요.' : '지금 아바타'}</span>
+      </div>
+      <span className="field-label">이미지 파일 불러오기</span>
+      <label className="dropzone small-drop">
+        <Icon name="upload" />
+        <b>{busy ? '이미지를 줄이는 중…' : '이미지 파일 고르기'}</b>
+        <small>96×96 크기로 줄여 로그 안에 함께 저장해요. 내보낸 파일에도 그대로 들어가요.</small>
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          className="sr-only"
+          aria-label="아바타 이미지 파일"
+          onChange={(e) => void fromFile(e.target.files?.[0])}
+        />
+      </label>
+      <span className="field-label avatar-link-label">링크 주소 붙여넣기</span>
+      <div className="inline-form">
+        <input className="field-input" aria-label="아바타 이미지 주소" placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => {
+            if (!isWebUrl(url)) {
+              setError('https:// 로 시작하는 이미지 주소를 넣어 주세요.')
+              return
+            }
+            apply(setCharacter(speaker, 'avatar', url.trim()))
+            onClose()
+          }}
+        >
+          적용
+        </button>
+      </div>
+      <p className="field-help">일부 블로그는 로그 안에 저장한 이미지를 막을 수 있어요. 그럴 때는 링크 주소를 써 주세요.</p>
+      {error && (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="modal-actions">
+        <button
+          type="button"
+          className="btn"
+          disabled={!setting.avatar}
+          onClick={() => {
+            apply(setCharacter(speaker, 'avatar', undefined))
+            onClose()
+          }}
+        >
+          원래 아바타로
+        </button>
+        <button type="button" className="btn" onClick={onClose}>
+          닫기
+        </button>
+      </div>
+    </Modal>
+  )
 }
 
 function CharacterRow({
@@ -86,81 +203,66 @@ function CharacterRow({
   apply(op: LogEdit): void
 }) {
   const setting = content.characters[speaker] ?? {}
-  const [open, setOpen] = useState(false)
+  const name = displayName(content, speaker)
+  const [avatarOpen, setAvatarOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const shown = setting.avatar?.trim() || avatar
-  const broken = !!shown && !isWebUrl(shown)
+  const broken = !!shown && !isUsableAvatar(shown)
   return (
     <div className={setting.hidden ? 'char-row is-hidden' : 'char-row'}>
       <div className="char-main">
-        {shown && !broken ? (
-          <img className="char-av" src={shown} alt="" />
-        ) : (
-          <span className={broken ? 'char-av broken' : 'char-av'} aria-hidden="true">
-            {broken ? '?' : speaker.slice(0, 1)}
-          </span>
-        )}
-        <div className="char-name">
-          <CommitInput
-            value={setting.name ?? speaker}
-            label={`${speaker} 표시 이름`}
-            onCommit={(name) => apply(setCharacter(speaker, 'name', name.trim() === speaker || !name.trim() ? undefined : name.trim()))}
-          />
-          <small>
-            메시지 {count.toLocaleString('ko-KR')}개{setting.hidden ? ' · 숨김' : ''}
-          </small>
-        </div>
-        <ColorInput
-          value={setting.color ?? '#000000'}
-          label={`${speaker} 이름 색`}
-          onCommit={(color) => apply(setCharacter(speaker, 'color', color === '#000000' ? undefined : color))}
-        />
-        <button
-          type="button"
-          className="row-icon"
-          aria-expanded={open}
-          aria-label={`${speaker} 설정 더 보기`}
-          title="아바타 · 숨기기 · 삭제"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <Icon name="more" />
+        <button type="button" className="char-av-btn" aria-label={`${name} 아바타 바꾸기`} title="아바타 바꾸기" onClick={() => setAvatarOpen(true)}>
+          {shown && !broken ? (
+            <img className="char-av" src={shown} alt="" />
+          ) : (
+            <span className={broken ? 'char-av broken' : 'char-av'} aria-hidden="true">
+              {broken ? '?' : name.slice(0, 1)}
+            </span>
+          )}
         </button>
+        <div className="char-body">
+          <b className="char-name">{name}</b>
+          <div className="char-colors">
+            {(['color', 'bg', 'text'] as const).map((key) => (
+              <ColorRound key={key} speaker={speaker} colorKey={key} value={setting[key]} apply={apply} />
+            ))}
+          </div>
+        </div>
       </div>
-      {broken && !open && (
+      {broken && (
         <div className="char-warn">
           <Icon name="alert" />
           <span>아바타가 PC 폴더 경로라 다른 사람에게 안 보여요.</span>
-          <button type="button" className="text-link" onClick={() => setOpen(true)}>
-            주소 넣기
+          <button type="button" className="text-link" onClick={() => setAvatarOpen(true)}>
+            바꾸기
           </button>
         </div>
       )}
-      {open && (
-        <div className="char-more">
-          <span className="field-label">아바타 이미지 주소</span>
-          <CommitInput
-            value={setting.avatar ?? ''}
-            label={`${speaker} 아바타 주소`}
-            placeholder="https://… (비우면 원래 아바타)"
-            onCommit={(url) => apply(setCharacter(speaker, 'avatar', url.trim() && isWebUrl(url) ? url.trim() : undefined))}
+      <div className="char-foot">
+        <label className="mini-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            className="opt-switch"
+            checked={!!setting.hidden}
+            aria-label={`${name} 메시지 숨기기`}
+            onChange={(e) => apply(setCharacter(speaker, 'hidden', e.target.checked))}
           />
-          <p className="field-help">https:// 로 시작하는 이미지 주소만 쓸 수 있어요. 비우면 원래 아바타로 돌아가요.</p>
-          <div className="char-more-actions">
-            <button type="button" className="btn small" onClick={() => apply(setCharacter(speaker, 'hidden', !setting.hidden))}>
-              <Icon name="eyeoff" /> {setting.hidden ? '메시지 다시 보이기' : '이 캐릭터 메시지 숨기기'}
-            </button>
-            <button type="button" className="btn small danger" onClick={() => setConfirming(true)}>
-              <Icon name="trash" /> 메시지 모두 삭제
-            </button>
-          </div>
-        </div>
+          <span aria-hidden="true">메시지 숨기기</span>
+        </label>
+        <button type="button" className="btn small danger" aria-label={`${name} 메시지 모두 삭제`} title="이 캐릭터의 메시지 모두 삭제" onClick={() => setConfirming(true)}>
+          <Icon name="trash" /> 모두 삭제
+        </button>
+      </div>
+      {avatarOpen && (
+        <AvatarDialog speaker={speaker} name={name} setting={setting} original={avatar} apply={apply} onClose={() => setAvatarOpen(false)} />
       )}
       {confirming && (
         <ConfirmDialog
           title="이 캐릭터의 메시지를 모두 지울까요?"
           message={
             <>
-              <b>{setting.name ?? speaker}</b>의 메시지 {count.toLocaleString('ko-KR')}개를 로그에서 지웁니다. 되돌리기로 다시 살릴 수 있어요.
+              <b>{name}</b>의 메시지 {count.toLocaleString('ko-KR')}개를 로그에서 지웁니다. 되돌리기로 다시 살릴 수 있어요.
             </>
           }
           confirmLabel="모두 삭제"
@@ -201,31 +303,6 @@ function Toggle({
   )
 }
 
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: T
-  options: [T, string][]
-  onChange(value: T): void
-}) {
-  return (
-    <>
-      <div className="seg-label">{label}</div>
-      <div className="segmented" role="radiogroup" aria-label={label}>
-        {options.map(([v, text]) => (
-          <button key={v} type="button" role="radio" aria-checked={value === v} className={value === v ? 'active' : ''} onClick={() => onChange(v)}>
-            {text}
-          </button>
-        ))}
-      </div>
-    </>
-  )
-}
-
 function Section({ label, extra, children }: { label: string; extra?: ReactNode; children: ReactNode }) {
   return (
     <div className="panel-section">
@@ -237,7 +314,7 @@ function Section({ label, extra, children }: { label: string; extra?: ReactNode;
   )
 }
 
-export function LogPanel({ content, title, apply, notify }: PanelProps) {
+export function LogPanel({ content, apply, notify }: PanelProps) {
   const speakers = speakersOf(content)
   const { options } = content
   const [find, setFind] = useState('')
@@ -245,23 +322,20 @@ export function LogPanel({ content, title, apply, notify }: PanelProps) {
   const matches = countMatches(content.messages, find)
   const set = <K extends keyof LogOptions>(key: K) => (value: LogOptions[K]) => apply(setOption(key, value))
   const count = (pred: (m: Roll20LogContent['messages'][number]) => boolean) => content.messages.filter(pred).length
+  const shapes: [LogOptions['avatarShape'], string][] = [
+    ['square', '사각형'],
+    ['circle', '원형'],
+    ['none', '숨김'],
+  ]
 
   return (
-    <aside className="panel right-panel log-panel" aria-label="로그 설정">
+    <aside className="panel right-panel log-panel" aria-label="로그 편집">
       <div className="panel-top">
-        <h2>로그 설정</h2>
+        <h2>로그 편집</h2>
         <Icon name="settings" />
       </div>
 
-      <Section label="캐릭터" extra={<em className="opt-count">{speakers.length}명</em>}>
-        {speakers.length === 0 && <p className="field-help">이름이 있는 메시지가 없어요.</p>}
-        {speakers.map((s) => (
-          <CharacterRow key={s.speaker} {...s} content={content} apply={apply} />
-        ))}
-        <p className="field-help">이름을 바꾸면 그 캐릭터의 모든 메시지에 한꺼번에 적용돼요.</p>
-      </Section>
-
-      <Section label="일괄 정리">
+      <Section label="전체 다듬기">
         <Toggle
           label="숨긴 메시지 지우기"
           sub="This message has been hidden."
@@ -278,7 +352,30 @@ export function LogPanel({ content, title, apply, notify }: PanelProps) {
           onChange={set('hideRolls')}
         />
         <Toggle label="연속 이름 정리" sub="같은 사람이 이어 말하면 이름을 한 번만" checked={options.collapseNames} onChange={set('collapseNames')} />
-        <Toggle label="시간 표시" checked={options.showTime} onChange={set('showTime')} />
+        <Toggle label="구분선 표시" sub="메시지 사이의 가는 선" checked={options.divider} onChange={set('divider')} />
+        <div className="seg-label">아바타 모양</div>
+        <div className="segmented" role="radiogroup" aria-label="아바타 모양">
+          {shapes.map(([v, text]) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={options.avatarShape === v}
+              className={options.avatarShape === v ? 'active' : ''}
+              onClick={() => apply(setOption('avatarShape', v))}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section label="캐릭터" extra={<em className="opt-count">{speakers.length}명</em>}>
+        {speakers.length === 0 && <p className="field-help">이름이 있는 메시지가 없어요.</p>}
+        {speakers.map((s) => (
+          <CharacterRow key={s.speaker} {...s} content={content} apply={apply} />
+        ))}
+        <p className="field-help">아바타를 누르면 이미지를 바꿀 수 있어요. 색 동그라미를 누르면 색을 고르거나 기본 색으로 되돌려요.</p>
       </Section>
 
       <Section label="찾아 바꾸기">
@@ -309,69 +406,6 @@ export function LogPanel({ content, title, apply, notify }: PanelProps) {
           </button>
         </div>
       </Section>
-
-      <Section label="표시">
-        <Segmented
-          label="아바타"
-          value={options.avatarShape}
-          options={[
-            ['square', '사각형'],
-            ['circle', '원형'],
-            ['none', '숨김'],
-          ]}
-          onChange={set('avatarShape')}
-        />
-        <Segmented
-          label="내 메시지 배경"
-          value={options.myBg}
-          options={[
-            ['roll20', 'Roll20 기본'],
-            ['same', '다른 사람과 같게'],
-          ]}
-          onChange={set('myBg')}
-        />
-        <Segmented
-          label="구분선"
-          value={options.divider ? 'show' : 'hide'}
-          options={[
-            ['show', '표시'],
-            ['hide', '숨김'],
-          ]}
-          onChange={(v) => apply(setOption('divider', v === 'show'))}
-        />
-      </Section>
-
-      <Section label="내보내기">
-        <button
-          type="button"
-          className="btn primary log-export"
-          onClick={() => downloadTextFile(logFileName(title), logHtmlFile(content, title))}
-        >
-          <Icon name="download" /> HTML 파일 저장
-        </button>
-        <button
-          type="button"
-          className="btn log-export"
-          onClick={() => {
-            const code = logBlogCode(content)
-            copyText(code).then(
-              () => notify('블로그용 코드를 복사했어요. 블로그 글쓰기의 HTML 편집 모드에 붙여 넣으세요.'),
-              () => notify('클립보드 접근을 차단했어요. 브라우저의 클립보드 권한을 확인해 주세요.', 'error'),
-            )
-          }}
-        >
-          <Icon name="code" /> 블로그용 코드 복사
-        </button>
-        <p className="field-help">
-          HTML 파일은 바로 열어 볼 수 있는 완성된 페이지예요. 블로그용 코드는 티스토리 등의 HTML 편집 모드에 붙여 넣어요. 시트 판정 디자인도 함께 들어가요.
-        </p>
-      </Section>
-
-      <div className="panel-section">
-        <div className="callout">
-          <Icon name="lock" /> <span>원본 파일은 서버에 올리지 않아요. 편집본만 내 계정에 비공개로 저장돼요.</span>
-        </div>
-      </div>
     </aside>
   )
 }

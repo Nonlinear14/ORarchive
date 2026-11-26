@@ -22,6 +22,8 @@ export interface ParseStats {
   whispers: number
   hidden: number
   rolls: number
+  /** 감지한 룰 (모르면 빈 글자) */
+  rule: string
   /** PC 폴더 경로라 다른 사람에게 보이지 않는 아바타를 가진 화자 수 */
   brokenAvatars: number
   /** 메시지 안의 PC 폴더 경로 이미지 수 */
@@ -122,6 +124,18 @@ function speakerOf(byText: string): { speaker: string; whisper?: 'from' | 'to' }
   return { speaker: name }
 }
 
+/** 시트 롤템플릿 이름으로 룰을 알아낸다 (모르면 빈 글자) */
+export function detectRule(html: string): string {
+  const names = new Set([...html.matchAll(/sheet-rolltemplate-([\w-]+)/g)].map((m) => m[1].toLowerCase()))
+  const has = (re: RegExp) => [...names].some((n) => re.test(n))
+  if (has(/^coc/)) return '크툴루의 부름'
+  if (has(/^(ins|ninpo)/)) return '인세인'
+  if (has(/^(atkdmg|npcfullatk|npcatk|npcaction|spell|traits|5e)/)) return 'D&D 5판'
+  if (has(/^pf/)) return '패스파인더'
+  if (has(/^nechro/)) return '네크로니카'
+  return ''
+}
+
 let idSeq = 0
 const newId = () => `n${Date.now().toString(36)}${(idSeq++).toString(36)}`
 
@@ -203,6 +217,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
     characters: {},
     options: { ...defaultLogOptions },
     sheetCss,
+    rule: detectRule(messages.map((m) => m.html ?? '').join('') + sheetCss),
     source: { ...(fileName ? { name: fileName } : {}), importedAt: new Date().toISOString() },
   }
   return {
@@ -217,6 +232,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
       brokenAvatars,
       brokenImages,
       sheetCss: sheetCss.length > 0,
+      rule: content.rule,
     },
   }
 }

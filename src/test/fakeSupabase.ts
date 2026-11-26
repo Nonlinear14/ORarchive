@@ -105,6 +105,13 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
     const out: Row = {}
     columns.split(',').forEach((c) => {
       const key = c.trim()
+      // PostgREST 의 'alias:column->>field' (JSON 값 하나를 글자로)
+      const json = /^(\w+):(\w+)->>(\w+)$/.exec(key)
+      if (json) {
+        const value = (row[json[2]] as Row | undefined)?.[json[3]]
+        out[json[1]] = value === undefined || value === null ? null : String(value)
+        return
+      }
       out[key] = row[key]
     })
     return out

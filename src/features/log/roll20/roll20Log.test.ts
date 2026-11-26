@@ -14,8 +14,9 @@ import {
 } from './edits'
 import { inlineCss, logBlogCode, logFileName, logHtmlFile } from './export'
 import { isRoll20Log, resolveLog, serializeLog } from './model'
-import { parseRoll20Log, Roll20ParseError } from './parse'
+import { detectRule, parseRoll20Log, Roll20ParseError } from './parse'
 import { renderMessagesHtml, textToHtml, visibleMessages } from './render'
+import { isUsableAvatar } from './model'
 
 /** 실제 Roll20 채팅 아카이브와 같은 구조의 작은 예시 (대사는 지어낸 내용) */
 const SAMPLE = `<!DOCTYPE html><html><head><title>Chat Log for 안개 낀 도서관</title>
@@ -56,7 +57,8 @@ describe('Roll20 로그 읽기', () => {
     expect(roll).toMatchObject({ speaker: 'GM 하워드 (GM)', you: true })
     expect(roll.html).toContain('sheet-rolltemplate-coc-1')
     expect(whisper).toMatchObject({ speaker: '엘리너', whisper: 'from', text: '발자국 크기 기억나세요?' })
-    expect(stats).toMatchObject({ messages: 7, speakers: 2, whispers: 1, hidden: 1, rolls: 1, brokenAvatars: 1, sheetCss: true })
+    expect(stats).toMatchObject({ messages: 7, speakers: 2, whispers: 1, hidden: 1, rolls: 1, brokenAvatars: 1, sheetCss: true, rule: '크툴루의 부름' })
+    expect(content.rule).toBe('크툴루의 부름')
   })
 
   it('다른 사람이 쓴 HTML 의 스크립트·이벤트·javascript: 주소를 지우고, 시트 CSS 의 @import 를 지운다', () => {
@@ -131,6 +133,25 @@ describe('Roll20 로그 편집 연산 (고친 경로만 바뀐다)', () => {
   })
 })
 
+describe('룰 감지 · 아바타 주소', () => {
+  it('시트 롤템플릿 이름으로 룰을 알아낸다', () => {
+    expect(detectRule('<div class="sheet-rolltemplate-coc-1">')).toBe('크툴루의 부름')
+    expect(detectRule('<div class="sheet-rolltemplate-InsDice">')).toBe('인세인')
+    expect(detectRule('.sheet-rolltemplate-Ninpo{}')).toBe('인세인')
+    expect(detectRule('<div class="sheet-rolltemplate-atkdmg">')).toBe('D&D 5판')
+    expect(detectRule('<div class="sheet-rolltemplate-mysheet">')).toBe('')
+    expect(detectRule('그냥 대화')).toBe('')
+  })
+
+  it('아바타로 쓸 수 있는 주소: 웹 주소와 불러온 이미지(data:image)만', () => {
+    expect(isUsableAvatar('https://files.d20.io/a.png')).toBe(true)
+    expect(isUsableAvatar('data:image/png;base64,AAAA')).toBe(true)
+    expect(isUsableAvatar('./Chat Log_files/med.png')).toBe(false)
+    expect(isUsableAvatar('javascript:alert(1)')).toBe(false)
+    expect(isUsableAvatar('data:text/html;base64,AAAA')).toBe(false)
+  })
+})
+
 describe('Roll20 로그 그리기·내보내기', () => {
   it('글자는 이스케이프하고 *기울임* **굵게** 줄바꿈만 태그로', () => {
     expect(textToHtml('<b>&\n**굵게** *기울임*')).toBe('&lt;b&gt;&amp;<br><strong>굵게</strong> <em>기울임</em>')
@@ -159,6 +180,12 @@ describe('Roll20 로그 그리기·내보내기', () => {
     expect(html).toContain('(From 엘리너 &lt;B&gt;):')
     expect(html).toContain('src="https://i.imgur.com/a.png"')
     expect(html).toContain('class="message general you"')
+  })
+
+  it('캐릭터의 메시지 배경색·대사 색은 그 캐릭터의 모든 메시지에 (이어지는 메시지 포함)', () => {
+    const content = parsed().content
+    const html = renderMessagesHtml({ ...content, characters: { 엘리너: { bg: '#ffeeaa', text: '#225588' } } })
+    expect(html.match(/style="background-color:#ffeeaa;color:#225588"/g)).toHaveLength(4)
   })
 
   it('HTML 파일: 완성된 페이지에 시트 CSS 포함 · 파일 이름 정리', () => {

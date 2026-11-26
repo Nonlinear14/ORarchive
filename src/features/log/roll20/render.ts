@@ -134,8 +134,18 @@ export function messageInnerHtml(content: Roll20LogContent, m: LogMessage, showH
   return head + body
 }
 
+/** 캐릭터별 메시지 배경색·대사 색 (style 속성 값, 없으면 빈 글자) */
+export function messageStyle(content: Roll20LogContent, m: LogMessage): string {
+  const setting = m.speaker ? content.characters[m.speaker] : undefined
+  if (!setting) return ''
+  return [setting.bg ? `background-color:${setting.bg}` : '', setting.text ? `color:${setting.text}` : ''].filter(Boolean).join(';')
+}
+
 export function renderMessagesHtml(content: Roll20LogContent): string {
   return visibleMessages(content)
-    .map(({ message, showHeader }) => `<div class="${messageClass(content, message)}">${messageInnerHtml(content, message, showHeader)}</div>`)
+    .map(({ message, showHeader }) => {
+      const style = messageStyle(content, message)
+      return `<div class="${messageClass(content, message)}"${style ? ` style="${style}"` : ''}>${messageInnerHtml(content, message, showHeader)}</div>`
+    })
     .join('\n')
 }

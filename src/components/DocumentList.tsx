@@ -14,15 +14,17 @@ interface DocumentListProps {
   onDelete?(doc: DocumentSummary): void
   /** 지정하면 행을 눌렀을 때 화면을 옮기지 않고 이 함수를 부른다 (미리보기 창 등) */
   onOpen?(doc: DocumentSummary): void
+  /** 두 번째 칸(기본: 유형)을 바꾼다 — 예: 로그 목록의 '룰' */
+  typeColumn?: { label: string; value(doc: DocumentSummary): string }
 }
 
 /** 목업의 library-list (이름 · 유형 · 공개 범위 · 수정 날짜) */
-export function DocumentList({ docs, onDelete, onOpen }: DocumentListProps) {
+export function DocumentList({ docs, onDelete, onOpen, typeColumn }: DocumentListProps) {
   return (
     <div className="library-list" role="table" aria-label="문서 목록">
       <div className="list-head" role="row">
         <div role="columnheader">이름</div>
-        <div role="columnheader">유형</div>
+        <div role="columnheader">{typeColumn?.label ?? '유형'}</div>
         <div role="columnheader">공개 범위</div>
         <div role="columnheader">수정 날짜</div>
         <div role="columnheader">
@@ -48,7 +50,7 @@ export function DocumentList({ docs, onDelete, onOpen }: DocumentListProps) {
               </Link>
             )}
           </div>
-          <div role="cell">{documentTypeLabels[doc.type]}</div>
+          <div role="cell">{typeColumn ? typeColumn.value(doc) : documentTypeLabels[doc.type]}</div>
           <div role="cell">
             <span className={doc.visibility === 'private' ? 'tag' : 'tag gold'}>{visibilityLabels[doc.visibility]}</span>
           </div>

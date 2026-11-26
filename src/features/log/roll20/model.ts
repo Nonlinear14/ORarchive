@@ -33,11 +33,15 @@ export interface LogMessage {
 }
 
 export interface CharacterSetting {
-  /** 표시 이름 (화자 이름을 바꿈) */
+  /** 표시 이름 (예전 버전에서 바꾼 이름 — 화면에서는 더 이상 바꾸지 않지만 저장된 값은 반영한다) */
   name?: string
   /** 이름 색 (#rrggbb) */
   color?: string
-  /** 아바타 주소 (원본 대신) */
+  /** 메시지 배경색 (#rrggbb) */
+  bg?: string
+  /** 대사 색 (#rrggbb) */
+  text?: string
+  /** 아바타 (웹 주소, 또는 불러온 이미지를 줄인 data:image 주소) */
   avatar?: string
   /** 이 캐릭터의 메시지를 숨김 */
   hidden?: boolean
@@ -68,6 +72,8 @@ export interface Roll20LogContent {
   options: LogOptions
   /** 캠페인 시트의 롤템플릿 CSS (저장 파일에 들어 있을 때만) */
   sheetCss: string
+  /** 룰 이름 (불러올 때 감지하거나 사용자가 입력). 목록에서 content->>rule 로 읽는다 */
+  rule: string
   source?: { name?: string; importedAt: string }
 }
 
@@ -81,6 +87,8 @@ export const defaultLogOptions: LogOptions = {
   myBg: 'roll20',
   divider: true,
 }
+
+export const HEX = /^#[0-9a-f]{6}$/i
 
 const KINDS = new Set<MessageKind>(['general', 'desc', 'emote', 'whisper', 'roll', 'hidden'])
 
@@ -117,8 +125,10 @@ function readCharacter(raw: unknown): CharacterSetting {
   const setting: CharacterSetting = {}
   const name = str(raw.name)
   if (name !== undefined) setting.name = name
-  const color = str(raw.color)
-  if (color && /^#[0-9a-f]{6}$/i.test(color)) setting.color = color
+  for (const key of ['color', 'bg', 'text'] as const) {
+    const value = str(raw[key])
+    if (value && HEX.test(value)) setting[key] = value
+  }
   const avatar = str(raw.avatar)
   if (avatar !== undefined) setting.avatar = avatar
   if (raw.hidden === true) setting.hidden = true
@@ -159,6 +169,7 @@ export function resolveLog(stored: DocumentContent): Roll20LogContent {
     characters,
     options: readOptions(raw.options),
     sheetCss: str(raw.sheetCss) ?? '',
+    rule: str(raw.rule) ?? '',
     ...(source ? { source } : {}),
   }
 }
@@ -175,6 +186,14 @@ export const isEditable = (message: LogMessage) => message.text !== undefined
 export function isWebUrl(url: string | undefined): boolean {
   return !!url && /^(https?:)?\/\//i.test(url.trim())
 }
+
+/** 아바타로 쓸 수 있는 주소인가: 웹 주소, 또는 불러온 이미지(data:image) */
+export function isUsableAvatar(url: string | undefined): boolean {
+  return isWebUrl(url) || /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(url?.trim() ?? '')
+}
+
+/** 룰 이름 후보 (룰 칸의 자동 완성) */
+export const RULE_SUGGESTIONS = ['크툴루의 부름', '인세인', 'D&D 5판', '패스파인더', '네크로니카', '마기카로기아', '기타']
 
 /** 화자 목록 (메시지 수 순) */
 export function speakersOf(content: Roll20LogContent): { speaker: string; count: number; avatar?: string }[] {

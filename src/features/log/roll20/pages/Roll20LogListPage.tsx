@@ -59,7 +59,7 @@ export default function Roll20LogListPage() {
               </button>
             </div>
           ) : (
-            <DocumentList docs={logs} onDelete={setDeleting} />
+            <DocumentList docs={logs} onDelete={setDeleting} typeColumn={{ label: '룰', value: (doc) => doc.rule?.trim() || '기타' }} />
           ))}
       </section>
       {importing && <ImportLogDialog onClose={() => setImporting(false)} />}

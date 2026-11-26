@@ -7,6 +7,8 @@ import { Icon } from '../../../../components/Icon'
 import { LoadingState } from '../../../../components/LoadingState'
 import { SaveStatusChip } from '../../../../components/SaveStatusChip'
 import { Toast } from '../../../../components/Toast'
+import { copyText } from '../../../../lib/clipboard'
+import { downloadTextFile } from '../../../../lib/download'
 import type { DocumentContent, DocumentDraft, DocumentRecord } from '../../../../lib/documents'
 import type { SaveStatus } from '../../../../lib/documentSync'
 import { formatRelativeTime } from '../../../../lib/format'
@@ -20,9 +22,11 @@ import {
   newMessageId,
   removeMessage,
   setMessageText,
+  setRule,
   type LogEdit,
 } from '../edits'
-import { isEditable, isRoll20Log, resolveLog, type LogMessage, type Roll20LogContent } from '../model'
+import { logBlogCode, logFileName, logHtmlFile } from '../export'
+import { isEditable, isRoll20Log, resolveLog, RULE_SUGGESTIONS, type LogMessage, type Roll20LogContent } from '../model'
 import { visibleMessages } from '../render'
 import '../../../handout/studio/HandoutStudio.css'
 import '../roll20Log.css'
@@ -138,6 +142,39 @@ function MessageSheet({
   )
 }
 
+/** 룰 칸: 입력을 마치면(포커스가 빠지거나 Enter) 반영 */
+function RuleField({ rule, onCommit }: { rule: string; onCommit(rule: string): void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const commit = () => {
+    if (draft !== null && draft.trim() !== rule) onCommit(draft.trim())
+    setDraft(null)
+  }
+  return (
+    <div className="rule-field">
+      <label htmlFor="log-rule">룰</label>
+      <input
+        id="log-rule"
+        className="field-input"
+        list="log-rule-suggestions"
+        maxLength={60}
+        placeholder="기타"
+        value={draft ?? rule}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Escape') setDraft(null)
+        }}
+      />
+      <datalist id="log-rule-suggestions">
+        {RULE_SUGGESTIONS.map((r) => (
+          <option key={r} value={r} />
+        ))}
+      </datalist>
+    </div>
+  )
+}
+
 interface EditorProps {
   doc: DocumentRecord
   draft: DocumentDraft
@@ -235,6 +272,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             Roll20 로그 · 메시지 {content.messages.length.toLocaleString('ko-KR')}개 · v{doc.version} ·{' '}
             {offlineCopy ? '이 기기에 저장해 둔 사본' : `${formatRelativeTime(doc.updated_at)} 서버에 저장`}
           </p>
+          <RuleField rule={content.rule} onCommit={(rule) => apply(setRule(rule))} />
         </div>
         <div className="editor-toolbar">
           <SaveStatusChip status={status} />
@@ -274,6 +312,9 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
               {content.sheetCss ? '시트 판정 디자인 포함 · ' : ''}보이는 메시지 {rows.length.toLocaleString('ko-KR')}개
             </span>
           </div>
+          <div className="callout log-notice">
+            <Icon name="lock" /> <span>원본 파일은 서버에 올리지 않아요. 편집본만 내 계정에 비공개로 저장돼요.</span>
+          </div>
           <LogPreview
             content={content}
             editingId={editingId}
@@ -283,12 +324,32 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             onCancelEdit={onCancelEdit}
             onOpenMenu={onOpenMenu}
           />
+          <div className="log-export-bar" role="group" aria-label="내보내기">
+            <button type="button" className="btn primary" onClick={() => downloadTextFile(logFileName(draft.title), logHtmlFile(content, draft.title))}>
+              <Icon name="download" /> HTML 파일 저장
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                copyText(logBlogCode(content)).then(
+                  () => show('블로그용 코드를 복사했어요. 블로그 글쓰기의 HTML 편집 모드에 붙여 넣으세요.'),
+                  () => show('클립보드 접근을 차단했어요. 브라우저의 클립보드 권한을 확인해 주세요.', 'error'),
+                )
+              }}
+            >
+              <Icon name="code" /> 블로그용 코드 복사
+            </button>
+            <p className="field-help">
+              HTML 파일은 바로 열어 볼 수 있는 완성된 페이지예요. 블로그용 코드는 티스토리 등의 HTML 편집 모드에 붙여 넣어요. 지금 보이는 모양 그대로(숨긴 메시지 제외) 내보내요.
+            </p>
+          </div>
           <div className="canvas-footer">
             <span>✧ FOLIO Log Engine</span>
             <span>{touchMenu ? '누르면 복제 · 이동 · 삭제' : '마우스를 올리면 복제 · 이동 · 삭제'}</span>
           </div>
         </section>
-        <LogPanel content={content} title={draft.title} apply={apply} notify={show} />
+        <LogPanel content={content} apply={apply} notify={show} />
       </div>
       {menuId && menuIndex >= 0 && (
         <MessageSheet

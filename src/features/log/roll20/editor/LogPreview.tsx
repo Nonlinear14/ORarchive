@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent } fr
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../../components/Icon'
 import { isEditable, type LogMessage, type Roll20LogContent } from '../model'
-import { containerClass, messageClass, messageInnerHtml, ROLL20_CHAT_CSS, visibleMessages } from '../render'
+import { containerClass, messageClass, messageInnerHtml, messageStyle, ROLL20_CHAT_CSS, visibleMessages } from '../render'
 
 /**
  * 로그 미리보기. 불러온 Roll20·시트 CSS 가 앱 화면을 바꾸지 못하도록 그림자 DOM 안에 그린다.
@@ -20,7 +20,7 @@ const OVERLAY_CSS = `
 .log-msg.is-editable>.message{cursor:text}
 .log-msg.is-editing>.message{box-shadow:inset 0 0 0 2px #427a67;background:#fff}
 .msg-actions{position:absolute;right:8px;top:-14px;display:flex;gap:2px;background:#142128;border-radius:9px;padding:3px;z-index:3;box-shadow:0 6px 16px rgba(23,36,42,.25)}
-.msg-act{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:#e9e2d4;border-radius:6px;padding:5px 7px;font:600 11px var(--font, sans-serif);cursor:pointer}
+.msg-act{display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:#e9e2d4;border-radius:6px;padding:6px;font:600 11px var(--font, sans-serif);cursor:pointer}
 .msg-act:hover:not(:disabled){background:#2b4146}
 .msg-act:focus-visible{outline:2px solid #d9ac72}
 .msg-act:disabled{opacity:.35;cursor:not-allowed}
@@ -109,6 +109,15 @@ const MessageRow = memo(function MessageRow({
     .join(' ')
   const inner = messageInnerHtml(content, editing ? { ...message, text: '' } : message, showHeader)
   const label = `${message.speaker ?? '서술'} 메시지`
+  const style = Object.fromEntries(
+    messageStyle(content, message)
+      .split(';')
+      .filter(Boolean)
+      .map((decl) => {
+        const [prop, value] = decl.split(':')
+        return [prop === 'background-color' ? 'backgroundColor' : prop, value]
+      }),
+  )
   return (
     <div
       className={cls}
@@ -125,6 +134,7 @@ const MessageRow = memo(function MessageRow({
     >
       <div
         className={messageClass(content, message)}
+        style={style}
         onClick={() => !editing && onOpen(message)}
         dangerouslySetInnerHTML={{ __html: inner }}
       />
@@ -137,10 +147,10 @@ const MessageRow = memo(function MessageRow({
             className="msg-act"
             disabled={!editable}
             title={editable ? '수정' : '판정·주사위·꾸민 메시지는 내용을 고칠 수 없어요'}
+            aria-label="수정"
             onClick={() => onAction('edit', message)}
           >
             <Icon name="edit" />
-            <span>수정</span>
           </button>
           <button type="button" className="msg-act" title="복제" aria-label="복제" onClick={() => onAction('duplicate', message)}>
             <Icon name="copy" />

@@ -5,7 +5,7 @@ import { Modal } from '../../../../components/Modal'
 import { documentPath } from '../../../../lib/documents'
 import { errorMessageOf } from '../../../../lib/documentSync'
 import { useRepository } from '../../../../lib/useRepository'
-import { serializeLog } from '../model'
+import { RULE_SUGGESTIONS, serializeLog } from '../model'
 import { parseRoll20Log, type ParseResult } from '../parse'
 
 /** 편집본 크기 한도. 이보다 크면 자동 저장이 느려지고 무료 DB 용량을 많이 써서 막는다 */
@@ -49,6 +49,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
   const [result, setResult] = useState<ParseResult | null>(null)
   const [fileName, setFileName] = useState<string | undefined>()
   const [title, setTitle] = useState('')
+  const [rule, setRule] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -65,6 +66,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
         setResult(parsed)
         setFileName(name)
         setTitle(parsed.title ?? '')
+        setRule(parsed.content.rule)
       } catch (err) {
         setError(errorMessageOf(err))
       } finally {
@@ -103,7 +105,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
 
   async function create() {
     if (!result) return
-    const content = serializeLog(result.content)
+    const content = serializeLog({ ...result.content, rule: rule.trim() })
     if (JSON.stringify(content).length > MAX_CONTENT_BYTES) {
       setError('로그가 너무 커서 저장할 수 없어요. 채팅 아카이브를 기간별로 나눠서 불러와 주세요.')
       return
@@ -192,6 +194,24 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
             로그 이름
           </label>
           <input id="import-title" className="field-input" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
+          <label className="field-label import-name" htmlFor="import-rule">
+            룰
+          </label>
+          <input
+            id="import-rule"
+            className="field-input"
+            value={rule}
+            maxLength={60}
+            list="rule-suggestions"
+            placeholder="예: 크툴루의 부름 (비우면 '기타')"
+            onChange={(e) => setRule(e.target.value)}
+          />
+          <datalist id="rule-suggestions">
+            {RULE_SUGGESTIONS.map((r) => (
+              <option key={r} value={r} />
+            ))}
+          </datalist>
+          <p className="field-help">{result.content.rule ? `시트 판정 양식으로 '${result.content.rule}'을(를) 찾았어요. 바꿀 수 있어요.` : '룰을 알아내지 못했어요. 직접 입력하거나 비워 두세요.'}</p>
         </>
       )}
       <div className="modal-actions">

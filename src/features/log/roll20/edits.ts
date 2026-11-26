@@ -132,6 +132,11 @@ export const setOption =
     return { ...stored, options: { ...options, [key]: value } }
   }
 
+export const setRule =
+  (rule: string): LogEdit =>
+  (stored) =>
+    stored.rule === rule ? stored : { ...stored, rule }
+
 /** 찾아 바꾸기: 수정 가능한 메시지의 글자만 바꾼다 (판정·꾸민 메시지는 건드리지 않는다) */
 export function countMatches(messages: LogMessage[], find: string): number {
   if (!find) return 0

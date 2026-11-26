@@ -8,7 +8,10 @@ export type DocumentContent = DocumentRecord['content']
 export type DocumentSummary = Pick<
   DocumentRecord,
   'id' | 'type' | 'title' | 'visibility' | 'version' | 'project_id' | 'created_at' | 'updated_at'
->
+> & {
+  /** 로그의 룰 이름 (로그가 아니거나 없으면 null) */
+  rule?: string | null
+}
 
 /** 자동 저장으로 보내는 편집 가능 필드 */
 export interface DocumentDraft {
@@ -75,7 +78,8 @@ function fail(error: { message: string; code?: string }): never {
   throw new RepositoryError(error.message, error.code)
 }
 
-const SUMMARY_COLUMNS = 'id, type, title, visibility, version, project_id, created_at, updated_at'
+/** 목록용 칸. 로그는 본문 전체 대신 룰 이름(content->>rule)만 가져온다 */
+const SUMMARY_COLUMNS = 'id, type, title, visibility, version, project_id, created_at, updated_at, rule:content->>rule'
 
 /**
  * documents 테이블 접근. 소유자 필터는 RLS 가 보장하지만, 쿼리에도 명시해 인덱스를 타게 한다.
