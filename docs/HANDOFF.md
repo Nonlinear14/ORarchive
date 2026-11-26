@@ -106,6 +106,11 @@
 - 미리보기는 그림자 DOM 에 그린다 (불러온 시트 CSS 가 앱을 바꾸지 못하게). 화면 테스트는 `host.shadowRoot` 안을 찾는다.
 - 목록의 룰은 `content->>rule` 만 조회한다 (`SUMMARY_COLUMNS`).
 - 화면 문구에서 Roll20 의 avatar 는 **"저널"**이라고 부른다 (사용자 지시). 코드 이름은 avatar 그대로.
+- 확장 프로그램 꾸밈(`extensionCss.ts`, content.extCss): 파일은 확장 프로그램 <style>(data-source 등)에서 메시지·판정 표 규칙만, 붙여넣기는 크롬이 넣은 style 속성을 메시지 종류별 규칙으로. 글꼴·Roll20 화면 규칙 제외. 토글 없음(감지되면 그대로 반영).
+- CSS 순서(`logCss`): Roll20 기본 → 시트(title=charsheet) → 확장 꾸밈 → 표시 설정. 캐릭터 색은 !important.
+- desc 서술은 characters['__desc__'] (배경·대사 색만). 이름이 GM 인 화자는 일반 캐릭터.
+- 메시지는 그 자리에서 수정(contentEditable, `editor/inlineText.ts`), 수정 중 이름·저널 클릭으로 화자 바꾸기.
+- 미리보기에만 Pretendard 웹폰트(`editor/viewerFonts.ts`). 내보내기에는 넣지 않는다. 글꼴 메뉴는 만들지 않기로 함.
 - 실제 샘플 확인: `src/features/log/roll20/samples.local.test.ts`(저장소 제외, `*.local.test.ts`)를 만들어 `SAMPLE_DIR` 의 저장본을 읽어 볼 수 있다.
 
 ## 6. 참고 자료
