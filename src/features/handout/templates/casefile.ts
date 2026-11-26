@@ -47,7 +47,6 @@ export const casefile: HandoutTemplate = {
     {
       kind: 'frame',
       padding: '0',
-      border: { width: 2, color: 'border' },
       children: [
         {
           kind: 'frame',

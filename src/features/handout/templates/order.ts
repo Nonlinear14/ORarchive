@@ -46,7 +46,6 @@ export const order: HandoutTemplate = {
     {
       kind: 'frame',
       padding: '12px',
-      border: { width: 2, color: 'border' },
       children: [
         {
           kind: 'frame',

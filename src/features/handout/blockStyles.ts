@@ -74,7 +74,6 @@ export function ruleBoxCss(length: number, thickness: number): Css {
 /** 바깥 틀 한 겹 */
 export function frameCss(frame: FrameBox, background: string, width?: number): Css {
   const css: Css = { padding: frame.padding, backgroundColor: background, boxSizing: 'border-box' }
-  if (frame.border) css.border = frame.border
   if (width) {
     css.width = px(width)
     css.maxWidth = '100%'

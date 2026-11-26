@@ -505,33 +505,32 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     const rule = document.querySelector<HTMLElement>('.hb-canvas.editable [data-block-type="image"]')!
     const id = rule.dataset.blockId!
     fireEvent.pointerDown(rule)
-    // 달빛의 초대: 폭 430 − 틀 여백·테두리 = 내용 칸 348px (430 − 16·2 − 1·2 − 24·2, 테두리 한 겹), 템플릿 구분선은 70% → 244px
-    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('244')
+    // 달빛의 초대: 폭 430 − 틀 여백·테두리 = 내용 칸 350px (430 − 16·2 − 24·2, 테두리 없음), 템플릿 구분선은 70% → 245px
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('245')
     expect(screen.getByLabelText('구분선 굵기 (px)')).toHaveValue('1')
     expect(screen.getByRole('button', { name: /^실선/ })).toHaveAttribute('aria-pressed', 'true')
     vi.useFakeTimers()
     const len = screen.getByLabelText('구분선 길이 (px)')
     fireEvent.change(len, { target: { value: '999' } })
     fireEvent.blur(len)
-    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('348')
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('350')
     fireEvent.click(screen.getByRole('button', { name: '구분선 굵게' }))
     fireEvent.click(screen.getByRole('button', { name: /1점 쇄선/ }))
     await act(() => vi.advanceTimersByTimeAsync(800))
-    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 348, thickness: 2, style: 'dashdot' } })
+    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 350, thickness: 2, style: 'dashdot' } })
     const line = rule.querySelector<HTMLElement>('.hc-rule')!
-    expect(line.style.width).toBe('348px')
+    expect(line.style.width).toBe('350px')
     expect(line.style.height).toBe('2px')
     expect(line.children.length).toBeGreaterThan(10)
     // 고르기 쉽게 편집 화면에서만 위아래 영역을 넓힌다 (보이는 자리는 그대로)
     expect(rule.style.paddingTop).toBe('12px')
   })
 
-  it('테두리: 템플릿 바깥 틀 한 겹만 (옵션 없음)', async () => {
+  it('테두리는 없다 (모든 템플릿 · 옵션 없음)', async () => {
     await openStudio()
-    const framed = [...document.querySelectorAll<HTMLElement>('.hb-canvas.editable .hc-frame, .hb-canvas.editable .hc-frame div')].filter((el) => el.style.border)
-    expect(framed).toHaveLength(1)
-    expect(framed[0].style.border).toBe('1px solid rgb(170, 151, 117)')
-    expect(screen.queryByText('테두리 색')).not.toBeInTheDocument()
+    const framed = [...document.querySelectorAll<HTMLElement>('.hb-canvas.editable *')].filter((el) => el.style.border && !el.closest('[data-block-id]'))
+    expect(framed).toHaveLength(0)
+    expect(screen.queryByText(/테두리/)).not.toBeInTheDocument()
   })
 
   it('초기화: 확인 뒤 템플릿 처음 모양으로 (제목은 그대로) · 되돌리기로 다시 살린다', async () => {

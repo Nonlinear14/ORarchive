@@ -45,7 +45,6 @@ export const forest: HandoutTemplate = {
     {
       kind: 'frame',
       padding: '30px 30px 30px',
-      border: { width: 1, color: 'border' },
       align: 'left',
       children: [
         { kind: 'text', text: '❦ ─── ✧ ─── ❦', style: { size: 14, letterSpacing: 2, color: 'accent', align: 'center', marginBottom: 18 } },

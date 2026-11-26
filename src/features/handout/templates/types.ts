@@ -76,7 +76,6 @@ export type Block =
   | {
       kind: 'frame'
       padding: string
-      border?: BorderSpec
       borderBottom?: BorderSpec
       align?: 'left' | 'center'
       children: Block[]

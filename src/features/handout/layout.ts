@@ -17,7 +17,7 @@ import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { normalizeHex, renderableImage, validateImageUrl, type HandoutContent } from './model'
 import { resolveHandout, resolveLook, type HandoutLook } from './templates'
-import type { Block, BorderSpec, TextStyle } from './templates/types'
+import type { Block, TextStyle } from './templates/types'
 
 export type Align = 'left' | 'center' | 'right'
 
@@ -116,8 +116,6 @@ export function withoutMargins<T extends LayoutBlock>(block: T): T {
 
 export interface FrameBox {
   padding: string
-  /** CSS border 값 */
-  border?: string
 }
 
 export interface HandoutLayout {
@@ -129,7 +127,7 @@ export interface HandoutLayout {
   rows: LayoutRow[]
   /** 새 텍스트 블록의 기본 모양 (본문) */
   bodyStyle: TextBlockStyle
-  /** 내용 칸 너비(px): 폭에서 틀의 좌우 여백 · 테두리를 뺀 값 (구분선 최대 길이) */
+  /** 내용 칸 너비(px): 폭에서 틀의 좌우 여백을 뺀 값 (구분선 최대 길이) */
   contentWidth: number
 }
 
@@ -171,9 +169,6 @@ function paddingLR(padding: string): number {
 type JsonObject = { [key: string]: Json | undefined }
 const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** 틀 테두리: 템플릿 바깥 틀 한 겹 (편집 옵션 없음) */
-const borderCss = (spec: BorderSpec, look: HandoutLook) => `${spec.width}px ${spec.style ?? 'solid'} ${look.colors[spec.color]}`
-
 function textStyleOf(style: TextStyle, look: HandoutLook, align: Align): TextBlockStyle {
   const out: TextBlockStyle = { size: style.size, color: look.colors[style.color], align: style.align ?? align }
   if (style.bold) out.bold = true
@@ -188,9 +183,6 @@ function textStyleOf(style: TextStyle, look: HandoutLook, align: Align): TextBlo
 
 interface Frames {
   frames: FrameBox[]
-  /** 테두리가 있는 틀 (한 겹만) */
-  borderAt: number
-  borderSpec?: BorderSpec
   align: Align
   children: Block[]
 }
@@ -200,17 +192,11 @@ function splitFrames(look: HandoutLook): Frames {
   const frames: FrameBox[] = []
   let blocks = look.template.blocks
   let align: Align = 'center'
-  let borderSpec: BorderSpec | undefined
-  let borderAt = 0
   for (;;) {
     const frame = blocks.length === 1 && blocks[0].kind === 'frame' ? blocks[0] : null
     if (!frame) break
     align = frame.align ?? align
     const box: FrameBox = { padding: frame.padding }
-    if (frame.border && borderSpec === undefined) {
-      borderSpec = frame.border
-      borderAt = frames.length
-    }
     const inner = frame.children
     // 안에 상자가 여러 개면(조사 기록: 머리칸 + 본문) 하나의 내용 칸으로 합친다. 머리칸 아래 선은 구분선 블록으로
     if (inner.length > 1 && inner.every((b) => b.kind === 'frame')) {
@@ -224,12 +210,12 @@ function splitFrames(look: HandoutLook): Frames {
         if (child.borderBottom)
           children.push({ kind: 'rule', widthPercent: 100, color: child.borderBottom.color, marginTop: 14, marginBottom: 18 })
       }
-      return { frames, align, children, borderSpec, borderAt }
+      return { frames, align, children }
     }
     frames.push(box)
     blocks = inner
   }
-  return { frames, align, children: blocks, borderSpec, borderAt }
+  return { frames, align, children: blocks }
 }
 
 /** 템플릿 + 칸 글(보기) → 블록 행. id 는 고정(f-칸 · s-순번 · r-순번 · img)이라 저장 전에도 선택이 유지된다 */
@@ -421,15 +407,14 @@ export function resolveLayout(stored: DocumentContent): HandoutLayout {
 /** 보기(HandoutContent) + 저장된 행 → 블록 보기 (저장된 행이 없으면 템플릿에서 만든다) */
 export function layoutOf(content: HandoutContent, raw: Json[] | null = null, rawStyle?: Json): HandoutLayout {
   const look = resolveLook(content)
-  const { frames: bare, align, children, borderSpec, borderAt } = splitFrames(look)
-  const frames = bare.map((f, i) => (i === borderAt && borderSpec ? { ...f, border: borderCss(borderSpec, look) } : f))
+  const { frames, align, children } = splitFrames(look)
   const derived = deriveRows(content, look, children, align)
   const bodyStyle = bodyStyleOf(derived, look)
   const rows = raw ? parseRows(raw, bodyStyle) : derived
   const background = (isObject(rawStyle) ? normalizeHex(rawStyle.background) : null) ?? look.colors.paper
   const contentWidth = Math.max(
     MIN_RULE_LENGTH,
-    look.template.width - frames.reduce((sum, f) => sum + paddingLR(f.padding) + 2 * (parseFloat(f.border ?? '0') || 0), 0),
+    look.template.width - frames.reduce((sum, f) => sum + paddingLR(f.padding), 0),
   )
   return { width: look.template.width, background, frames, align, rows, bodyStyle, contentWidth }
 }

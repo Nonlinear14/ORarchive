@@ -49,7 +49,6 @@ export const moonlit: HandoutTemplate = {
     {
       kind: 'frame',
       padding: '16px',
-      border: { width: 1, color: 'border' },
       children: [
         {
           kind: 'frame',
