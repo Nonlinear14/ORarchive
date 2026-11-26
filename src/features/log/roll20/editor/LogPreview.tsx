@@ -5,7 +5,7 @@ import { isEditable, type LogMessage, type Roll20LogContent } from '../model'
 import { containerClass, displayName, logCss, messageClass, messageInnerHtml, messageStyle, textToHtml, visibleMessages } from '../render'
 import { editableHtmlToText } from './inlineText'
 import { lockInlineParts } from '../styledText'
-import { ensureViewerFonts, VIEWER_FONT_CSS } from './viewerFonts'
+import { ensureViewerFonts, VIEWER_FONT_CSS } from '../../../../lib/pretendard'
 
 /**
  * 로그 미리보기. 불러온 Roll20·시트·확장 프로그램 CSS 가 앱 화면을 바꾸지 못하도록 그림자 DOM 안에 그린다.

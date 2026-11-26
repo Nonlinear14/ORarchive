@@ -7,8 +7,8 @@ import { LoadingState } from '../components/LoadingState'
 import { SaveStatusChip } from '../components/SaveStatusChip'
 import { isStructuredHandout } from '../features/handout/model'
 import { isRoll20Log } from '../features/log/roll20/model'
-import { roll20Text } from '../features/handout/roll20'
-import { resolveHandout } from '../features/handout/templates'
+import { blockRoll20Text } from '../features/handout/blockRoll20'
+import { resolveLayout } from '../features/handout/layout'
 import { contentText, documentPath, documentTypeLabels, type DocumentContent } from '../lib/documents'
 import { formatRelativeTime } from '../lib/format'
 import { useDocument } from '../lib/useDocument'
@@ -16,7 +16,7 @@ import { NotFoundPage } from './NotFoundPage'
 
 /** 복구 화면에 보여 주고 복사할 본문 (핸드아웃 형식이면 그 글, 이전 단계의 `{ text }` 면 text) */
 function recoveryText(content: DocumentContent): string {
-  return isStructuredHandout(content) ? roll20Text(resolveHandout(content)) : contentText(content)
+  return isStructuredHandout(content) ? blockRoll20Text(resolveLayout(content)) : contentText(content)
 }
 
 function DocumentEditor({ docId }: { docId: string }) {

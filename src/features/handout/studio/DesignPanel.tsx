@@ -1,173 +1,66 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Icon } from '../../../components/Icon'
-import {
-  removeImage,
-  setAccent,
-  setFont,
-  setImage,
-  setTheme,
-  switchTemplate,
-  type HandoutEdit,
-  type ImagePatch,
-} from '../edits'
-import {
-  fontChoices,
-  fontLabels,
-  fontStacks,
-  MAX_ALT_LENGTH,
-  normalizeHex,
-  validateImageUrl,
-  type HandoutContent,
-  type HandoutImage,
-} from '../model'
-import { accentPalette, handoutTemplates, resolveLook } from '../templates'
+import { MAX_FONT_SIZE, MIN_FONT_SIZE, type HandoutLayout, type LayoutBlock, type TextBlock } from '../layout'
+import { removeBlock, setBackground, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
+import { MAX_ALT_LENGTH, normalizeHex, validateImageUrl, type HandoutImage } from '../model'
+
+/** 이미지에서 사용자가 고친 부분. url 은 validateImageUrl 로 검사한 주소 */
+interface ImagePatch {
+  url?: string
+  alt?: string
+}
 
 interface PanelProps {
-  /** 보기 (검사·정규화한 값). 보여 주고 "이미 고른 값인가" 비교하는 데만 쓴다 */
-  content: HandoutContent
-  /** 저장된 content 에 적용할 편집 — 고친 경로만 바뀐다 (edits.ts) */
-  onEdit(edit: HandoutEdit): void
+  /** 보기 (검사·정규화한 값) */
+  layout: HandoutLayout
+  selected: LayoutBlock | null
+  /** 저장된 content 에 적용할 편집 — 고친 경로만 바뀐다 (layoutEdits.ts) */
+  onEdit(edit: LayoutEdit): void
+  onAddText(): void
+  onAddImage(): void
+  onAddRule(): void
+  onRemoved(): void
 }
 
-function TemplateSection({ content, onEdit }: PanelProps) {
-  return (
-    <div className="panel-section">
-      <span className="field-label" id="studio-template-label">
-        템플릿
-      </span>
-      <div className="template-switch" role="group" aria-labelledby="studio-template-label">
-        {handoutTemplates.map((template) => {
-          const active = template.id === content.templateId
-          return (
-            <button
-              key={template.id}
-              type="button"
-              className={active ? 'template-option active' : 'template-option'}
-              aria-pressed={active}
-              onClick={() => !active && onEdit((stored) => switchTemplate(stored, template.id))}
-            >
-              <span
-                className="template-option-dot"
-                style={{ background: template.themes[0].colors.paper, borderColor: template.themes[0].colors.border }}
-                aria-hidden="true"
-              />
-              <span>
-                <b>{template.name}</b>
-                <small>{template.kind}</small>
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      <p className="field-help">
-        템플릿을 바꿔도 입력한 글은 지워지지 않아요. 새 템플릿에 없는 칸의 글은 숨겨 두었다가 그 칸이 있는 템플릿으로 돌아오면 다시 보여요.
-      </p>
-    </div>
-  )
-}
-
-function ThemeSection({ content, onEdit }: PanelProps) {
-  const look = resolveLook(content)
-  return (
-    <div className="panel-section">
-      <span className="field-label" id="studio-theme-label">
-        테마
-      </span>
-      <div className="swatches" role="group" aria-labelledby="studio-theme-label">
-        {look.template.themes.map((theme) => {
-          const active = theme.id === look.theme.id
-          return (
-            <button
-              key={theme.id}
-              type="button"
-              className={active ? 'swatch selected' : 'swatch'}
-              aria-pressed={active}
-              aria-label={`${theme.label} 테마`}
-              title={theme.label}
-              data-theme-id={theme.id}
-              style={{ background: theme.colors.paper, outlineColor: theme.colors.border }}
-              // 이미 보이는 테마를 다시 눌러도 저장된 값은 건드리지 않는다 (템플릿에 없는 저장 테마를 첫 테마로 그리는 중이어도)
-              onClick={() => !active && onEdit((stored) => setTheme(stored, theme.id))}
-            />
-          )
-        })}
-      </div>
-      <p className="field-help">
-        {look.theme.label} · 테마를 바꿔도 입력한 내용은 그대로 유지됩니다.
-      </p>
-    </div>
-  )
-}
-
-function AccentSection({ content, onEdit }: PanelProps) {
-  const inputId = useId()
-  // 보이는 강조 색: 정규화한 '#rrggbb', 저장된 값이 없거나 쓸 수 없으면 undefined (테마 기본값)
-  const current = content.style.accent
-  const [draft, setDraft] = useState(current ?? '')
+/** 색 고르기: 지금 색 동그라미(누르면 색 고르기 창) + HEX 입력 */
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange(hex: string): void }) {
+  const id = useId()
+  const [draft, setDraft] = useState(value)
   const [error, setError] = useState<string | null>(null)
-
-  const choose = (accent: string | undefined) => {
-    setError(null)
-    setDraft(accent ?? '')
-    // 보이는 색이 그대로면 저장된 값은 건드리지 않는다: 같은 색을 다시 고름 · 고치지 않은 입력 칸에서 포커스가 빠짐(blur → apply) ·
-    // 표기만 다른 같은 색(저장된 '#ABC' 와 '#aabbcc') · 쓸 수 없는 저장 값을 그리던 테마 기본값을 다시 고름
-    if (accent !== current) onEdit((stored) => setAccent(stored, accent))
-  }
-
-  function apply(event?: FormEvent) {
+  const apply = (event?: FormEvent) => {
     event?.preventDefault()
-    if (!draft.trim()) {
-      choose(undefined)
-      return
-    }
     const hex = normalizeHex(draft)
     if (!hex) {
       setError('#RRGGBB 형식의 색을 입력해 주세요. (예: #9b3b2f)')
       return
     }
-    choose(hex)
+    setError(null)
+    setDraft(hex)
+    if (hex !== value) onChange(hex)
   }
-
   return (
-    <div className="panel-section">
-      <span className="field-label" id="studio-accent-label">
-        강조 색
-      </span>
-      <div className="swatches" role="group" aria-labelledby="studio-accent-label">
-        <button
-          type="button"
-          className={current ? 'swatch swatch-default' : 'swatch swatch-default selected'}
-          aria-pressed={!current}
-          aria-label="테마 기본 강조 색"
-          title="테마 기본값"
-          onClick={() => choose(undefined)}
-        >
-          <span aria-hidden="true">A</span>
-        </button>
-        {accentPalette.map((item) => (
-          <button
-            key={item.color}
-            type="button"
-            className={current === item.color ? 'swatch selected' : 'swatch'}
-            aria-pressed={current === item.color}
-            aria-label={`강조 색 ${item.label}`}
-            title={item.label}
-            style={{ background: item.color }}
-            onClick={() => choose(item.color)}
+    <>
+      <form className="color-field" onSubmit={apply}>
+        <label className="color-dot" style={{ background: value }} title={`${label} 고르기`}>
+          <input
+            type="color"
+            aria-label={`${label} 고르기`}
+            value={value}
+            onChange={(event) => {
+              setDraft(event.target.value)
+              setError(null)
+              onChange(event.target.value)
+            }}
           />
-        ))}
-      </div>
-      <form className="inline-form" onSubmit={apply}>
-        <label className="sr-only" htmlFor={inputId}>
-          강조 색 직접 입력 (hex)
         </label>
-        <span className="hex-preview" style={{ background: normalizeHex(draft) ?? 'transparent' }} aria-hidden="true" />
+        <label className="sr-only" htmlFor={id}>
+          {label} HEX 코드
+        </label>
         <input
-          id={inputId}
-          className="field-input"
+          id={id}
+          className="field-input hex-input"
           value={draft}
-          maxLength={7}
-          placeholder="#9b3b2f"
+          maxLength={9}
           spellCheck={false}
           aria-invalid={error ? true : undefined}
           onChange={(event) => {
@@ -185,34 +78,122 @@ function AccentSection({ content, onEdit }: PanelProps) {
           {error}
         </p>
       )}
+    </>
+  )
+}
+
+function BackgroundSection({ layout, onEdit }: PanelProps) {
+  return (
+    <div className="panel-section">
+      <span className="field-label">배경색</span>
+      <ColorField key={layout.background} label="배경색" value={layout.background} onChange={(hex) => onEdit((stored) => setBackground(stored, hex))} />
     </div>
   )
 }
 
-function FontSection({ content, onEdit }: PanelProps) {
-  const look = resolveLook(content)
+function SizeStepper({ value, onChange }: { value: number; onChange(size: number): void }) {
+  const id = useId()
+  const [draft, setDraft] = useState(String(value))
+  const clamp = (n: number) => Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(n)))
+  const set = (n: number) => {
+    const next = clamp(n)
+    setDraft(String(next))
+    if (next !== value) onChange(next)
+  }
+  return (
+    <div className="size-stepper">
+      <button type="button" className="btn small icon-only" aria-label="글자 작게" disabled={value <= MIN_FONT_SIZE} onClick={() => set(value - 1)}>
+        −
+      </button>
+      <label className="sr-only" htmlFor={id}>
+        글자 크기 (px)
+      </label>
+      <input
+        id={id}
+        className="field-input size-input"
+        inputMode="numeric"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value.replace(/[^0-9]/g, ''))}
+        onBlur={() => (draft ? set(Number(draft)) : setDraft(String(value)))}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            if (draft) set(Number(draft))
+          }
+        }}
+      />
+      <span className="size-unit">px</span>
+      <button type="button" className="btn small icon-only" aria-label="글자 크게" disabled={value >= MAX_FONT_SIZE} onClick={() => set(value + 1)}>
+        +
+      </button>
+    </div>
+  )
+}
+
+function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutEdit): void }) {
+  const style = block.style
   return (
     <div className="panel-section">
-      <span className="field-label" id="studio-font-label">
-        글꼴
-      </span>
-      <div className="segmented font-switch" role="group" aria-labelledby="studio-font-label">
-        {fontChoices.map((font) => (
-          <button
-            key={font}
-            type="button"
-            className={look.font === font ? 'active' : ''}
-            aria-pressed={look.font === font}
-            style={{ fontFamily: fontStacks[font] }}
-            // 이미 보이는 글꼴을 다시 누르면 아무것도 바꾸지 않는다 (템플릿 기본 글꼴을 쓰는 중이면 그대로 기본값으로 둔다)
-            onClick={() => look.font !== font && onEdit((stored) => setFont(stored, font))}
-          >
-            {fontLabels[font]}
-          </button>
-        ))}
+      <span className="field-label">글상자 편집</span>
+      <span className="field-label sub">글자 색</span>
+      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => onEdit(setBlockStyle(block.id, { color }))} />
+      <span className="field-label sub">꾸밈 · 크기</span>
+      <div className="text-tools">
+        <button
+          type="button"
+          className={style.bold ? 'btn small icon-only active' : 'btn small icon-only'}
+          aria-pressed={!!style.bold}
+          aria-label="굵게"
+          title="굵게"
+          onClick={() => onEdit(setBlockStyle(block.id, { bold: style.bold ? undefined : true }))}
+        >
+          <b>B</b>
+        </button>
+        <button
+          type="button"
+          className={style.italic ? 'btn small icon-only active' : 'btn small icon-only'}
+          aria-pressed={!!style.italic}
+          aria-label="기울임"
+          title="기울임"
+          onClick={() => onEdit(setBlockStyle(block.id, { italic: style.italic ? undefined : true }))}
+        >
+          <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
+        </button>
+        <SizeStepper key={`${block.id}:${style.size}`} value={style.size} onChange={(size) => onEdit(setBlockStyle(block.id, { size }))} />
       </div>
+    </div>
+  )
+}
+
+function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onRemoved }: PanelProps) {
+  return (
+    <div className="panel-section">
+      <span className="field-label">블록 추가</span>
+      <div className="block-add">
+        <button type="button" className="btn small" onClick={onAddText}>
+          <Icon name="plus" /> 글상자 추가
+        </button>
+        <button type="button" className="btn small" onClick={onAddImage}>
+          <Icon name="image" /> 이미지 추가
+        </button>
+        <button type="button" className="btn small wide" onClick={onAddRule}>
+          <span className="rule-icon" aria-hidden="true" /> 구분선 추가
+        </button>
+      </div>
+      <button
+        type="button"
+        className="btn small danger block"
+        disabled={!selected}
+        onClick={() => {
+          if (!selected) return
+          onEdit(removeBlock(selected.id))
+          onRemoved()
+        }}
+      >
+        <Icon name="trash" /> 선택한 블록 삭제
+      </button>
       <p className="field-help">
-        글꼴은 보는 사람의 컴퓨터에 설치된 글꼴로 표시되어 미리보기와 조금 다를 수 있어요.
+        미리보기에서 블록을 고르고 손잡이(⠿)를 끌어 옮겨요. 다른 블록의 왼쪽·오른쪽 끝에 놓으면 한 줄에 2열로 놓여요.
       </p>
     </div>
   )
@@ -318,17 +299,18 @@ function ImageForm({ image, onApply, onRemove }: {
   )
 }
 
-function ImageSection({ content, onEdit }: PanelProps) {
-  const image = content.image
+
+function ImageSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit): void }) {
+  const image = block.url ? { url: block.url, alt: block.alt ?? '' } : null
   return (
     <div className="panel-section">
-      <span className="field-label">이미지 (선택)</span>
+      <span className="field-label">이미지 편집</span>
       <ImageForm
-        // 바깥에서 이미지가 바뀌면(템플릿·서버 버전) 입력 칸을 새 값으로 다시 시작한다
-        key={image ? `${image.url}\n${image.alt}` : 'none'}
+        key={`${block.id}\n${image ? `${image.url}\n${image.alt}` : 'none'}`}
         image={image}
-        onApply={(patch) => onEdit((stored) => setImage(stored, patch))}
-        onRemove={() => onEdit(removeImage)}
+        onApply={(patch) => onEdit(setBlockImage(block.id, patch))}
+        // 이미지를 빼면 빈 이미지 블록(이미지 고르기)으로 — 구분선으로 되돌아가지 않는다
+        onRemove={() => onEdit(setBlockImage(block.id, { url: undefined, alt: undefined, rule: undefined }))}
       />
       <p className="field-help">
         Roll20 에는 공개된 https 이미지만 보여요. 이미지 올리기는 아직 지원하지 않으니, 공개 주소를 붙여 넣어 주세요.
@@ -337,15 +319,39 @@ function ImageSection({ content, onEdit }: PanelProps) {
   )
 }
 
-/** 오른쪽 디자인 설정: 템플릿 · 테마 · 강조 색 · 글꼴 · 이미지 */
-export function DesignPanel({ content, onEdit }: PanelProps) {
+function RuleSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit): void }) {
+  const rule = block.rule!
+  return (
+    <div className="panel-section">
+      <span className="field-label">구분선 편집</span>
+      <span className="field-label sub">선 색</span>
+      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }))} />
+    </div>
+  )
+}
+
+/** 고른 블록에 맞는 편집 옵션: 글상자 · 이미지 · 구분선 */
+function EditSection({ selected, onEdit }: PanelProps) {
+  if (selected?.type === 'text') return <TextSection block={selected} onEdit={onEdit} />
+  if (selected?.type === 'image') {
+    if (selected.rule && !selected.url) return <RuleSection block={selected} onEdit={onEdit} />
+    return <ImageSection block={selected} onEdit={onEdit} />
+  }
+  return (
+    <div className="panel-section">
+      <span className="field-label">편집</span>
+      <p className="field-help tight">미리보기에서 블록을 고르면 여기에 편집 옵션이 나와요. 글상자는 글자 색 · 굵게 · 기울임 · 크기, 이미지는 주소, 구분선은 선 색.</p>
+    </div>
+  )
+}
+
+/** 오른쪽 디자인 설정: 배경색 · 블록 추가·삭제 · 고른 블록의 편집 옵션 */
+export function DesignPanel(props: PanelProps) {
   return (
     <>
-      <TemplateSection content={content} onEdit={onEdit} />
-      <ThemeSection content={content} onEdit={onEdit} />
-      <AccentSection key={content.style.accent ?? ''} content={content} onEdit={onEdit} />
-      <FontSection content={content} onEdit={onEdit} />
-      <ImageSection content={content} onEdit={onEdit} />
+      <BackgroundSection {...props} />
+      <BlockSection {...props} />
+      <EditSection {...props} />
     </>
   )
 }

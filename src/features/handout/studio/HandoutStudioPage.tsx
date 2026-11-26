@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { DeletedRecovery } from '../../../components/document/DeletedRecovery'
 import '../../../components/document/DocumentEditor.css'
@@ -15,38 +15,30 @@ import { recordRecentView } from '../../../lib/recentViews'
 import { useDocument } from '../../../lib/useDocument'
 import { useToast } from '../../../lib/useToast'
 import { NotFoundPage } from '../../../pages/NotFoundPage'
-import { HandoutCanvas } from '../canvas/HandoutCanvas'
-import { setField, type HandoutEdit } from '../edits'
-import { oversizedFields, RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
-import { roll20Text } from '../roll20'
+import { blockRoll20Text } from '../blockRoll20'
+import { BlockCanvas } from '../canvas/BlockCanvas'
+import { findBlock, resolveLayout, type HandoutLayout, type ImageBlock, type LayoutBlock } from '../layout'
+import { addBlock, moveBlock, newBlockId, setBlockText, type LayoutEdit } from '../layoutEdits'
+import { RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
 import { resolveHandout, resolveLook } from '../templates'
 import { DesignPanel } from './DesignPanel'
-import { ExportPanel } from './ExportPanel'
+import { ExportBar } from './ExportPanel'
 import './HandoutStudio.css'
 
 /**
- * 권장 글자 수를 넘는 칸이 있으면 알린다. 글은 자르지 않고 그대로 저장한다 (경고만).
- * (예전 { text } 핸드아웃처럼 긴 글을 불러온 경우 · 긴 글을 붙여 넣은 경우)
+ * 권장 글자 수를 넘는 텍스트 블록이 있으면 알린다. 글은 자르지 않고 그대로 저장한다 (경고만).
  */
-function LengthWarning({ content }: { content: HandoutContent }) {
-  const over = oversizedFields(content)
+function LengthWarning({ layout }: { layout: HandoutLayout }) {
+  const over = layout.rows.flatMap((r) => r.blocks).filter((b) => b.type === 'text' && b.text.length > RECOMMENDED_FIELD_LENGTH)
   if (over.length === 0) return null
-  const fields = resolveLook(content).template.fields
   const limit = RECOMMENDED_FIELD_LENGTH.toLocaleString('ko-KR')
+  const longest = Math.max(...over.map((b) => (b.type === 'text' ? b.text.length : 0)))
   return (
     <div className="callout length-warning" role="status">
       <Icon name="alert" />
       <span>
-        {over.map(({ key, length }) => {
-          const label = fields.find((f) => f.key === key)?.label ?? key
-          const subject = key === 'body' ? '본문이' : `「${label}」 칸이`
-          return (
-            <span key={key} className="length-warning-line">
-              {subject} {length.toLocaleString('ko-KR')}자로 권장 한도({limit}자)를 넘습니다.{' '}
-            </span>
-          )
-        })}
-        내용은 자르지 않고 그대로 저장하지만, Roll20 에 붙여 넣을 때 느려지거나 제대로 붙지 않을 수 있어요.
+        텍스트 블록이 {longest.toLocaleString('ko-KR')}자로 권장 한도({limit}자)를 넘습니다. 내용은 자르지 않고 그대로 저장하지만, Roll20 에 붙여
+        넣을 때 느려지거나 제대로 붙지 않을 수 있어요.
       </span>
     </div>
   )
@@ -57,6 +49,7 @@ interface StudioEditorProps {
   draft: DocumentDraft
   /** 보기: draft.content 를 검사·정규화한 값 (화면·출력용 — 저장하지 않는다) */
   content: HandoutContent
+  layout: HandoutLayout
   status: SaveStatus
   offlineCopy: boolean
   edit(patch: Partial<DocumentDraft>): void
@@ -65,14 +58,44 @@ interface StudioEditorProps {
 }
 
 /** 불러온 핸드아웃의 편집 화면: 머리(제목·저장 상태) · 캔버스 · 디자인 패널 */
-function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, children }: StudioEditorProps) {
+function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, flush, children }: StudioEditorProps) {
   const { toast, show } = useToast()
   const look = resolveLook(content)
   // 편집은 저장된 content(draft.content)에 연산을 적용해, 고친 경로만 바뀐 content 를 저장한다.
   // 보기(content)는 정규화한 값이라 저장하지 않는다 — 고치지 않은 저장 값은 한 글자도 바뀌지 않는다.
   // 모든 변경은 useDocument 의 edit 로 — 자동 저장 · 오프라인 보관 · 충돌 처리는 동기화 계층이 맡는다
-  const apply = (op: HandoutEdit) => edit({ content: op(draft.content) })
-  const changeField = (key: string, value: string) => apply((stored) => setField(stored, key, value))
+  const apply = (op: LayoutEdit) => edit({ content: op(draft.content) })
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = findBlock(layout, selectedId)
+  const snapshot = useRef<HTMLDivElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  // 새로 넣은 텍스트 블록에 바로 입력할 수 있게 커서를 둔다
+  const focusId = useRef<string | null>(null)
+  useEffect(() => {
+    const id = focusId.current
+    if (!id) return
+    const box = stage.current?.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(id)}"] [role="textbox"]`)
+    if (box) {
+      box.focus()
+      focusId.current = null
+    }
+  }, [layout])
+  const addNew = (type: 'text' | 'image' | 'rule') => {
+    const id = newBlockId()
+    // 새 구분선 색: 템플릿에 있던 구분선 색, 없으면 본문 글자 색
+    const ruleColor =
+      layout.rows.flatMap((r) => r.blocks).find((b): b is ImageBlock => b.type === 'image' && !!b.rule)?.rule?.color ??
+      layout.bodyStyle.color
+    const block: LayoutBlock =
+      type === 'text'
+        ? { id, type: 'text', text: '', style: { ...layout.bodyStyle } }
+        : type === 'image'
+          ? { id, type: 'image', maxWidth: Math.min(380, layout.width - 40) }
+          : { id, type: 'image', maxWidth: 1000, marginTop: 10, marginBottom: 10, rule: { widthPercent: 100, color: ruleColor } }
+    apply(addBlock(block, selected?.id ?? null))
+    setSelectedId(id)
+    if (type === 'text') focusId.current = id
+  }
 
   return (
     <article className="doc-editor handout-studio">
@@ -110,24 +133,46 @@ function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, c
       </div>
 
       {children}
-      <LengthWarning content={content} />
+      <LengthWarning layout={layout} />
 
       <div className="studio-shell">
         <section className="preview-workspace" aria-label="캔버스">
+          <div className="callout privacy-note">
+            <Icon name="lock" /> <span>문서는 기본적으로 비공개로 내 계정에만 저장돼요.</span>
+          </div>
           <div className="canvas-tools">
             <span className="edit-hint">
-              <Icon name="edit" /> 글자를 클릭해서 바로 수정하세요
+              <Icon name="edit" /> 글자를 클릭해서 바로 수정하고, 블록을 골라 손잡이로 옮기세요
             </span>
-            <span className="canvas-meta">
-              {look.template.name} · {look.theme.label}
-            </span>
+            <span className="canvas-meta">{look.template.name}</span>
           </div>
-          <div className="canvas-stage">
-            <HandoutCanvas content={content} onFieldChange={changeField} label="핸드아웃 캔버스" />
+          <div
+            className="canvas-stage"
+            ref={stage}
+            onPointerDown={(event) => {
+              // 블록 바깥(빈 곳)을 누르면 선택을 푼다
+              if (!(event.target as Element).closest('[data-block-id]')) setSelectedId(null)
+            }}
+          >
+            <BlockCanvas
+              layout={layout}
+              label="핸드아웃 캔버스"
+              editing={{
+                selectedId,
+                onSelect: setSelectedId,
+                onText: (id, text) => apply(setBlockText(id, text)),
+                onMove: (id, target) => apply(moveBlock(id, target)),
+              }}
+            />
           </div>
           <div className="canvas-footer">
             <span>✧ ORarchive Template Engine</span>
-            <span>Enter 로 다음 칸 · 본문은 줄바꿈</span>
+            <span>Enter 줄바꿈 · 손잡이에서 ↑ ↓ 로도 옮겨요</span>
+          </div>
+          <ExportBar layout={layout} title={draft.title} snapshot={snapshot} notify={show} />
+          {/* 이미지 파일 저장용: 화면 밖에 그린 읽기 전용 캔버스 */}
+          <div className="jpg-snapshot" ref={snapshot} aria-hidden="true">
+            <BlockCanvas layout={layout} />
           </div>
         </section>
         <aside className="panel right-panel" aria-label="디자인 설정">
@@ -135,13 +180,15 @@ function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, c
             <h2>디자인 설정</h2>
             <Icon name="templates" />
           </div>
-          <DesignPanel content={content} onEdit={apply} />
-          <ExportPanel content={content} title={draft.title} notify={show} />
-          <div className="panel-section">
-            <div className="callout">
-              <Icon name="lock" /> <span>문서는 기본적으로 비공개로 내 계정에만 저장돼요.</span>
-            </div>
-          </div>
+          <DesignPanel
+            layout={layout}
+            selected={selected}
+            onEdit={apply}
+            onAddText={() => addNew('text')}
+            onAddImage={() => addNew('image')}
+            onAddRule={() => addNew('rule')}
+            onRemoved={() => setSelectedId(null)}
+          />
         </aside>
       </div>
       <Toast toast={toast} />
@@ -168,6 +215,7 @@ function HandoutStudio({ docId }: { docId: string }) {
   // 저장된 content(draft.content)가 기준이다. 보기는 그것을 검사·정규화해 그릴 때만 쓴다
   const stored = draft?.content
   const content = useMemo(() => (stored ? resolveHandout(stored) : null), [stored])
+  const layout = useMemo(() => (stored ? resolveLayout(stored) : null), [stored])
   const { user } = useAuth()
   const openedId = phase === 'ready' && doc?.type === 'handout' ? doc.id : null
   // 홈 화면 "최근 조회한 템플릿" 기록 (이 기기에만)
@@ -184,7 +232,7 @@ function HandoutStudio({ docId }: { docId: string }) {
         doc={doc}
         draft={draft}
         source={recoverSource ?? 'pending'}
-        bodyText={roll20Text(content)}
+        bodyText={layout ? blockRoll20Text(layout) : ''}
         restorePath={(id) => `/studio/handout/${id}`}
         onRestore={restoreAsNew}
         onDiscard={discardDeleted}
@@ -192,7 +240,7 @@ function HandoutStudio({ docId }: { docId: string }) {
     ) : (
       <NotFoundPage />
     )
-  if (phase === 'error' || !doc || !draft || !content)
+  if (phase === 'error' || !doc || !draft || !content || !layout)
     return (
       <div className="callout danger" role="alert">
         <Icon name="alert" />
@@ -217,6 +265,7 @@ function HandoutStudio({ docId }: { docId: string }) {
       doc={doc}
       draft={draft}
       content={content}
+      layout={layout}
       status={status}
       offlineCopy={offlineCopy}
       edit={edit}

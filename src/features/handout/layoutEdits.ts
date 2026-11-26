@@ -1,0 +1,146 @@
+/**
+ * 블록 편집 연산. 저장된 content 에 적용해 고친 경로만 바뀐 새 content 를 돌려준다 (edits.ts 와 같은 원칙).
+ *
+ * 블록 편집을 처음 할 때(저장된 layout.rows 가 없을 때)는 화면에 보이던 블록(템플릿 + 칸에서 만든 것)을 그대로
+ * layout.rows 에 적은 뒤 고친다 — 보이던 글과 모양은 한 글자도 바뀌지 않는다. 이전 칸(fields)·템플릿·테마는 지우지 않는다.
+ * 그다음부터는 저장된 행을 그대로 두고, 고친 블록의 고친 값만 바꾼다.
+ */
+import type { Json } from '../../lib/database.types'
+import type { DocumentContent } from '../../lib/documents'
+import { HANDOUT_CONTENT_VERSION, isStructuredHandout } from './model'
+import { resolveLayout, storedRows, type LayoutBlock, type TextBlockStyle } from './layout'
+import { resolveHandout } from './templates'
+
+export type LayoutEdit = (stored: DocumentContent) => DocumentContent
+
+type JsonObject = { [key: string]: Json | undefined }
+const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
+
+let seq = 0
+export const newBlockId = () => `b${Date.now().toString(36)}${(seq++).toString(36)}`
+
+/** 보이던 블록을 저장 형식으로 (undefined 는 빼고) */
+const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
+
+/** 편집할 바탕: 저장된 행이 없으면 보이던 블록을 적는다 */
+function withRows(stored: DocumentContent): { base: JsonObject; rows: JsonObject[] } {
+  const base: JsonObject = isObject(stored) ? { ...stored } : {}
+  const existing = storedRows(stored)
+  if (existing) return { base, rows: existing.filter(isObject).map((r) => ({ ...r })) }
+  if (!isStructuredHandout(base)) {
+    // 이전 형식(`{}` · `{ text }`): 보이던 템플릿을 적어 둔다 (틀을 그릴 템플릿)
+    if (!Object.hasOwn(base, 'v')) base.v = HANDOUT_CONTENT_VERSION
+    if (!Object.hasOwn(base, 'templateId')) base.templateId = resolveHandout(stored).templateId
+  }
+  const rows = resolveLayout(stored).rows.map((row) => toJson(row) as JsonObject)
+  return { base, rows }
+}
+
+function save(base: JsonObject, rows: JsonObject[]): DocumentContent {
+  const layout = isObject(base.layout) ? base.layout : {}
+  return { ...base, layout: { ...layout, rows: rows.filter((r) => Array.isArray(r.blocks) && r.blocks.length > 0) } }
+}
+
+function locate(rows: JsonObject[], id: string): { row: number; index: number } | null {
+  for (let row = 0; row < rows.length; row++) {
+    const blocks = rows[row].blocks
+    if (!Array.isArray(blocks)) continue
+    const index = blocks.findIndex((b) => isObject(b) && b.id === id)
+    if (index >= 0) return { row, index }
+  }
+  return null
+}
+
+/** 블록 하나를 고친다 (patch 의 키만 바꾼다. undefined 값은 그 키를 뺀다) */
+function patchBlock(id: string, patch: (block: JsonObject) => JsonObject): LayoutEdit {
+  return (stored) => {
+    const { base, rows } = withRows(stored)
+    const at = locate(rows, id)
+    if (!at) return stored
+    const blocks = [...(rows[at.row].blocks as Json[])]
+    blocks[at.index] = patch({ ...(blocks[at.index] as JsonObject) })
+    rows[at.row] = { ...rows[at.row], blocks }
+    return save(base, rows)
+  }
+}
+
+function assign(target: JsonObject, patch: Record<string, unknown>): JsonObject {
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) delete target[key]
+    else target[key] = toJson(value)
+  }
+  return target
+}
+
+export const setBlockText = (id: string, text: string): LayoutEdit =>
+  patchBlock(id, (block) => (block.text === text ? block : { ...block, text }))
+
+/** 글자 꾸밈: 색·굵게·기울임·크기 */
+export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'size'>>
+export const setBlockStyle = (id: string, patch: TextStylePatch): LayoutEdit =>
+  patchBlock(id, (block) => ({ ...block, style: assign({ ...(isObject(block.style) ? block.style : {}) }, patch) }))
+
+/** 이미지 블록의 주소·대체 텍스트 (url 은 validateImageUrl 로 검사한 값, undefined 면 이미지 빼기) */
+export const setBlockImage = (id: string, patch: { url?: string; alt?: string; rule?: undefined }): LayoutEdit =>
+  patchBlock(id, (block) => assign(block, patch))
+
+/** 구분선 색 (rule.color) */
+export const setBlockRule = (id: string, patch: { color: string }): LayoutEdit =>
+  patchBlock(id, (block) => ({ ...block, rule: assign({ ...(isObject(block.rule) ? block.rule : {}) }, patch) }))
+
+/** 배경색 (style.background) */
+export function setBackground(stored: DocumentContent, color: string): DocumentContent {
+  const base: JsonObject = isObject(stored) ? stored : {}
+  const style = isObject(base.style) ? base.style : {}
+  return { ...base, style: { ...style, background: color } }
+}
+
+/** 블록 추가: afterId 블록이 있는 행 바로 아래 새 행으로 (없으면 맨 아래) */
+export const addBlock =
+  (block: LayoutBlock, afterId: string | null): LayoutEdit =>
+  (stored) => {
+    const { base, rows } = withRows(stored)
+    const at = afterId ? locate(rows, afterId) : null
+    const row = { id: `row-${block.id}`, blocks: [toJson(block)] }
+    rows.splice(at ? at.row + 1 : rows.length, 0, row)
+    return save(base, rows)
+  }
+
+export const removeBlock =
+  (id: string): LayoutEdit =>
+  (stored) => {
+    const { base, rows } = withRows(stored)
+    const at = locate(rows, id)
+    if (!at) return stored
+    rows[at.row] = { ...rows[at.row], blocks: (rows[at.row].blocks as Json[]).filter((_, i) => i !== at.index) }
+    return save(base, rows)
+  }
+
+/** 옮길 자리: 어떤 행의 위/아래 새 행, 또는 어떤 블록의 왼쪽/오른쪽(2열) */
+export type DropTarget = { kind: 'before' | 'after'; rowId: string } | { kind: 'beside'; blockId: string; side: 'left' | 'right' }
+
+export const moveBlock =
+  (id: string, target: DropTarget): LayoutEdit =>
+  (stored) => {
+    const { base, rows } = withRows(stored)
+    const from = locate(rows, id)
+    if (!from) return stored
+    const moving = (rows[from.row].blocks as Json[])[from.index]
+    if (target.kind === 'beside' && target.blockId === id) return stored
+    // 빼낸다 (빈 행은 save 가 지운다 — 자리 계산을 위해 여기서는 남겨 둔다)
+    rows[from.row] = { ...rows[from.row], blocks: (rows[from.row].blocks as Json[]).filter((_, i) => i !== from.index) }
+    if (target.kind === 'beside') {
+      const to = locate(rows, target.blockId)
+      if (!to) return stored
+      const blocks = [...(rows[to.row].blocks as Json[])]
+      if (blocks.length >= 2) return stored
+      blocks.splice(target.side === 'left' ? to.index : to.index + 1, 0, moving)
+      rows[to.row] = { ...rows[to.row], blocks }
+    } else {
+      const index = rows.findIndex((r) => r.id === target.rowId)
+      if (index < 0) return stored
+      const movingId = isObject(moving) && typeof moving.id === 'string' ? moving.id : newBlockId()
+      rows.splice(target.kind === 'before' ? index : index + 1, 0, { id: `row-${movingId}-${newBlockId()}`, blocks: [moving] })
+    }
+    return save(base, rows)
+  }

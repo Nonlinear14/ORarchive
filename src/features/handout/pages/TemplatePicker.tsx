@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../../../components/Icon'
 import { Modal } from '../../../components/Modal'
-import { HandoutCanvas } from '../canvas/HandoutCanvas'
+import { BlockCanvas } from '../canvas/BlockCanvas'
+import { layoutOf } from '../layout'
 import { createHandoutContent, handoutTemplates, type HandoutTemplate } from '../templates'
 import { matchesTemplate } from '../templateSearch'
 import { useCreateHandout } from '../useCreateHandout'
@@ -13,12 +14,12 @@ function TemplateStartCard({ template, busy, disabled, onStart }: {
   disabled: boolean
   onStart(): void
 }) {
-  const content = useMemo(() => createHandoutContent(template.id), [template.id])
+  const layout = useMemo(() => layoutOf(createHandoutContent(template.id)), [template.id])
   return (
     <article className="template-card compact" aria-labelledby={`tpl-${template.id}`}>
       <div className={`template-preview tp-${template.id}`} aria-hidden="true">
         <div className="template-preview-scale">
-          <HandoutCanvas content={content} />
+          <BlockCanvas layout={layout} />
         </div>
       </div>
       <div className="template-info">
