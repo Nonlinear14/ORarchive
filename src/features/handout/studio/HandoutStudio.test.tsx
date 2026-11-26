@@ -130,6 +130,42 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
   })
 })
 
+describe('핸드아웃 스튜디오 — 휴대폰에서 충돌', () => {
+  it('충돌 안내가 뜨면 입력 중이던 칸에서 커서를 빼고(키보드 내림), 입력한 글자는 남아 "내 변경으로 덮어쓰기"로 저장된다', async () => {
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('750'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    try {
+      const { control, row, saved } = await openStudio()
+      control.serverEdit('documents', row.id, { title: 'PC에서 바꾼 제목' })
+
+      vi.useFakeTimers()
+      const body = field('body')
+      body.focus()
+      expect(body).toHaveFocus()
+      typeInto(body, '휴대폰에서 쓴 본문')
+      await act(() => vi.advanceTimersByTimeAsync(800))
+
+      expect(screen.getByRole('alert')).toHaveTextContent('다른 기기에서 이 문서가 먼저 수정되었어요')
+      expect(body).not.toHaveFocus()
+      expect(body.textContent).toBe('휴대폰에서 쓴 본문')
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: '내 변경으로 덮어쓰기' }))
+      })
+      await act(() => vi.advanceTimersByTimeAsync(800))
+      expect(saved().content).toMatchObject({ fields: { body: '휴대폰에서 쓴 본문' } })
+      expect(screen.queryByText('다른 기기에서 이 문서가 먼저 수정되었어요')).not.toBeInTheDocument()
+    } finally {
+      window.matchMedia = original
+    }
+  })
+})
+
 describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 않음)', () => {
   const LONG = RECOMMENDED_FIELD_LENGTH + 1234
   const longText = (tail: string) => `${'긴 본문 줄입니다.  \n'.repeat(Math.ceil(LONG / 12)).slice(0, LONG)}${tail}`
