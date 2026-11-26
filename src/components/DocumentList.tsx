@@ -12,10 +12,12 @@ interface DocumentListProps {
   docs: DocumentSummary[]
   /** 지정하면 각 행에 삭제 버튼을 보여준다 */
   onDelete?(doc: DocumentSummary): void
+  /** 지정하면 행을 눌렀을 때 화면을 옮기지 않고 이 함수를 부른다 (미리보기 창 등) */
+  onOpen?(doc: DocumentSummary): void
 }
 
 /** 목업의 library-list (이름 · 유형 · 공개 범위 · 수정 날짜) */
-export function DocumentList({ docs, onDelete }: DocumentListProps) {
+export function DocumentList({ docs, onDelete, onOpen }: DocumentListProps) {
   return (
     <div className="library-list" role="table" aria-label="문서 목록">
       <div className="list-head" role="row">
@@ -30,12 +32,21 @@ export function DocumentList({ docs, onDelete }: DocumentListProps) {
       {docs.map((doc) => (
         <div className="list-row" role="row" key={doc.id}>
           <div role="cell">
-            <Link to={documentPath(doc.type, doc.id)} className="item-title">
-              <span className={`item-square ${squareTone[doc.type]}`} aria-hidden="true">
-                <Icon name={typeIcon[doc.type]} />
-              </span>
-              <span className="item-name">{doc.title.trim() || '제목 없음'}</span>
-            </Link>
+            {onOpen ? (
+              <button type="button" className="item-title item-title-button" onClick={() => onOpen(doc)}>
+                <span className={`item-square ${squareTone[doc.type]}`} aria-hidden="true">
+                  <Icon name={typeIcon[doc.type]} />
+                </span>
+                <span className="item-name">{doc.title.trim() || '제목 없음'}</span>
+              </button>
+            ) : (
+              <Link to={documentPath(doc.type, doc.id)} className="item-title">
+                <span className={`item-square ${squareTone[doc.type]}`} aria-hidden="true">
+                  <Icon name={typeIcon[doc.type]} />
+                </span>
+                <span className="item-name">{doc.title.trim() || '제목 없음'}</span>
+              </Link>
+            )}
           </div>
           <div role="cell">{documentTypeLabels[doc.type]}</div>
           <div role="cell">
@@ -58,9 +69,21 @@ export function DocumentList({ docs, onDelete }: DocumentListProps) {
                 <Icon name="trash" />
               </button>
             )}
-            <Link to={documentPath(doc.type, doc.id)} className="row-icon" aria-label={`${doc.title || '제목 없음'} 열기`} title="열기">
-              <Icon name="chev" />
-            </Link>
+            {onOpen ? (
+              <button
+                type="button"
+                className="row-icon"
+                aria-label={`${doc.title || '제목 없음'} 미리보기`}
+                title="미리보기"
+                onClick={() => onOpen(doc)}
+              >
+                <Icon name="chev" />
+              </button>
+            ) : (
+              <Link to={documentPath(doc.type, doc.id)} className="row-icon" aria-label={`${doc.title || '제목 없음'} 열기`} title="열기">
+                <Icon name="chev" />
+              </Link>
+            )}
           </div>
         </div>
       ))}

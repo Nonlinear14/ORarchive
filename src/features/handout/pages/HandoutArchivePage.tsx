@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { Modal } from '../../../components/Modal'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList } from '../../../components/DocumentList'
 import { Icon } from '../../../components/Icon'
@@ -11,7 +12,8 @@ import { useDocumentContent } from '../../../lib/useDocumentContent'
 import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { useRepository } from '../../../lib/useRepository'
 import HandoutThumbnail from '../HandoutThumbnail'
-import { TemplatePicker } from './TemplatePicker'
+import { useCopyHandout } from '../useCopyHandout'
+import { TemplatePickerDialog } from './TemplatePicker'
 
 type ArchiveView = 'grid' | 'list'
 const VIEW_STORAGE_KEY = 'folio-archive-view'
@@ -66,13 +68,21 @@ function HandoutPreview({ id }: { id: string }) {
   return <HandoutThumbnail content={content} />
 }
 
-function HandoutCard({ doc, onDelete }: { doc: DocumentSummary; onDelete(doc: DocumentSummary): void }) {
+function HandoutCard({
+  doc,
+  onOpen,
+  onDelete,
+}: {
+  doc: DocumentSummary
+  onOpen(doc: DocumentSummary): void
+  onDelete(doc: DocumentSummary): void
+}) {
   const title = doc.title.trim() || '제목 없음'
   return (
     <article className="handout-card">
-      <Link to={documentPath(doc.type, doc.id)} className="handout-card-open" aria-label={`${title} 열기`}>
+      <button type="button" className="handout-card-open" aria-label={`${title} 미리보기`} onClick={() => onOpen(doc)}>
         <HandoutPreview id={doc.id} />
-      </Link>
+      </button>
       <div className="handout-card-info">
         <div>
           <strong>{title}</strong>
@@ -88,12 +98,44 @@ function HandoutCard({ doc, onDelete }: { doc: DocumentSummary; onDelete(doc: Do
   )
 }
 
-/** /templates — 템플릿 아카이브 › 핸드아웃: 기본 템플릿으로 새로 시작 + 내 핸드아웃 (미리보기/목록) */
+/** 핸드아웃을 고르면 뜨는 창: 크게 미리보기 + 이 템플릿 사용하기(사본으로 편집) / 원본 편집 */
+function HandoutPreviewDialog({ doc, onClose }: { doc: DocumentSummary; onClose(): void }) {
+  const { copy, busy, error } = useCopyHandout()
+  const title = doc.title.trim() || '제목 없음'
+  return (
+    <Modal title={title} eyebrow="TEMPLATE ARCHIVE / HANDOUT" onClose={onClose} wide>
+      <div className="handout-preview-stage">
+        <HandoutPreview id={doc.id} />
+      </div>
+      <p className="handout-preview-meta">
+        {formatRelativeTime(doc.updated_at)} 수정 · "이 템플릿 사용하기"는 사본을 만들어 편집해요. 원본은 그대로 남아요.
+      </p>
+      {error && (
+        <div className="callout danger gallery-error" role="alert">
+          <Icon name="alert" />
+          <span>사본을 만들지 못했어요: {error}</span>
+        </div>
+      )}
+      <div className="handout-preview-actions">
+        <Link to={documentPath(doc.type, doc.id)} className="btn">
+          <Icon name="edit" /> 원본 편집
+        </Link>
+        <button type="button" className="btn primary" onClick={() => void copy(doc.id)} disabled={busy}>
+          <Icon name="copy" /> {busy ? '사본을 만드는 중…' : '이 템플릿 사용하기'}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+/** /templates — 템플릿 아카이브 › 핸드아웃: 내 핸드아웃 (미리보기/목록). 고르면 미리보기 창 */
 export default function HandoutArchivePage() {
   const repo = useRepository()
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
   const [view, setView] = useState<ArchiveView>(readView)
   const [deleting, setDeleting] = useState<DocumentSummary | null>(null)
+  const [previewing, setPreviewing] = useState<DocumentSummary | null>(null)
+  const [picking, setPicking] = useState(false)
   const handouts = docs.filter((doc) => doc.type === 'handout')
 
   function changeView(next: ArchiveView) {
@@ -110,25 +152,22 @@ export default function HandoutArchivePage() {
       <PageHeading
         title="핸드아웃"
         eyebrow="TEMPLATE ARCHIVE / HANDOUT"
-        description="기본 템플릿으로 새로 시작하거나, 만들어 둔 핸드아웃을 이어서 편집하세요."
-        action={<ViewToggle view={view} onChange={changeView} />}
-      />
-
-      <section aria-labelledby="archive-new">
-        <div className="section-top">
-          <div>
-            <h2 id="archive-new">새로 시작</h2>
-            <p>모든 템플릿은 글자 · 테마 · 강조 색 · 글꼴을 바꿔 쓸 수 있어요.</p>
+        description="만들어 둔 핸드아웃을 골라 미리 보고, 템플릿으로 다시 쓰거나 이어서 편집하세요."
+        action={
+          <div className="archive-actions">
+            <ViewToggle view={view} onChange={changeView} />
+            <button type="button" className="btn primary" onClick={() => setPicking(true)}>
+              <Icon name="plus" /> 새 핸드아웃
+            </button>
           </div>
-        </div>
-        <TemplatePicker />
-      </section>
+        }
+      />
 
       <section aria-labelledby="archive-mine">
         <div className="section-top">
           <div>
             <h2 id="archive-mine">내 핸드아웃</h2>
-            <p>{status === 'ready' ? `핸드아웃 ${handouts.length}개 · 열면 템플릿 에디터에서 이어서 편집해요` : ' '}</p>
+            <p>{status === 'ready' ? `핸드아웃 ${handouts.length}개 · 고르면 미리보기가 열려요` : ' '}</p>
           </div>
         </div>
         {status === 'loading' && <LoadingState label="내 핸드아웃을 불러오는 중…" />}
@@ -145,18 +184,26 @@ export default function HandoutArchivePage() {
         )}
         {status === 'ready' &&
           (handouts.length === 0 ? (
-            <div className="library-list empty">아직 만든 핸드아웃이 없어요. 위의 템플릿으로 시작해 보세요.</div>
+            <div className="library-list empty">
+              아직 만든 핸드아웃이 없어요.
+              <br />
+              <button type="button" className="text-link" onClick={() => setPicking(true)}>
+                템플릿을 골라 새 핸드아웃 만들기 <Icon name="arrow" />
+              </button>
+            </div>
           ) : view === 'grid' ? (
             <div className="handout-grid">
               {handouts.map((doc) => (
-                <HandoutCard key={doc.id} doc={doc} onDelete={setDeleting} />
+                <HandoutCard key={doc.id} doc={doc} onOpen={setPreviewing} onDelete={setDeleting} />
               ))}
             </div>
           ) : (
-            <DocumentList docs={handouts} onDelete={setDeleting} />
+            <DocumentList docs={handouts} onOpen={setPreviewing} onDelete={setDeleting} />
           ))}
       </section>
 
+      {previewing && <HandoutPreviewDialog doc={previewing} onClose={() => setPreviewing(null)} />}
+      {picking && <TemplatePickerDialog onClose={() => setPicking(false)} />}
       {deleting && (
         <ConfirmDialog
           title="핸드아웃을 삭제할까요?"
