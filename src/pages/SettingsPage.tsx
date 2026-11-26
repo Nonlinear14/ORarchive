@@ -88,7 +88,7 @@ function AccountCard() {
         </span>
         <span className="tag good">연결됨</span>
       </div>
-      <p>FOLIO 는 Google 로그인만 지원합니다. 같은 Google 계정으로 로그인하면 어느 기기에서든 같은 문서를 불러와요.</p>
+      <p>ORarchive는 Google 로그인만 지원합니다. 같은 Google 계정으로 로그인하면 어느 기기에서든 같은 문서를 불러와요.</p>
     </section>
   )
 }

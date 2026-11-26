@@ -11,7 +11,7 @@ interface PageHeadingProps {
 export function PageHeading({
   title,
   description,
-  eyebrow = 'FOLIO / CREATIVE WORKSPACE',
+  eyebrow = 'ORARCHIVE / CREATIVE WORKSPACE',
   action,
 }: PageHeadingProps) {
   return (

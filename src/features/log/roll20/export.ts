@@ -8,7 +8,7 @@ import { containerClass, escapeHtml, logCss, renderMessagesHtml } from './render
  *   CSS 규칙을 각 요소의 style 속성으로 옮기고 class 는 지운다.
  */
 
-const PAGE_CSS = `body{margin:0;background:#e9e7e1}.folio-log{max-width:760px;margin:24px auto;box-shadow:0 2px 12px rgba(0,0,0,.12)}`
+const PAGE_CSS = `body{margin:0;background:#e9e7e1}.orarchive-log{max-width:760px;margin:24px auto;box-shadow:0 2px 12px rgba(0,0,0,.12)}`
 
 export function logBodyHtml(content: Roll20LogContent): string {
   return `<div class="${containerClass(content)}"><div class="content">\n${renderMessagesHtml(content)}\n</div></div>`
@@ -28,7 +28,7 @@ ${logCss(content)}
 </style>
 </head>
 <body>
-<div class="folio-log">
+<div class="orarchive-log">
 ${logBodyHtml(content)}
 </div>
 </body>

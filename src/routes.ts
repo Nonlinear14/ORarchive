@@ -25,7 +25,7 @@ const homeRoute: NavRoute = {
   path: '/',
   label: '홈',
   icon: 'home',
-  eyebrow: 'FOLIO / CREATIVE WORKSPACE',
+  eyebrow: 'ORARCHIVE / CREATIVE WORKSPACE',
   description: '최근 작업한 템플릿과 캐릭터를 이어서 열어 보세요.',
 }
 

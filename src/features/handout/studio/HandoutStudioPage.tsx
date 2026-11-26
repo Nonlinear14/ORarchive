@@ -126,7 +126,7 @@ function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, c
             <HandoutCanvas content={content} onFieldChange={changeField} label="핸드아웃 캔버스" />
           </div>
           <div className="canvas-footer">
-            <span>✧ FOLIO Template Engine</span>
+            <span>✧ ORarchive Template Engine</span>
             <span>Enter 로 다음 칸 · 본문은 줄바꿈</span>
           </div>
         </section>

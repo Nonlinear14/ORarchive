@@ -1,4 +1,4 @@
-# FOLIO 인계 문서
+# ORarchive 인계 문서
 
 새 작업자가 이 프로젝트를 이어받기 위한 문서입니다. 작업 지침은 `CLAUDE.md`에, 기술 상세는 `README.md`에 있습니다.
 
@@ -33,7 +33,7 @@
 - 대시보드·내 프로젝트·내 보관함(`/library`)과 '새 문서' 창은 삭제했습니다. 1단계에서 만든 로그·캐릭터 문서는 로그 에디터·캐릭터 아카이브를 만들 때 그쪽 목록에 보여 줍니다(데이터는 그대로 있음).
 - 템플릿 아카이브 › 핸드아웃: 내 핸드아웃(미리보기/목록 토글, 삭제, 새 핸드아웃 버튼). 핸드아웃을 고르면 미리보기 창이 뜨고, "이 템플릿 사용하기"는 사본(`useCopyHandout`, 저장 값 그대로 복사)을 만들어 열고, "원본 편집"은 원본을 엽니다. 템플릿 에디터 메뉴는 검색이 있는 템플릿 선택 창을 띄웁니다(2026-11-26 배포).
 - 홈(`/`): 에디터 2분할 버튼 · 최근 연 템플릿 4개(핸드아웃+Roll20 코드) · 최근 연 캐릭터 4개 (2026-11-26 순서 변경).
-- 브랜드(2026-11-26): 사이드바 'ORarchive / ORPG를 위한 툴 아카이브', 주사위 아이콘(Font Awesome Free `dice-d6`, SVG 를 `Brand.tsx` 에 직접 넣음, CC BY 4.0). 브라우저 탭 제목도 '· ORarchive'. 사이드바 아래 계정 칸은 삭제하고 '내 클라우드 공간' 칸이 그 자리. 페이지 상단 'FOLIO / CREATIVE WORKSPACE', 로그인 화면 'WELCOME TO FOLIO', 에디터의 'FOLIO … Engine' 등 남은 FOLIO 표기는 서비스 이름 확정 때 정리. 최근 조회 기록은 기기별 localStorage(`src/lib/recentViews.ts`). 캐릭터·Roll20 코드 화면을 만들 때 `recordRecentView`를 호출해야 홈에 나옵니다.
+- 브랜드(2026-11-26): 사이드바 'ORarchive / ORPG를 위한 툴 아카이브', 주사위 아이콘(Font Awesome Free `dice-d6`, SVG 를 `Brand.tsx` 에 직접 넣음, CC BY 4.0). 브라우저 탭 제목도 '· ORarchive'. 사이드바 아래 계정 칸은 삭제하고 '내 클라우드 공간' 칸이 그 자리. 서비스 이름은 ORarchive로 확정, 화면의 FOLIO 표기는 모두 바꿨다(내부 저장소 키 `folio-*`·`FolioClient` 는 유지). 최근 조회 기록은 기기별 localStorage(`src/lib/recentViews.ts`). 캐릭터·Roll20 코드 화면을 만들 때 `recordRecentView`를 호출해야 홈에 나옵니다.
 - 다크 모드: `src/lib/theme.ts` + `src/styles/theme-dark.css`. 색은 개편 검토용 목업 페이지의 어두운 색 세트(배경 #0f181c, 카드 #172429, 글자 #e9e3d6). 새 화면에서 색을 직접 적었다면 다크 모드 덮어쓰기도 추가합니다.
 
 ## 2. 주요 주소와 계정

@@ -1,4 +1,4 @@
-# FOLIO(ORarchive) 온보딩
+# ORarchive 온보딩
 
 TRPG(Roll20·코코포리아) 핸드아웃·세션 로그·캐릭터 시트를 만들고 보관하는 무료 웹 서비스입니다.
 

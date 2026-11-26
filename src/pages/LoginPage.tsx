@@ -33,7 +33,7 @@ export function LoginPage() {
     <section className="login-wrap">
       <title>로그인 · ORarchive</title>
       <div className="login-card">
-        <div className="eyebrow">WELCOME TO FOLIO</div>
+        <div className="eyebrow">WELCOME TO ORARCHIVE</div>
         <h1>이야기를 이어갈 시간</h1>
         <p>Google 계정 하나로 모든 작품을 보관하고, PC와 모바일에서 같은 작업을 이어갈 수 있어요.</p>
         <button type="button" className="social-button google" disabled={disabled} onClick={handleGoogle}>

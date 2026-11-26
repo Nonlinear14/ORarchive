@@ -366,7 +366,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             </p>
           </div>
           <div className="canvas-footer">
-            <span>✧ FOLIO Log Engine</span>
+            <span>✧ ORarchive Log Engine</span>
             <span>{touchMenu ? '누르면 복제 · 이동 · 삭제' : '마우스를 올리면 복제 · 이동 · 삭제'}</span>
           </div>
         </section>

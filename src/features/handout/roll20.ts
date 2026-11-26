@@ -244,7 +244,7 @@ export function handoutDocumentHtml(content: HandoutContent, title: string): str
   ].join('\n')
 }
 
-/** 다운로드 파일 이름: 파일 이름에 못 쓰는 글자를 빼고, 비면 folio-handout */
+/** 다운로드 파일 이름: 파일 이름에 못 쓰는 글자를 빼고, 비면 orarchive-handout */
 export function handoutFileName(title: string): string {
   const base = Array.from(title)
     .filter((ch) => ch.charCodeAt(0) >= 32)
@@ -253,5 +253,5 @@ export function handoutFileName(title: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 80)
-  return `${base || 'folio-handout'}.html`
+  return `${base || 'orarchive-handout'}.html`
 }
