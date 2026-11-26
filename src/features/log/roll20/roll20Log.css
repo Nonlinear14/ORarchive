@@ -522,7 +522,7 @@
   padding: 6px 9px;
 }
 
-/* 캐릭터: 아바타 버튼 · 색 동그라미 · 숨기기/삭제 */
+/* 캐릭터: 저널 버튼 · 색 동그라미 · 숨기기/삭제 */
 .char-av-btn {
   border: 0;
   padding: 0;
@@ -650,7 +650,7 @@
   cursor: pointer;
 }
 
-/* 아바타 창 */
+/* 저널 창 */
 .avatar-current {
   display: flex;
   align-items: center;

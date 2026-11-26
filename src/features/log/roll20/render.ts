@@ -61,7 +61,7 @@ export const ROLL20_CHAT_CSS = `
 
 export interface RenderedMessage {
   message: LogMessage
-  /** 이 메시지 앞에 이름·아바타를 보여 주는가 */
+  /** 이 메시지 앞에 이름·저널을 보여 주는가 */
   showHeader: boolean
 }
 

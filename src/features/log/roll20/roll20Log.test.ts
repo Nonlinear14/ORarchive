@@ -133,7 +133,7 @@ describe('Roll20 로그 편집 연산 (고친 경로만 바뀐다)', () => {
   })
 })
 
-describe('룰 감지 · 아바타 주소', () => {
+describe('룰 감지 · 저널 주소', () => {
   it('시트 롤템플릿 이름으로 룰을 알아낸다', () => {
     expect(detectRule('<div class="sheet-rolltemplate-coc-1">')).toBe('크툴루의 부름')
     expect(detectRule('<div class="sheet-rolltemplate-InsDice">')).toBe('인세인')
@@ -143,7 +143,7 @@ describe('룰 감지 · 아바타 주소', () => {
     expect(detectRule('그냥 대화')).toBe('')
   })
 
-  it('아바타로 쓸 수 있는 주소: 웹 주소와 불러온 이미지(data:image)만', () => {
+  it('저널로 쓸 수 있는 주소: 웹 주소와 불러온 이미지(data:image)만', () => {
     expect(isUsableAvatar('https://files.d20.io/a.png')).toBe(true)
     expect(isUsableAvatar('data:image/png;base64,AAAA')).toBe(true)
     expect(isUsableAvatar('./Chat Log_files/med.png')).toBe(false)
@@ -170,7 +170,7 @@ describe('Roll20 로그 그리기·내보내기', () => {
     expect(hiddenChar.every((r) => r.message.speaker !== '엘리너')).toBe(true)
   })
 
-  it('캐릭터 이름·색·아바타가 머리에 반영되고, 귓속말은 (From 이름)', () => {
+  it('캐릭터 이름·색·저널이 머리에 반영되고, 귓속말은 (From 이름)', () => {
     const content = parsed().content
     const html = renderMessagesHtml({
       ...content,

@@ -92,7 +92,7 @@ function ColorRound({
   )
 }
 
-/** 아바타 바꾸기: 이미지 파일 불러오기(줄여서 로그 안에 저장) 또는 링크 주소 */
+/** 저널 바꾸기: 이미지 파일 불러오기(줄여서 로그 안에 저장) 또는 링크 주소 */
 function AvatarDialog({
   speaker,
   name,
@@ -127,10 +127,10 @@ function AvatarDialog({
   }
 
   return (
-    <Modal title={`${name} 아바타`} eyebrow="LOG EDITOR / CHARACTER" onClose={onClose}>
+    <Modal title={`${name} 저널`} eyebrow="LOG EDITOR / CHARACTER" onClose={onClose}>
       <div className="avatar-current">
         {current && isUsableAvatar(current) ? <img src={current} alt="" /> : <span className="char-av broken">?</span>}
-        <span>{current && !isUsableAvatar(current) ? '지금 아바타는 PC 폴더 경로라 다른 사람에게 보이지 않아요.' : '지금 아바타'}</span>
+        <span>{current && !isUsableAvatar(current) ? '지금 저널은 PC 폴더 경로라 다른 사람에게 보이지 않아요.' : '지금 저널'}</span>
       </div>
       <span className="field-label">이미지 파일 불러오기</span>
       <label className="dropzone small-drop">
@@ -141,13 +141,13 @@ function AvatarDialog({
           type="file"
           accept="image/png,image/jpeg,image/gif,image/webp"
           className="sr-only"
-          aria-label="아바타 이미지 파일"
+          aria-label="저널 이미지 파일"
           onChange={(e) => void fromFile(e.target.files?.[0])}
         />
       </label>
       <span className="field-label avatar-link-label">링크 주소 붙여넣기</span>
       <div className="inline-form">
-        <input className="field-input" aria-label="아바타 이미지 주소" placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <input className="field-input" aria-label="저널 이미지 주소" placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
         <button
           type="button"
           className="btn primary"
@@ -179,7 +179,7 @@ function AvatarDialog({
             onClose()
           }}
         >
-          원래 아바타로
+          원래 저널로
         </button>
         <button type="button" className="btn" onClick={onClose}>
           닫기
@@ -211,7 +211,7 @@ function CharacterRow({
   return (
     <div className={setting.hidden ? 'char-row is-hidden' : 'char-row'}>
       <div className="char-main">
-        <button type="button" className="char-av-btn" aria-label={`${name} 아바타 바꾸기`} title="아바타 바꾸기" onClick={() => setAvatarOpen(true)}>
+        <button type="button" className="char-av-btn" aria-label={`${name} 저널 바꾸기`} title="저널 바꾸기" onClick={() => setAvatarOpen(true)}>
           {shown && !broken ? (
             <img className="char-av" src={shown} alt="" />
           ) : (
@@ -232,7 +232,7 @@ function CharacterRow({
       {broken && (
         <div className="char-warn">
           <Icon name="alert" />
-          <span>아바타가 PC 폴더 경로라 다른 사람에게 안 보여요.</span>
+          <span>저널이 PC 폴더 경로라 다른 사람에게 안 보여요.</span>
           <button type="button" className="text-link" onClick={() => setAvatarOpen(true)}>
             바꾸기
           </button>
@@ -353,8 +353,8 @@ export function LogPanel({ content, apply, notify }: PanelProps) {
         />
         <Toggle label="연속 이름 정리" sub="같은 사람이 이어 말하면 이름을 한 번만" checked={options.collapseNames} onChange={set('collapseNames')} />
         <Toggle label="구분선 표시" sub="메시지 사이의 가는 선" checked={options.divider} onChange={set('divider')} />
-        <div className="seg-label">아바타 모양</div>
-        <div className="segmented" role="radiogroup" aria-label="아바타 모양">
+        <div className="seg-label">저널 모양</div>
+        <div className="segmented" role="radiogroup" aria-label="저널 모양">
           {shapes.map(([v, text]) => (
             <button
               key={v}
@@ -375,7 +375,7 @@ export function LogPanel({ content, apply, notify }: PanelProps) {
         {speakers.map((s) => (
           <CharacterRow key={s.speaker} {...s} content={content} apply={apply} />
         ))}
-        <p className="field-help">아바타를 누르면 이미지를 바꿀 수 있어요. 색 동그라미를 누르면 색을 고르거나 기본 색으로 되돌려요.</p>
+        <p className="field-help">저널을 누르면 이미지를 바꿀 수 있어요. 색 동그라미를 누르면 색을 고르거나 기본 색으로 되돌려요.</p>
       </Section>
 
       <Section label="찾아 바꾸기">

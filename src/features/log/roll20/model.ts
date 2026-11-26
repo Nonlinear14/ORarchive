@@ -22,7 +22,7 @@ export interface LogMessage {
   speaker?: string
   /** 귓속말 방향: "(From 이름)" / "(To 이름)" */
   whisper?: 'from' | 'to'
-  /** 아바타 이미지 주소 (원본 그대로) */
+  /** 저널 이미지 주소 (원본 그대로) */
   avatar?: string
   /** Roll20 시간 표시 원문 */
   ts?: string
@@ -41,7 +41,7 @@ export interface CharacterSetting {
   bg?: string
   /** 대사 색 (#rrggbb) */
   text?: string
-  /** 아바타 (웹 주소, 또는 불러온 이미지를 줄인 data:image 주소) */
+  /** 저널 (웹 주소, 또는 불러온 이미지를 줄인 data:image 주소) */
   avatar?: string
   /** 이 캐릭터의 메시지를 숨김 */
   hidden?: boolean
@@ -55,7 +55,7 @@ export interface LogOptions {
   hideWhispers: boolean
   /** /r 굴림과 시트 판정 메시지를 숨김 */
   hideRolls: boolean
-  /** 같은 사람이 이어 말하면 이름·아바타를 한 번만 */
+  /** 같은 사람이 이어 말하면 이름·저널을 한 번만 */
   collapseNames: boolean
   showTime: boolean
   avatarShape: AvatarShape
@@ -182,12 +182,12 @@ export function serializeLog(content: Roll20LogContent): DocumentContent {
 /** 수정 가능한 메시지인가 (text 로 저장된 메시지) */
 export const isEditable = (message: LogMessage) => message.text !== undefined
 
-/** 아바타·이미지 주소가 다른 사람도 볼 수 있는 웹 주소인가 (PC 폴더 경로가 아닌가) */
+/** 저널·이미지 주소가 다른 사람도 볼 수 있는 웹 주소인가 (PC 폴더 경로가 아닌가) */
 export function isWebUrl(url: string | undefined): boolean {
   return !!url && /^(https?:)?\/\//i.test(url.trim())
 }
 
-/** 아바타로 쓸 수 있는 주소인가: 웹 주소, 또는 불러온 이미지(data:image) */
+/** 저널로 쓸 수 있는 주소인가: 웹 주소, 또는 불러온 이미지(data:image) */
 export function isUsableAvatar(url: string | undefined): boolean {
   return isWebUrl(url) || /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(url?.trim() ?? '')
 }

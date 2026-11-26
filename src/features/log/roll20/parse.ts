@@ -24,7 +24,7 @@ export interface ParseStats {
   rolls: number
   /** 감지한 룰 (모르면 빈 글자) */
   rule: string
-  /** PC 폴더 경로라 다른 사람에게 보이지 않는 아바타를 가진 화자 수 */
+  /** PC 폴더 경로라 다른 사람에게 보이지 않는 저널을 가진 화자 수 */
   brokenAvatars: number
   /** 메시지 안의 PC 폴더 경로 이미지 수 */
   brokenImages: number
@@ -179,7 +179,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
       if (avatarSrc) message.avatar = avatarSrc
       if (ts) message.ts = ts
     } else if (prev && kind !== 'desc' && kind !== 'emote' && prev.speaker) {
-      // 이어지는 메시지: Roll20 이 이름·아바타를 생략했다 → 앞 메시지의 화자를 이어받는다
+      // 이어지는 메시지: Roll20 이 이름·저널을 생략했다 → 앞 메시지의 화자를 이어받는다
       message.speaker = prev.speaker
       if (prev.whisper) message.whisper = prev.whisper
       if (prev.avatar) message.avatar = prev.avatar

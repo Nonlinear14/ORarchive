@@ -27,7 +27,7 @@ function Summary({ result, fileName }: { result: ParseResult; fileName?: string 
         </span>
         {stats.brokenAvatars > 0 && (
           <span className="warn-line">
-            <Icon name="alert" /> 아바타 {n(stats.brokenAvatars)}개가 PC 폴더 경로예요. 불러온 뒤 캐릭터 설정에서 주소를 넣을 수 있어요.
+            <Icon name="alert" /> 저널 {n(stats.brokenAvatars)}개가 PC 폴더 경로예요. 불러온 뒤 캐릭터 설정에서 주소를 넣을 수 있어요.
           </span>
         )}
         {stats.brokenImages > 0 && (
@@ -156,7 +156,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
             />
           </label>
           <p className="field-help">
-            '웹페이지, 전체'로 저장하면 아바타 이미지 주소가 PC 폴더 경로로 바뀌어 다른 사람에게 보이지 않아요. 'HTML만'으로 저장하면 원래 이미지 주소가 그대로 남아요.
+            '웹페이지, 전체'로 저장하면 저널 이미지 주소가 PC 폴더 경로로 바뀌어 다른 사람에게 보이지 않아요. 'HTML만'으로 저장하면 원래 이미지 주소가 그대로 남아요.
           </p>
         </div>
       ) : (

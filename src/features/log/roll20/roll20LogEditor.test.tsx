@@ -59,7 +59,7 @@ describe('Roll20 로그 편집 — 목록과 불러오기', () => {
 
     const summary = await within(dialog).findByText(/메시지 5개 · 화자 2명 · 귓속말 1개/)
     expect(summary).toHaveTextContent('시트 판정 디자인 찾음')
-    expect(within(dialog).getByText(/아바타 1개가 PC 폴더 경로예요/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/저널 1개가 PC 폴더 경로예요/)).toBeInTheDocument()
     expect(within(dialog).getByLabelText('로그 이름')).toHaveValue('안개 낀 도서관')
 
     expect(within(dialog).getByLabelText('룰')).toHaveValue('크툴루의 부름')
@@ -136,7 +136,7 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     await waitFor(() => expect(saved().messages[2]).toMatchObject({ speaker: '엘리너', text: '새 대사' }), { timeout: 3000 })
   })
 
-  it('로그 편집 패널: 전체 다듬기 · 캐릭터 색 · 숨기기 토글 · 아바타 주소 · 찾아 바꾸기', async () => {
+  it('로그 편집 패널: 전체 다듬기 · 캐릭터 색 · 숨기기 토글 · 저널 주소 · 찾아 바꾸기', async () => {
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })
     const root = await stage()
@@ -175,17 +175,17 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     fireEvent.click(within(panel).getByRole('switch', { name: '토마스 메시지 숨기기' }))
     await waitFor(() => expect(row(root, '-r1')).toBeNull())
 
-    // 깨진 아바타 → 링크 주소로 바꾸기
-    expect(within(panel).getByText(/아바타가 PC 폴더 경로라/)).toBeInTheDocument()
-    fireEvent.click(within(panel).getByRole('button', { name: '토마스 아바타 바꾸기' }))
-    const dialog = screen.getByRole('dialog', { name: '토마스 아바타' })
-    fireEvent.change(within(dialog).getByLabelText('아바타 이미지 주소'), { target: { value: 'javascript:alert(1)' } })
+    // 깨진 저널 → 링크 주소로 바꾸기
+    expect(within(panel).getByText(/저널이 PC 폴더 경로라/)).toBeInTheDocument()
+    fireEvent.click(within(panel).getByRole('button', { name: '토마스 저널 바꾸기' }))
+    const dialog = screen.getByRole('dialog', { name: '토마스 저널' })
+    fireEvent.change(within(dialog).getByLabelText('저널 이미지 주소'), { target: { value: 'javascript:alert(1)' } })
     fireEvent.click(within(dialog).getByRole('button', { name: '적용' }))
     expect(within(dialog).getByRole('alert')).toHaveTextContent('https://')
-    fireEvent.change(within(dialog).getByLabelText('아바타 이미지 주소'), { target: { value: 'https://i.imgur.com/t.png' } })
+    fireEvent.change(within(dialog).getByLabelText('저널 이미지 주소'), { target: { value: 'https://i.imgur.com/t.png' } })
     fireEvent.click(within(dialog).getByRole('button', { name: '적용' }))
     await waitFor(() => expect(saved().characters['토마스']).toMatchObject({ avatar: 'https://i.imgur.com/t.png', hidden: true }), { timeout: 3000 })
-    expect(within(panel).queryByText(/아바타가 PC 폴더 경로라/)).not.toBeInTheDocument()
+    expect(within(panel).queryByText(/저널이 PC 폴더 경로라/)).not.toBeInTheDocument()
 
     fireEvent.change(within(panel).getByLabelText('찾을 글자'), { target: { value: '서가' } })
     expect(within(panel).getByText('1곳 찾음')).toBeInTheDocument()
