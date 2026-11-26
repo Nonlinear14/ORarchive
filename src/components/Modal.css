@@ -65,53 +65,6 @@
   margin-top: 14px;
 }
 
-/* 새 문서: 유형 선택 (목업 .segmented) */
-.type-picker {
-  border: 0;
-  padding: 0;
-  margin: 18px 0 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.type-picker legend {
-  padding: 0;
-  float: left;
-  width: 100%;
-}
-
-.type-option {
-  flex: 1;
-  min-width: 90px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid #e1ded6;
-  border-radius: 8px;
-  padding: 11px 8px;
-  background: #fffefa;
-  color: #6f7b75;
-  cursor: pointer;
-}
-
-.type-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.type-option.active {
-  background: #263d39;
-  border-color: #263d39;
-  color: #fff;
-}
-
-.type-option:has(input:focus-visible) {
-  outline: 2px solid #d9ac72;
-  outline-offset: 2px;
-}
-
 .modal-card.wide {
   width: min(760px, 100%);
 }

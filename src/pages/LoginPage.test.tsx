@@ -61,11 +61,11 @@ describe('로그인 페이지', () => {
     expect(sessionStorage.getItem('folio.auth.next')).toBeNull()
   })
 
-  it('이미 로그인했으면 next 경로(없으면 대시보드)로 보낸다', async () => {
+  it('이미 로그인했으면 next 경로(없으면 홈)로 보낸다', async () => {
     const { client } = createFakeSupabase()
-    renderApp('/login?next=%2Flibrary', { client })
+    renderApp('/login?next=%2Fsettings', { client })
 
-    expect(await screen.findByRole('heading', { level: 1, name: '내 보관함' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '계정 설정' })).toBeInTheDocument()
   })
 
   it('OAuth 리디렉션 후 기억해 둔 경로로 이동하고 콜백 파라미터를 지운다', async () => {

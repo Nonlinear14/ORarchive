@@ -1,14 +1,14 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '../components/Icon'
 import { PageHeading } from '../components/PageHeading'
 import { useAuth } from '../lib/auth/context'
 import { displayName } from '../lib/auth/helpers'
-import { documentPath, type DocumentContent, type DocumentSummary } from '../lib/documents'
+import { documentPath, type DocumentSummary } from '../lib/documents'
 import { formatRelativeTime } from '../lib/format'
 import { readRecentViews, recentOf, templateKinds, type RecentView } from '../lib/recentViews'
+import { useDocumentContent } from '../lib/useDocumentContent'
 import { useMyDocuments } from '../lib/useMyDocuments'
-import { useRepository } from '../lib/useRepository'
 import './HomePage.css'
 
 // 핸드아웃 캔버스·템플릿은 미리보기를 그릴 때만 불러온다 (첫 화면 번들을 가볍게)
@@ -52,23 +52,6 @@ function useRecentItems(docs: DocumentSummary[], ready: boolean) {
   }, [user, docs, ready])
 }
 
-/** 카드 미리보기용 본문. 목록에는 본문이 없어서 카드마다 따로 불러온다 */
-function useContent(id: string) {
-  const repo = useRepository()
-  const [content, setContent] = useState<DocumentContent | null | undefined>(undefined)
-  useEffect(() => {
-    let active = true
-    repo
-      .get(id)
-      .then((doc) => active && setContent(doc?.content ?? null))
-      .catch(() => active && setContent(null))
-    return () => {
-      active = false
-    }
-  }, [repo, id])
-  return content
-}
-
 function PreviewFallback({ label }: { label: string }) {
   return (
     <div className="recent-preview-empty" aria-hidden="true">
@@ -78,7 +61,7 @@ function PreviewFallback({ label }: { label: string }) {
 }
 
 function HandoutPreview({ id }: { id: string }) {
-  const content = useContent(id)
+  const content = useDocumentContent(id)
   if (content === undefined) return <PreviewFallback label="불러오는 중…" />
   if (content === null) return <PreviewFallback label="미리보기를 불러오지 못했어요" />
   return (
@@ -158,7 +141,7 @@ function EditorLaunch() {
       <Link to="/studio/handout" className="launch-tile launch-template">
         <span className="launch-kicker">TEMPLATE EDITOR</span>
         <strong>템플릿 에디터</strong>
-        <span className="launch-desc">핸드아웃 디자인을 캔버스에서 바로 고치고 Roll20에 붙여 넣어요.</span>
+        <span className="launch-desc">템플릿을 골라 새 핸드아웃을 만들고 캔버스에서 바로 고쳐요.</span>
         <span className="launch-go">
           열기 <Icon name="arrow" />
         </span>

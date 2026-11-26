@@ -4,41 +4,34 @@
  * 핸드아웃 캔버스(문서 자체)는 실제 출력과 같아야 하므로 건드리지 않는다.
  */
 :root[data-theme='dark'] {
+  /* 색은 검토용 목업 페이지의 어두운 색 세트를 따른다:
+     배경 #0f181c · 카드 #172429 · 글자 #e9e3d6 · 보조 글자 #9aa7a3 · 선 #2a3a40 · 금색 #b48c5a · 사이드바 #142128 */
   color-scheme: dark;
-  --ink: #e6e1d6;
-  --ink2: #cfc8b8;
-  --paper: #10191d;
-  --canvas: #18242a;
-  --card: #1a272d;
+  --ink: #e9e3d6;
+  --ink2: #d3ccbd;
+  --paper: #0f181c;
+  --canvas: #142128;
+  --card: #172429;
   --line: #2a3a40;
   --line-strong: #3a4c52;
-  --slate: #93a19f;
-  --muted: #8f9c98;
-  --shadow: 0 9px 25px rgba(0, 0, 0, 0.25), 0 2px 5px rgba(0, 0, 0, 0.2);
-  --heading-ink: #ece5d8;
+  --slate: #9aa7a3;
+  --muted: #9aa7a3;
+  --gold: #b48c5a;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.28), 0 2px 5px rgba(0, 0, 0, 0.2);
+  --heading-ink: #e9e3d6;
   --eyebrow: #c4a276;
 
-  --side-bg: #0c1418;
-  --side-line: #1f2c31;
-  --side-hover: #1a2a30;
-  --side-active: #233a40;
-  --side-card: #16232a;
-
-  --d-surface: #1a272d;
-  --d-surface2: #213038;
-  --d-hover: #24353c;
-  --d-border: #2e3f45;
-  --d-text: #d9d4c8;
-  --d-text-strong: #efe8da;
-  --d-text-muted: #8f9c98;
+  --d-surface: #172429;
+  --d-surface2: #1d2c32;
+  --d-hover: #22343b;
+  --d-border: #2a3a40;
+  --d-text: #e9e3d6;
+  --d-text-strong: #f3eee4;
+  --d-text-muted: #9aa7a3;
 }
 
 :root[data-theme='dark'] body {
   color: var(--d-text);
-}
-
-:root[data-theme='dark'] .sidebar {
-  border-right-color: #1c292e;
 }
 
 /* 공통 컴포넌트 */
@@ -73,9 +66,9 @@
 }
 
 :root[data-theme='dark'] .btn.primary {
-  background: #c4a276;
-  border-color: #c4a276;
-  color: #18242a;
+  background: #b48c5a;
+  border-color: #b48c5a;
+  color: #0f181c;
 }
 
 :root[data-theme='dark'] .btn.danger {
@@ -120,7 +113,7 @@
 :root[data-theme='dark'] .field-textarea,
 :root[data-theme='dark'] .searchbar,
 :root[data-theme='dark'] .search-trigger {
-  background: #132026;
+  background: #142128;
   border-color: var(--d-border);
   color: var(--d-text);
 }
@@ -145,13 +138,13 @@
 
 :root[data-theme='dark'] .filter.active,
 :root[data-theme='dark'] .type-option.active {
-  background: #c4a276;
-  border-color: #c4a276;
-  color: #18242a;
+  background: #b48c5a;
+  border-color: #b48c5a;
+  color: #0f181c;
 }
 
 :root[data-theme='dark'] .segmented {
-  background: #132026;
+  background: #142128;
   border-color: var(--d-border);
 }
 
@@ -170,7 +163,7 @@
 
 /* 상단 바 · 모바일 내비 */
 :root[data-theme='dark'] .topbar {
-  background: rgba(16, 25, 29, 0.93);
+  background: rgba(15, 24, 28, 0.93);
 }
 
 :root[data-theme='dark'] .key {
@@ -188,7 +181,7 @@
 }
 
 :root[data-theme='dark'] .mobile-nav {
-  background: #10191def;
+  background: #0f181cef;
   border-top-color: var(--d-border);
 }
 
@@ -287,7 +280,7 @@
 
 :root[data-theme='dark'] .type-option,
 :root[data-theme='dark'] .template-option {
-  background: #132026;
+  background: #142128;
   border-color: var(--d-border);
   color: var(--d-text);
 }
@@ -313,5 +306,5 @@
 }
 
 :root[data-theme='dark'] .doc-recover .doc-text[readonly] {
-  background: #132026;
+  background: #142128;
 }

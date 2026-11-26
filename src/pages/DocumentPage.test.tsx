@@ -93,7 +93,7 @@ describe('동기화되지 않은 변경 (상단바 표시 · 오프라인 사본
     })
     fake.control.serverEdit('documents', row.id, { title: '다른 기기 제목' }) // 서버 v2
 
-    renderApp('/library', { client: fake.client, services })
+    renderApp('/settings', { client: fake.client, services })
 
     const trigger = await screen.findByRole('button', { name: '동기화되지 않은 변경 1개' })
     fireEvent.click(trigger)
@@ -214,7 +214,7 @@ describe('서버에서 삭제된 문서의 대기 변경 (복구 화면)', () =>
   })
 
   it('상단바 목록은 바로 버리지 않고 복구 화면으로 연결한다 — 제목과 본문을 보고 복사할 수 있다', async () => {
-    const { services } = await setupDeleted(() => '/library')
+    const { services } = await setupDeleted(() => '/settings')
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
 

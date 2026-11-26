@@ -28,10 +28,12 @@
 7. 이미지 주소 검사가 사설·루프백 IP도 허용합니다(`model.ts` `validateImageUrl`).
 8. 강조 색 입력칸의 `maxLength=7` 때문에 앞에 공백이 붙은 값을 붙여 넣으면 잘립니다.
 
-**사이드바·홈 개편 (브랜치 `redesign/sidebar-home`, 사용자 확인 대기)**
-- 메뉴: 템플릿 아카이브(핸드아웃 `/templates`, Roll20 코드 `/templates/roll20`) · 템플릿 에디터(`/studio/handout`) · 로그 에디터(Roll20 `/studio/log/roll20`, 코코포리아 `/studio/log/ccfolia`) · 캐릭터 아카이브(`/characters`) · Setting(계정 설정, 라이트/다크 토글). WORKSPACE 묶음(대시보드·내 프로젝트·내 보관함)은 메뉴에서 뺐습니다. `/library` 화면은 주소로 계속 열립니다.
-- 홈(`/`): 최근 연 템플릿 4개(핸드아웃+Roll20 코드) · 에디터 2분할 버튼 · 최근 연 캐릭터 4개. 최근 조회 기록은 기기별 localStorage(`src/lib/recentViews.ts`), 서버에 저장하지 않습니다. 캐릭터·Roll20 코드 화면을 만들 때 `recordRecentView`를 호출해야 홈에 나옵니다.
-- 다크 모드: `src/lib/theme.ts` + `src/styles/theme-dark.css`. 새 화면을 만들 때 색을 직접 적었다면 다크 모드 덮어쓰기도 추가합니다.
+**사이드바·홈 개편 (브랜치 `redesign/sidebar-home`, 사용자 최종 확인 대기)**
+- 메뉴: 템플릿 아카이브(핸드아웃 `/templates`, Roll20 코드 `/templates/roll20`) · 템플릿 에디터(`/studio/handout`) · 로그 에디터(Roll20 `/studio/log/roll20`, 코코포리아 `/studio/log/ccfolia`) · 캐릭터 아카이브(`/characters`) · Setting(계정 설정, 라이트/다크 토글). 상위 메뉴는 아이콘, 하위 메뉴는 아이콘 없이 들여쓰기. 1050px 이하로 접히면 상위 아이콘만 보이고 누르면 하위 메뉴 말풍선.
+- 대시보드·내 프로젝트·내 보관함(`/library`)과 '새 문서' 창은 삭제했습니다. 1단계에서 만든 로그·캐릭터 문서는 로그 에디터·캐릭터 아카이브를 만들 때 그쪽 목록에 보여 줍니다(데이터는 그대로 있음).
+- 템플릿 아카이브 › 핸드아웃: 기본 템플릿 4종(새로 시작) + 내 핸드아웃(미리보기/목록 토글, 삭제). 템플릿 에디터 메뉴는 템플릿 선택 창을 띄웁니다.
+- 홈(`/`): 최근 연 템플릿 4개(핸드아웃+Roll20 코드) · 에디터 2분할 버튼 · 최근 연 캐릭터 4개. 최근 조회 기록은 기기별 localStorage(`src/lib/recentViews.ts`). 캐릭터·Roll20 코드 화면을 만들 때 `recordRecentView`를 호출해야 홈에 나옵니다.
+- 다크 모드: `src/lib/theme.ts` + `src/styles/theme-dark.css`. 색은 개편 검토용 목업 페이지의 어두운 색 세트(배경 #0f181c, 카드 #172429, 글자 #e9e3d6). 새 화면에서 색을 직접 적었다면 다크 모드 덮어쓰기도 추가합니다.
 
 ## 2. 주요 주소와 계정
 | 항목 | 주소 | 비고 |

@@ -23,7 +23,7 @@ let current: Theme = typeof window === 'undefined' ? 'light' : readStored()
 function apply(theme: Theme) {
   if (typeof document === 'undefined') return
   document.documentElement.dataset.theme = theme
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0f191e' : '#142128')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0f181c' : '#142128')
 }
 
 apply(current)

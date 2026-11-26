@@ -341,3 +341,13 @@ a:focus-visible {
   color: #384a42;
   box-shadow: 0 1px 3px #0001;
 }
+
+/* 카드 미리보기 자리표시 (홈 · 템플릿 아카이브) */
+.recent-preview-empty {
+  height: 190px;
+  display: grid;
+  place-items: center;
+  background: var(--canvas);
+  color: var(--muted);
+  font-size: 12px;
+}

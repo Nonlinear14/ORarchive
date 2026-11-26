@@ -7,7 +7,6 @@ import { AuthRedirects } from './lib/auth/AuthRedirects'
 import { PendingSyncProvider } from './lib/sync/PendingSyncProvider'
 import { HomePage } from './pages/HomePage'
 import { DocumentPage } from './pages/DocumentPage'
-import { LibraryPage } from './pages/LibraryPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
@@ -15,8 +14,8 @@ import { SettingsPage } from './pages/SettingsPage'
 import { navRoutes } from './routes'
 
 // 스튜디오 화면은 처음 열 때 불러온다 (첫 화면 번들을 가볍게)
-const TemplateGalleryPage = lazy(() => import('./features/handout/pages/TemplateGalleryPage'))
-const HandoutListPage = lazy(() => import('./features/handout/pages/HandoutListPage'))
+const HandoutArchivePage = lazy(() => import('./features/handout/pages/HandoutArchivePage'))
+const TemplateEditorPage = lazy(() => import('./features/handout/pages/TemplateEditorPage'))
 const HandoutStudioPage = lazy(() => import('./features/handout/studio/HandoutStudioPage'))
 
 function Lazy({ children }: { children: ReactNode }) {
@@ -24,7 +23,7 @@ function Lazy({ children }: { children: ReactNode }) {
 }
 
 /** 실제 화면이 있는 경로 (나머지 내비 경로는 '준비 중' 자리표시) */
-const implemented = new Set(['/', '/library', '/settings', '/templates', '/studio/handout'])
+const implemented = new Set(['/', '/settings', '/templates', '/studio/handout'])
 
 export function App() {
   return (
@@ -35,11 +34,10 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
             <Route index element={<HomePage />} />
-            <Route path="/library" element={<LibraryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/documents/:id" element={<DocumentPage />} />
-            <Route path="/templates" element={<Lazy><TemplateGalleryPage /></Lazy>} />
-            <Route path="/studio/handout" element={<Lazy><HandoutListPage /></Lazy>} />
+            <Route path="/templates" element={<Lazy><HandoutArchivePage /></Lazy>} />
+            <Route path="/studio/handout" element={<Lazy><TemplateEditorPage /></Lazy>} />
             <Route path="/studio/handout/:id" element={<Lazy><HandoutStudioPage /></Lazy>} />
             {/* 예전 주소 */}
             <Route path="/studio/log" element={<Navigate to="/studio/log/roll20" replace />} />

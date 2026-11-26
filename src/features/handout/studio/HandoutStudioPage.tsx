@@ -103,8 +103,8 @@ function StudioEditor({ doc, draft, content, status, offlineCopy, edit, flush, c
               다시 시도
             </button>
           )}
-          <Link to="/studio/handout" className="btn small">
-            내 핸드아웃
+          <Link to="/templates" className="btn small">
+            템플릿 아카이브
           </Link>
         </div>
       </div>

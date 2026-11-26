@@ -125,7 +125,6 @@ export const mobileNav: { path: string; label: string; icon: IconName }[] = [
 
 const extraTitles: Record<string, string> = {
   '/login': '로그인',
-  '/library': '내 보관함',
 }
 
 /** 현재 경로의 표시 이름 (브레드크럼·문서 제목용) */

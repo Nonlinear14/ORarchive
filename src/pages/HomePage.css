@@ -46,15 +46,6 @@
   }
 }
 
-.recent-preview-empty {
-  height: 190px;
-  display: grid;
-  place-items: center;
-  background: var(--canvas);
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .recent-info {
   padding: 12px 14px 14px;
   min-width: 0;

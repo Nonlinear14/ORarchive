@@ -105,6 +105,105 @@
   margin-bottom: 14px;
 }
 
+/* 새로 시작: 작은 템플릿 카드 */
+.template-card.compact .template-preview {
+  height: 170px;
+  --tp-scale: 0.38;
+}
+
+.template-card.compact .template-info {
+  padding: 11px 12px 12px;
+}
+
+.template-card.compact .template-themes {
+  margin: 8px 0 10px;
+}
+
+.picker-in-modal {
+  margin-top: 16px;
+}
+
+.picker-in-modal .template-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* 보기 방식 토글 */
+.view-toggle {
+  flex: none;
+  min-width: 190px;
+}
+
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.view-toggle .ico {
+  width: 14px;
+  height: 14px;
+}
+
+/* 내 핸드아웃: 미리보기 카드 */
+.handout-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.handout-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 13px;
+  overflow: hidden;
+  transition: 0.16s;
+}
+
+.handout-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px #242e2e18;
+}
+
+.handout-card-open {
+  display: block;
+}
+
+.handout-card .template-preview,
+.handout-card .recent-preview-empty {
+  height: 200px;
+  --tp-scale: 0.44;
+}
+
+.handout-card-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 12px 12px 14px;
+}
+
+.handout-card-info > div {
+  min-width: 0;
+}
+
+.handout-card-info strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--heading-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handout-card-info small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 @media (max-width: 1300px) {
   .template-preview {
     --tp-scale: 0.44;
@@ -113,6 +212,10 @@
 }
 
 @media (max-width: 1050px) {
+  .handout-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .template-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

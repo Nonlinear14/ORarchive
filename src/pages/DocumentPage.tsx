@@ -95,8 +95,8 @@ function DocumentEditor({ docId }: { docId: string }) {
               다시 시도
             </button>
           )}
-          <Link to="/library" className="btn small">
-            보관함으로
+          <Link to="/" className="btn small">
+            홈으로
           </Link>
         </div>
       </div>
