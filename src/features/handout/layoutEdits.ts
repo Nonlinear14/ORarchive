@@ -8,7 +8,7 @@
 import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { HANDOUT_CONTENT_VERSION, isStructuredHandout, serializeHandout } from './model'
-import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type BorderView, type LayoutBlock, type RuleSpec, type TextBlockStyle } from './layout'
+import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type RuleSpec, type TextBlockStyle } from './layout'
 import { createHandoutContent, resolveHandout } from './templates'
 
 export type LayoutEdit = (stored: DocumentContent) => DocumentContent
@@ -117,26 +117,20 @@ export const swapRow = (rowId: string): LayoutEdit =>
     return next
   })
 
-/** 틀 테두리 (style.border): 표시 · 색 · 굵기 · 실선/점선. show 를 true 로 켜면 그 키를 뺀다 (템플릿 기본은 켜짐) */
-export function setBorder(stored: DocumentContent, patch: Partial<Pick<BorderView, 'show' | 'color' | 'width' | 'style'>>): DocumentContent {
-  const base: JsonObject = isObject(stored) ? stored : {}
-  const style = isObject(base.style) ? base.style : {}
-  const next: Record<string, unknown> = { ...patch }
-  if (patch.show === true) next.show = undefined
-  const border = assign({ ...(isObject(style.border) ? style.border : {}) }, next)
-  return { ...base, style: { ...style, border } }
-}
-
 /** 초기화: 템플릿 처음 모양(기본 문구 · 기본 블록)으로. 문서 제목은 그대로 */
 export function resetToTemplate(stored: DocumentContent): DocumentContent {
   return serializeHandout(createHandoutContent(resolveHandout(stored).templateId))
 }
 
-/** 배경색 (style.background) */
-export function setBackground(stored: DocumentContent, color: string): DocumentContent {
+/** 배경색 (style.background). undefined 면 템플릿 기본 색으로 (그 키를 뺀다) */
+export function setBackground(stored: DocumentContent, color: string | undefined): DocumentContent {
   const base: JsonObject = isObject(stored) ? stored : {}
-  const style = isObject(base.style) ? base.style : {}
-  return { ...base, style: { ...style, background: color } }
+  const style: JsonObject = { ...(isObject(base.style) ? base.style : {}) }
+  if (color === undefined) {
+    if (!Object.hasOwn(style, 'background')) return stored
+    delete style.background
+  } else style.background = color
+  return { ...base, style }
 }
 
 /** 블록 추가: afterId 블록이 있는 행 바로 아래 새 행으로 (없으면 맨 아래) */

@@ -1,7 +1,6 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Icon } from '../../../components/Icon'
 import {
-  BORDER_STYLES,
   LINE_STYLES,
   lineSegments,
   MAX_FONT_SIZE,
@@ -16,7 +15,7 @@ import {
   type LineStyle,
   type TextBlock,
 } from '../layout'
-import { removeBlock, setBackground, setBorder, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
+import { removeBlock, setBackground, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
 import { normalizeHex, validateImageUrl, type HandoutImage } from '../model'
 
 /** 이미지에서 사용자가 고친 부분. url 은 validateImageUrl 로 검사한 주소 */
@@ -43,11 +42,49 @@ interface PanelProps {
   onRemoved(): void
 }
 
-/** 색 고르기: 지금 색 동그라미(누르면 색 고르기 창) + HEX 입력 */
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange(hex: string): void }) {
+/**
+ * 색 고르기 (로그 에디터와 같은 방식): 동그라미를 누르면 '색 고르기'와 '기본 색으로'가 나온다.
+ * 색 고르기 창에서는 끌면서 골라도 저장하지 않고, 창을 닫으며 고른 색이 정해질 때(change: Enter 등) 한 번만 적용한다.
+ * HEX 를 직접 넣어 적용할 수도 있다.
+ */
+function ColorField({ label, value, onChange, onReset }: { label: string; value: string; onChange(hex: string): void; onReset?: () => void }) {
   const id = useId()
   const [draft, setDraft] = useState(value)
   const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const pickRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  // 색 고르기 창에서 고른 색이 정해질 때(change) 한 번만 적용 — 끄는 동안(input)은 저장하지 않는다
+  useEffect(() => {
+    const el = pickRef.current
+    if (!el) return
+    const onPicked = () => {
+      const hex = normalizeHex(el.value)
+      if (!hex) return
+      setDraft(hex)
+      setError(null)
+      setOpen(false)
+      if (hex !== value) onChange(hex)
+    }
+    el.addEventListener('change', onPicked)
+    return () => el.removeEventListener('change', onPicked)
+  }, [open, value, onChange])
+
   const apply = (event?: FormEvent) => {
     event?.preventDefault()
     const hex = normalizeHex(draft)
@@ -62,18 +99,37 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   return (
     <>
       <form className="color-field" onSubmit={apply}>
-        <label className="color-dot" style={{ background: value }} title={`${label} 고르기`}>
-          <input
-            type="color"
-            aria-label={`${label} 고르기`}
-            value={value}
-            onChange={(event) => {
-              setDraft(event.target.value)
-              setError(null)
-              onChange(event.target.value)
-            }}
+        <div className="color-wrap" ref={wrapRef}>
+          <button
+            type="button"
+            className="color-dot"
+            style={{ background: value }}
+            aria-label={`${label} (${value})`}
+            aria-expanded={open}
+            title={`${label} 고르기`}
+            onClick={() => setOpen((v) => !v)}
           />
-        </label>
+          {open && (
+            <div className="color-pop" role="dialog" aria-label={label}>
+              <label className="color-pick">
+                <input ref={pickRef} type="color" defaultValue={value} aria-label={`${label} 고르기`} />
+                <span>색 고르기</span>
+              </label>
+              {onReset && (
+                <button
+                  type="button"
+                  className="btn small"
+                  onClick={() => {
+                    onReset()
+                    setOpen(false)
+                  }}
+                >
+                  기본 색으로
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <label className="sr-only" htmlFor={id}>
           {label} HEX 코드
         </label>
@@ -107,69 +163,13 @@ function BackgroundSection({ layout, onEdit }: PanelProps) {
   return (
     <div className="panel-section">
       <span className="field-label">배경색</span>
-      <ColorField key={layout.background} label="배경색" value={layout.background} onChange={(hex) => onEdit((stored) => setBackground(stored, hex), 'background')} />
-    </div>
-  )
-}
-
-const BORDER_LABELS = { solid: '실선', dotted: '점선' } as const
-
-function BorderSection({ layout, onEdit }: PanelProps) {
-  const border = layout.border
-  if (!border) return null
-  return (
-    <div className="panel-section">
-      <label className="border-toggle">
-        <span className="field-label">테두리 표시</span>
-        <input
-          type="checkbox"
-          role="switch"
-          className="opt-switch"
-          aria-label="테두리 표시"
-          checked={border.show}
-          onChange={(event) => onEdit((stored) => setBorder(stored, { show: event.target.checked }))}
-        />
-      </label>
-      {border.show && (
-        <>
-          <span className="field-label sub">테두리 색</span>
-          <ColorField key={`border:${border.color}`} label="테두리 색" value={border.color} onChange={(color) => onEdit((stored) => setBorder(stored, { color }), 'border')} />
-          <div className="rule-tools">
-            <span className="rule-tool-label">굵기</span>
-            <NumberStepper
-              key={`border:${border.width}`}
-              value={border.width}
-              min={MIN_THICKNESS}
-              max={MAX_THICKNESS}
-              label="테두리 굵기 (px)"
-              less="테두리 얇게"
-              more="테두리 굵게"
-              onChange={(width) => onEdit((stored) => setBorder(stored, { width }))}
-            />
-          </div>
-          <span className="field-label sub" id="border-style">
-            스타일
-          </span>
-          <div className="line-styles" role="group" aria-labelledby="border-style">
-            {BORDER_STYLES.map((style) => {
-              const active = border.style === style
-              return (
-                <button
-                  key={style}
-                  type="button"
-                  className={active ? 'btn small active' : 'btn small'}
-                  aria-pressed={active}
-                  aria-label={`테두리 ${BORDER_LABELS[style]}`}
-                  onClick={() => !active && onEdit((stored) => setBorder(stored, { style }))}
-                >
-                  <LineIcon style={style} />
-                  <span>{BORDER_LABELS[style]}</span>
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
+      <ColorField
+        key={layout.background}
+        label="배경색"
+        value={layout.background}
+        onChange={(hex) => onEdit((stored) => setBackground(stored, hex))}
+        onReset={() => onEdit((stored) => setBackground(stored, undefined))}
+      />
     </div>
   )
 }
@@ -253,7 +253,7 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
     <div className="panel-section">
       <span className="field-label">글상자 편집</span>
       <span className="field-label sub">글자 색</span>
-      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => onEdit(setBlockStyle(block.id, { color }), `color:${block.id}`)} />
+      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => onEdit(setBlockStyle(block.id, { color }))} />
       <span className="field-label sub">꾸밈 · 크기</span>
       <div className="text-tools">
         <button
@@ -456,7 +456,7 @@ function RuleSection({
     <div className="panel-section">
       <span className="field-label">구분선 편집</span>
       <span className="field-label sub">선 색</span>
-      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }), `rule:${block.id}`)} />
+      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }))} />
       <span className="field-label sub">길이 · 굵기</span>
       <div className="rule-tools">
         <span className="rule-tool-label">길이</span>
@@ -538,7 +538,6 @@ export function DesignPanel(props: PanelProps) {
         </button>
       </div>
       <BackgroundSection {...props} />
-      <BorderSection {...props} />
       <BlockSection {...props} />
       <EditSection {...props} />
     </>

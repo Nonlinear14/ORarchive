@@ -351,7 +351,8 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(within(panel).getByText(/블록을 고르면 여기에 편집 옵션이 나와요/)).toBeInTheDocument()
     // 순서: 배경색 → 블록 추가 → 편집
     const labels = [...panel.querySelectorAll('.panel-section > .field-label:not(.sub), .border-toggle > .field-label')].map((el) => el.textContent)
-    expect(labels).toEqual(['배경색', '테두리 표시', '블록 추가', '편집'])
+    expect(labels).toEqual(['배경색', '블록 추가', '편집'])
+    expect(within(panel).queryByRole('switch', { name: '테두리 표시' })).not.toBeInTheDocument()
     expect(within(panel).getByRole('button', { name: /초기화/ })).toBeInTheDocument()
     expect(within(panel).getByRole('button', { name: /선택한 블록 삭제/ })).toBeDisabled()
     // 비공개 안내는 미리보기 위, 내보내기는 미리보기 아래
@@ -374,9 +375,23 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(rowsOf(saved().content)).toBeNull()
     expect(document.querySelector<HTMLElement>('.hb-canvas.editable .hc-frame')!.style.backgroundColor).toBe('rgb(217, 228, 220)')
 
-    fireEvent.change(screen.getByLabelText('배경색 고르기'), { target: { value: '#112233' } })
+    // 색 고르기 (로그 에디터 방식): 동그라미 → 색 고르기 창. 끄는 동안(input)은 적용하지 않고, 정해질 때(change) 한 번
+    fireEvent.click(screen.getByRole('button', { name: '배경색 (#d9e4dc)' }))
+    const picker = screen.getByLabelText('배경색 고르기') as HTMLInputElement
+    picker.value = '#445566'
+    fireEvent.input(picker)
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(saved().content).toMatchObject({ style: { background: '#d9e4dc' } })
+    picker.value = '#112233'
+    fireEvent.change(picker)
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(saved().content).toMatchObject({ style: { background: '#112233' } })
+    expect(screen.queryByLabelText('배경색 고르기')).not.toBeInTheDocument()
+    // 기본 색으로: 템플릿 배경색 (style.background 를 뺀다)
+    fireEvent.click(screen.getByRole('button', { name: '배경색 (#112233)' }))
+    fireEvent.click(screen.getByRole('button', { name: '기본 색으로' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect((saved().content as unknown as { style: object }).style).not.toHaveProperty('background')
   })
 
   it('텍스트 블록을 고르면 글자 색 · 굵게 · 기울임 · 크기(1px, 8–48)를 바꾼다', async () => {
@@ -511,23 +526,12 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(rule.style.paddingTop).toBe('12px')
   })
 
-  it('테두리: 한 겹 · 끄면 숨기고(설정은 남김) · 켜면 색 · 굵기 · 실선/점선', async () => {
-    const { saved } = await openStudio()
-    const frames = () => [...document.querySelectorAll<HTMLElement>('.hb-canvas.editable .hc-frame, .hb-canvas.editable .hc-frame div')].filter((el) => el.style.border)
-    expect(frames()).toHaveLength(1)
-    expect(frames()[0].style.border).toBe('1px solid rgb(170, 151, 117)')
-    vi.useFakeTimers()
-    fireEvent.click(screen.getByRole('button', { name: '테두리 굵게' }))
-    fireEvent.click(screen.getByRole('button', { name: '테두리 점선' }))
-    fireEvent.click(screen.getByRole('switch', { name: '테두리 표시' }))
-    expect(frames()).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: '테두리 굵게' })).not.toBeInTheDocument()
-    await act(() => vi.advanceTimersByTimeAsync(800))
-    expect(saved().content).toMatchObject({ style: { border: { width: 2, style: 'dotted', show: false } } })
-    fireEvent.click(screen.getByRole('switch', { name: '테두리 표시' }))
-    expect(frames()[0].style.border).toBe('2px dotted rgb(170, 151, 117)')
-    await act(() => vi.advanceTimersByTimeAsync(800))
-    expect((saved().content as unknown as { style: { border: object } }).style.border).toEqual({ width: 2, style: 'dotted' })
+  it('테두리: 템플릿 바깥 틀 한 겹만 (옵션 없음)', async () => {
+    await openStudio()
+    const framed = [...document.querySelectorAll<HTMLElement>('.hb-canvas.editable .hc-frame, .hb-canvas.editable .hc-frame div')].filter((el) => el.style.border)
+    expect(framed).toHaveLength(1)
+    expect(framed[0].style.border).toBe('1px solid rgb(170, 151, 117)')
+    expect(screen.queryByText('테두리 색')).not.toBeInTheDocument()
   })
 
   it('초기화: 확인 뒤 템플릿 처음 모양으로 (제목은 그대로) · 되돌리기로 다시 살린다', async () => {

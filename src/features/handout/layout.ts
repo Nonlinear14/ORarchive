@@ -131,8 +131,6 @@ export interface HandoutLayout {
   bodyStyle: TextBlockStyle
   /** 내용 칸 너비(px): 폭에서 틀의 좌우 여백 · 테두리를 뺀 값 (구분선 최대 길이) */
   contentWidth: number
-  /** 틀 테두리 (템플릿에 없으면 null) */
-  border: BorderView | null
 }
 
 /** 그릴 구분선 길이(px) */
@@ -173,29 +171,8 @@ function paddingLR(padding: string): number {
 type JsonObject = { [key: string]: Json | undefined }
 const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** 틀 테두리 (한 겹 · 실선이나 점선). show 가 false 면 숨김 */
-export interface BorderView {
-  show: boolean
-  color: string
-  width: number
-  style: 'solid' | 'dotted'
-}
-export const BORDER_STYLES: BorderView['style'][] = ['solid', 'dotted']
-export const borderCss = (b: BorderView) => `${b.width}px ${b.style} ${b.color}`
-
-/** 템플릿 테두리(바깥 틀 한 겹) + 저장된 style.border(사용자가 고친 값) */
-function borderOf(spec: BorderSpec | undefined, look: HandoutLook, raw: Json | undefined): BorderView | null {
-  if (!spec) return null
-  const view: BorderView = { show: true, color: look.colors[spec.color], width: spec.width, style: spec.style === 'dotted' ? 'dotted' : 'solid' }
-  if (!isObject(raw)) return view
-  if (raw.show === false) view.show = false
-  const color = normalizeHex(raw.color)
-  if (color) view.color = color
-  const width = num(raw.width, MIN_THICKNESS, MAX_THICKNESS)
-  if (width !== undefined) view.width = Math.round(width)
-  if (raw.style === 'solid' || raw.style === 'dotted') view.style = raw.style
-  return view
-}
+/** 틀 테두리: 템플릿 바깥 틀 한 겹 (편집 옵션 없음) */
+const borderCss = (spec: BorderSpec, look: HandoutLook) => `${spec.width}px ${spec.style ?? 'solid'} ${look.colors[spec.color]}`
 
 function textStyleOf(style: TextStyle, look: HandoutLook, align: Align): TextBlockStyle {
   const out: TextBlockStyle = { size: style.size, color: look.colors[style.color], align: style.align ?? align }
@@ -445,8 +422,7 @@ export function resolveLayout(stored: DocumentContent): HandoutLayout {
 export function layoutOf(content: HandoutContent, raw: Json[] | null = null, rawStyle?: Json): HandoutLayout {
   const look = resolveLook(content)
   const { frames: bare, align, children, borderSpec, borderAt } = splitFrames(look)
-  const border = borderOf(borderSpec, look, isObject(rawStyle) ? rawStyle.border : undefined)
-  const frames = bare.map((f, i) => (i === borderAt && border?.show ? { ...f, border: borderCss(border) } : f))
+  const frames = bare.map((f, i) => (i === borderAt && borderSpec ? { ...f, border: borderCss(borderSpec, look) } : f))
   const derived = deriveRows(content, look, children, align)
   const bodyStyle = bodyStyleOf(derived, look)
   const rows = raw ? parseRows(raw, bodyStyle) : derived
@@ -455,7 +431,7 @@ export function layoutOf(content: HandoutContent, raw: Json[] | null = null, raw
     MIN_RULE_LENGTH,
     look.template.width - frames.reduce((sum, f) => sum + paddingLR(f.padding) + 2 * (parseFloat(f.border ?? '0') || 0), 0),
   )
-  return { width: look.template.width, background, frames, align, rows, bodyStyle, contentWidth, border }
+  return { width: look.template.width, background, frames, align, rows, bodyStyle, contentWidth }
 }
 
 export function findBlock(layout: HandoutLayout, id: string | null): LayoutBlock | null {
