@@ -1,8 +1,8 @@
 .topbar {
-  height: 76px;
+  height: var(--topbar-h, 76px);
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 70;
   background: rgba(250, 249, 245, 0.93);
   backdrop-filter: blur(15px);
   border-bottom: 1px solid var(--line);
@@ -12,26 +12,33 @@
   padding: 0 38px;
 }
 
-.mobile-brand {
-  display: none;
-}
-
-.crumbs {
+/* 왼쪽: 사이트 아이콘 · 이름 · 부제 */
+.top-brand {
   display: flex;
-  gap: 10px;
   align-items: center;
-  color: #99a09b;
+  gap: 11px;
+  min-width: 0;
+  color: var(--heading-ink, #273b35);
+}
+
+.top-brand .brandmark {
+  width: 36px;
+  height: 36px;
+}
+
+.top-brand .brandname {
+  font: 700 21px/1 var(--font, sans-serif);
+  letter-spacing: 0.2px;
+  color: #273b35;
+}
+
+.top-brand .brandsub {
   font-size: 12px;
-}
-
-.crumbs .ico {
-  width: 14px;
-  height: 14px;
-}
-
-.crumbs strong {
-  color: #33423f;
   font-weight: 700;
+  color: #8a918c;
+  white-space: nowrap;
+  padding-left: 11px;
+  border-left: 1px solid var(--line);
 }
 
 .top-actions {
@@ -75,26 +82,24 @@
 
 @media (max-width: 750px) {
   .topbar {
-    height: 61px;
     padding: 0 17px;
   }
 
-  .mobile-brand {
-    display: flex;
-    align-items: center;
+  .top-brand {
     gap: 7px;
-    font: 700 18px var(--font, sans-serif);
-    color: #273b35;
   }
 
-  .mobile-brand .brandmark {
+  .top-brand .brandname {
+    font-size: 18px;
+  }
+
+  .top-brand .brandsub {
+    display: none;
+  }
+
+  .top-brand .brandmark {
     width: 27px;
     height: 27px;
-    border-radius: 7px;
-  }
-
-  .crumbs {
-    display: none;
   }
 
       .top-actions {

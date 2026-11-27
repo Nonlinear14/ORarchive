@@ -3,7 +3,6 @@ import { closeMobileSidebar, useSidebarCollapsed } from '../lib/sidebar'
 import { NavLink, useLocation } from 'react-router'
 import { toggleTheme, useTheme } from '../lib/theme'
 import { navSections, type NavSection } from '../routes'
-import { SidebarBrand } from './Brand'
 import { Icon } from './Icon'
 import './Sidebar.css'
 
@@ -78,7 +77,6 @@ export function Sidebar() {
     <>
       {!collapsed && <button type="button" className="side-backdrop" aria-label="메뉴 닫기" tabIndex={-1} onClick={closeMobileSidebar} />}
       <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'} id="main-sidebar">
-        <SidebarBrand />
         {/* 접으면 사이트 아이콘만 남는다 (메뉴는 상단바 버튼으로 펼친 뒤) */}
         <nav className="side-content" aria-label="주 메뉴" hidden={collapsed}>
           {navSections.map((section) => (

@@ -55,7 +55,7 @@ describe('앱 셸', () => {
 const nav = () => screen.queryByRole('navigation', { name: '주 메뉴' })
 
 describe('사이드바 접고 펴기 버튼', () => {
-  it('넓은 화면: 접으면 사이트 아이콘만 남는다 (메뉴 아이콘 없음) · 다시 펴기 · 이 기기에 기억', async () => {
+  it('넓은 화면: 접으면 사이드바가 완전히 사라진다 · 다시 펴기 · 이 기기에 기억', async () => {
     localStorage.removeItem('folio-sidebar-collapsed')
     renderApp('/', { client: createFakeSupabase().client })
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
@@ -65,7 +65,8 @@ describe('사이드바 접고 펴기 버튼', () => {
       expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
       expect(nav()).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
-      expect(screen.getAllByRole('link', { name: 'ORarchive 홈으로 이동' })[0]).toBeVisible()
+      // 사이트 아이콘 · 이름은 상단바에 그대로
+      expect(screen.getByRole('link', { name: 'ORarchive 홈으로 이동' })).toBeVisible()
       expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('1')
     } finally {
       fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
@@ -106,7 +107,7 @@ describe('휴대폰 (≤750px): 사이드바 서랍', () => {
 })
 
 describe('좁은 화면 (≤1050px)', () => {
-  it('기본으로 접혀 사이트 아이콘만 · 버튼으로 펼친다 (기억하지 않음)', async () => {
+  it('평소에는 사라져 있고 · 버튼으로 서랍을 연다 (기억하지 않음, 메뉴를 고르면 닫힘)', async () => {
     const original = window.matchMedia
     window.matchMedia = ((query: string) => ({
       matches: query.includes('1050'),
@@ -123,6 +124,8 @@ describe('좁은 화면 (≤1050px)', () => {
       fireEvent.click(within(nav()!).getByRole('link', { name: '롤꾸코드 편집' }))
       expect(await screen.findByRole('heading', { level: 1, name: '롤꾸코드 편집' })).toBeInTheDocument()
       expect(localStorage.getItem('folio-sidebar-collapsed')).toBeNull()
+      expect(nav()).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
       fireEvent.click(screen.getByRole('button', { name: '사이드바 접기' }))
       expect(nav()).not.toBeInTheDocument()
     } finally {
@@ -150,8 +153,10 @@ describe('라우트 (로그인 상태)', () => {
     renderApp(path, { client })
 
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
-    const crumbs = screen.getByRole('navigation', { name: '현재 위치' })
-    expect(within(crumbs).getByText(crumb)).toBeInTheDocument()
+    // 상단바 왼쪽은 경로 대신 사이트 아이콘 · 이름 (홈으로)
+    void crumb
+    expect(screen.queryByRole('navigation', { name: '현재 위치' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'ORarchive 홈으로 이동' })).toHaveAttribute('href', '/')
 
     const sidebar = screen.getByRole('navigation', { name: '주 메뉴' })
     if (activeLabel) expect(within(sidebar).getByRole('link', { current: 'page' })).toHaveTextContent(activeLabel)

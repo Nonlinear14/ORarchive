@@ -1,6 +1,21 @@
 .app {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
+  --topbar-h: 76px;
+}
+
+/* 상단바 아래: 사이드바(왼쪽) + 본문 */
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+@media (max-width: 750px) {
+  .app {
+    --topbar-h: 61px;
+  }
 }
 
 .main {

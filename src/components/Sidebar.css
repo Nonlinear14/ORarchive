@@ -5,21 +5,13 @@
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--topbar-h, 76px);
+  height: calc(100vh - var(--topbar-h, 76px));
   flex-shrink: 0;
   border-right: 1px solid #283941;
   z-index: 30;
 }
 
-.brand {
-  height: 88px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 24px 21px;
-  border-bottom: 1px solid var(--side-line);
-}
 
 .brandmark {
   width: 39px;
@@ -30,7 +22,6 @@
   flex-shrink: 0;
 }
 
-/* 주사위 아이콘: 금색 바탕 위에 사이드바 남색 */
 .brandmark svg {
   width: 100%;
   height: 100%;
@@ -46,19 +37,7 @@
   fill: var(--side-bg, #142128);
 }
 
-.brandname {
-  font: 700 21px/1.1 var(--font, sans-serif);
-  letter-spacing: 0.2px;
-  color: #f1ebdf;
-}
 
-.brandsub {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #dfe8e3;
-  margin-top: 4px;
-  white-space: nowrap;
-}
 
 .side-content {
   flex: 1;
@@ -238,68 +217,41 @@
 }
 
 
-/* 접힌 사이드바: 상위 메뉴 아이콘만 (하위 메뉴는 말풍선). 좁은 화면(≤1050px)은 기본으로 접힘, 상단바 버튼으로 접고 편다 */
+/* 넓은 화면에서 접으면 완전히 사라진다 */
 .sidebar.is-collapsed {
-  width: 75px;
-}
-
-.sidebar.is-collapsed .brand {
-  padding: 19px;
-  justify-content: center;
-}
-
-.sidebar.is-collapsed .brand .brandtext,
-.sidebar.is-collapsed .side-content,
-.sidebar.is-collapsed .side-footer {
   display: none;
 }
 
-.sidebar.is-collapsed .side-content {
-  padding: 16px 9px;
-}
-
-.sidebar.is-collapsed .nav-section {
-  margin: 0 0 4px;
-}
-
-.sidebar.is-collapsed .nav-title {
-  justify-content: center;
-  padding: 14px 4px;
-}
-
-.sidebar.is-collapsed .nav-title .ico {
-  width: 21px;
-  height: 21px;
-}
-
-/* ≤750px: 사이드바는 왼쪽에서 나오는 서랍 (상단바 버튼으로 연다, 하단 메뉴 없음) */
+/* ≤1050px: 평소에는 사라져 있고, 상단바 버튼으로 본문 위에 겹쳐 여는 서랍 (상단바 아래) */
 .side-backdrop {
   display: none;
 }
 
-@media (max-width: 750px) {
+@media (max-width: 1050px) {
   .sidebar,
   .sidebar.is-collapsed {
+    display: flex;
     position: fixed;
     left: 0;
-    top: 0;
+    top: var(--topbar-h, 76px);
     width: min(290px, 84vw);
-    height: 100dvh;
+    height: calc(100dvh - var(--topbar-h, 76px));
     z-index: 60;
     transform: translateX(-102%);
     transition: transform 0.22s ease;
-    box-shadow: none;
+    visibility: hidden;
   }
 
   .sidebar:not(.is-collapsed) {
     transform: none;
+    visibility: visible;
     box-shadow: 0 0 40px rgba(10, 20, 24, 0.35);
   }
 
   .side-backdrop {
     display: block;
     position: fixed;
-    inset: 0;
+    inset: var(--topbar-h, 76px) 0 0 0;
     z-index: 55;
     background: rgba(14, 24, 28, 0.42);
     border: 0;
@@ -313,4 +265,3 @@
     }
   }
 }
-

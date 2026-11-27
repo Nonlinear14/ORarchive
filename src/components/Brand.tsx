@@ -33,23 +33,13 @@ export function Brandmark() {
   )
 }
 
-export function SidebarBrand() {
+/** 상단바 왼쪽: 사이트 아이콘 · 이름 (PC 는 부제도). 누르면 홈 */
+export function TopBrand() {
   return (
-    <Link to="/" className="brand" aria-label="ORarchive 홈으로 이동">
+    <Link to="/" className="top-brand" aria-label="ORarchive 홈으로 이동">
       <Brandmark />
-      <div className="brandtext">
-        <div className="brandname">ORarchive</div>
-        <div className="brandsub">ORPG를 위한 툴 아카이브</div>
-      </div>
-    </Link>
-  )
-}
-
-export function MobileBrand() {
-  return (
-    <Link to="/" className="mobile-brand" aria-label="ORarchive 홈으로 이동">
-      <Brandmark />
-      ORarchive
+      <span className="brandname">ORarchive</span>
+      <span className="brandsub">ORPG를 위한 툴 아카이브</span>
     </Link>
   )
 }

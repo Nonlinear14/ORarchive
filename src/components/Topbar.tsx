@@ -1,24 +1,16 @@
-import { useLocation } from 'react-router'
 import { toggleSidebar, useSidebarCollapsed } from '../lib/sidebar'
-import { pageLabel } from '../routes'
-import { MobileBrand } from './Brand'
+import { TopBrand } from './Brand'
 import { Icon } from './Icon'
 import { PendingIndicator } from './PendingIndicator'
 import { ProfileMenu } from './ProfileMenu'
 import './Topbar.css'
 
 export function Topbar() {
-  const { pathname } = useLocation()
   const collapsed = useSidebarCollapsed()
 
   return (
     <header className="topbar">
-      <MobileBrand />
-      <nav className="crumbs" aria-label="현재 위치">
-        <span>Workspace</span>
-        <Icon name="chev" />
-        <strong aria-current="page">{pageLabel(pathname)}</strong>
-      </nav>
+      <TopBrand />
       <div className="top-actions">
         <PendingIndicator />
         <button

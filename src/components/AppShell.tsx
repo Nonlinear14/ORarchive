@@ -6,12 +6,14 @@ import './AppShell.css'
 export function AppShell() {
   return (
     <div className="app">
-      <Sidebar />
-      <div className="main">
-        <Topbar />
-        <main className="stage">
-          <Outlet />
-        </main>
+      <Topbar />
+      <div className="app-body">
+        <Sidebar />
+        <div className="main">
+          <main className="stage">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   )

@@ -41,13 +41,12 @@
 :root[data-theme='dark'] .field-help,
 :root[data-theme='dark'] .empty,
 :root[data-theme='dark'] .loading-state,
-:root[data-theme='dark'] .crumbs {
+:root[data-theme='dark'] .top-brand .brandsub {
   color: var(--d-text-muted);
 }
 
 :root[data-theme='dark'] .section-top h2,
-:root[data-theme='dark'] .crumbs strong,
-:root[data-theme='dark'] .mobile-brand {
+:root[data-theme='dark'] .top-brand .brandname {
   color: var(--d-text-strong);
 }
 
