@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList } from '../../../components/DocumentList'
+import { ListSearch } from '../../../components/ListSearch'
+import { matchesTitle } from '../../../lib/listSearch'
 import { Icon } from '../../../components/Icon'
 import { LoadingState } from '../../../components/LoadingState'
 import { PageHeading } from '../../../components/PageHeading'
@@ -18,6 +20,8 @@ export default function LogListPage() {
   const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState<DocumentSummary | null>(null)
   const logs = docs.filter((doc) => doc.type === 'log')
+  const [query, setQuery] = useState('')
+  const shown = logs.filter((doc) => matchesTitle(doc.title, query))
 
   return (
     <>
@@ -35,7 +39,11 @@ export default function LogListPage() {
         <div className="section-top">
           <div>
             <h2 id="logs-mine">내 로그</h2>
-            <p>{status === 'ready' ? `로그 ${logs.length}개 · 열면 로그 편집기에서 이어서 편집해요` : ' '}</p>
+            <p>
+              {status === 'ready'
+                ? `로그 ${query.trim() ? `${logs.length}개 중 ${shown.length}개` : `${logs.length}개`} · 열면 로그 편집기에서 이어서 편집해요`
+                : ' '}
+            </p>
           </div>
         </div>
         {status === 'loading' && <LoadingState label="내 로그를 불러오는 중…" />}
@@ -60,7 +68,16 @@ export default function LogListPage() {
               </button>
             </div>
           ) : (
-            <DocumentList docs={logs} onDelete={setDeleting} showVisibility={false} kindColumn={{ label: '플랫폼', chip: logPlatformChip }} />
+            <>
+              <ListSearch label="로그 목록 검색" value={query} onChange={setQuery} />
+              {shown.length === 0 ? (
+                <div className="list-search-empty" role="status">
+                  이름이 맞는 로그가 없어요. 다른 검색어로 찾아보세요.
+                </div>
+              ) : (
+                <DocumentList docs={shown} onDelete={setDeleting} showVisibility={false} kindColumn={{ label: '플랫폼', chip: logPlatformChip }} />
+              )}
+            </>
           ))}
       </section>
       {importing && <ImportLogDialog onClose={() => setImporting(false)} />}

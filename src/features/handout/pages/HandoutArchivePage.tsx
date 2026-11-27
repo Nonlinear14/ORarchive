@@ -3,6 +3,8 @@ import { Link } from 'react-router'
 import { Modal } from '../../../components/Modal'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList, KindChip } from '../../../components/DocumentList'
+import { ListSearch } from '../../../components/ListSearch'
+import { matchesTitle } from '../../../lib/listSearch'
 import { Icon } from '../../../components/Icon'
 import { LoadingState } from '../../../components/LoadingState'
 import { PageHeading } from '../../../components/PageHeading'
@@ -36,14 +38,7 @@ function ViewToggle({ view, onChange }: { view: ArchiveView; onChange(view: Arch
   return (
     <div className="segmented view-toggle" role="radiogroup" aria-label="보기 방식">
       {options.map(([value, label]) => (
-        <button
-          key={value}
-          type="button"
-          role="radio"
-          aria-checked={view === value}
-          className={view === value ? 'active' : ''}
-          onClick={() => onChange(value)}
-        >
+        <button key={value} type="button" role="radio" aria-checked={view === value} className={view === value ? 'active' : ''} onClick={() => onChange(value)}>
           <Icon name={value === 'grid' ? 'home' : 'library'} />
           {label}
         </button>
@@ -52,15 +47,7 @@ function ViewToggle({ view, onChange }: { view: ArchiveView; onChange(view: Arch
   )
 }
 
-function HandoutCard({
-  doc,
-  onOpen,
-  onDelete,
-}: {
-  doc: DocumentSummary
-  onOpen(doc: DocumentSummary): void
-  onDelete(doc: DocumentSummary): void
-}) {
+function HandoutCard({ doc, onOpen, onDelete }: { doc: DocumentSummary; onOpen(doc: DocumentSummary): void; onDelete(doc: DocumentSummary): void }) {
   const title = doc.title.trim() || '제목 없음'
   return (
     <article className="handout-card">
@@ -94,9 +81,7 @@ function HandoutPreviewDialog({ doc, onClose }: { doc: DocumentSummary; onClose(
       <div className="handout-preview-stage">
         <HandoutPreview id={doc.id} />
       </div>
-      <p className="handout-preview-meta">
-        {formatRelativeTime(doc.updated_at)} 수정 · "이 템플릿 사용하기"는 사본을 만들어 편집해요. 원본은 그대로 남아요.
-      </p>
+      <p className="handout-preview-meta">{formatRelativeTime(doc.updated_at)} 수정 · "이 템플릿 사용하기"는 사본을 만들어 편집해요. 원본은 그대로 남아요.</p>
       {error && (
         <div className="callout danger gallery-error" role="alert">
           <Icon name="alert" />
@@ -124,6 +109,8 @@ export default function HandoutArchivePage() {
   const [previewing, setPreviewing] = useState<DocumentSummary | null>(null)
   const [picking, setPicking] = useState(false)
   const handouts = docs.filter((doc) => doc.type === 'handout')
+  const [query, setQuery] = useState('')
+  const shown = handouts.filter((doc) => matchesTitle(doc.title, query))
   useSeedSampleHandout(status === 'ready', handouts.length, reload)
 
   function changeView(next: ArchiveView) {
@@ -155,7 +142,11 @@ export default function HandoutArchivePage() {
         <div className="section-top">
           <div>
             <h2 id="archive-mine">내 핸드아웃</h2>
-            <p>{status === 'ready' ? `핸드아웃 ${handouts.length}개 · 고르면 미리보기가 열려요` : ' '}</p>
+            <p>
+              {status === 'ready'
+                ? `핸드아웃 ${query.trim() ? `${handouts.length}개 중 ${shown.length}개` : `${handouts.length}개`} · 고르면 미리보기가 열려요`
+                : ' '}
+            </p>
           </div>
         </div>
         {status === 'loading' && <LoadingState label="내 핸드아웃을 불러오는 중…" />}
@@ -179,14 +170,28 @@ export default function HandoutArchivePage() {
                 템플릿을 골라 새 핸드아웃 만들기 <Icon name="arrow" />
               </button>
             </div>
-          ) : view === 'grid' ? (
-            <div className="handout-grid">
-              {handouts.map((doc) => (
-                <HandoutCard key={doc.id} doc={doc} onOpen={setPreviewing} onDelete={setDeleting} />
-              ))}
-            </div>
           ) : (
-            <DocumentList docs={handouts} onOpen={setPreviewing} onDelete={setDeleting} kindColumn={{ label: '유형', chip: () => templateKindChips.handout }} />
+            <>
+              <ListSearch label="템플릿 목록 검색" value={query} onChange={setQuery} />
+              {shown.length === 0 ? (
+                <div className="list-search-empty" role="status">
+                  이름이 맞는 핸드아웃이 없어요. 다른 검색어로 찾아보세요.
+                </div>
+              ) : view === 'grid' ? (
+                <div className="handout-grid">
+                  {shown.map((doc) => (
+                    <HandoutCard key={doc.id} doc={doc} onOpen={setPreviewing} onDelete={setDeleting} />
+                  ))}
+                </div>
+              ) : (
+                <DocumentList
+                  docs={shown}
+                  onOpen={setPreviewing}
+                  onDelete={setDeleting}
+                  kindColumn={{ label: '유형', chip: () => templateKindChips.handout }}
+                />
+              )}
+            </>
           ))}
       </section>
 

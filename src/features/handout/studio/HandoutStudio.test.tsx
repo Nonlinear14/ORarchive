@@ -1048,6 +1048,43 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
   })
 })
 
+describe('템플릿 목록 · 로그 목록 검색', () => {
+  it('템플릿 목록: 이름으로 거르고(대소문자 무시, 미리보기·목록 모두) 개수는 "n개 중 m개"', async () => {
+    const fake = createFakeSupabase()
+    fake.control.insertDocument({ type: 'handout', title: 'Moon 초대장' })
+    fake.control.insertDocument({ type: 'handout', title: '봉인된 편지' })
+    renderApp('/templates', { client: fake.client })
+    const mine = await screen.findByRole('region', { name: '내 핸드아웃' })
+    await within(mine).findByRole('button', { name: '봉인된 편지 미리보기' })
+    const search = within(mine).getByRole('searchbox', { name: '템플릿 목록 검색' })
+    fireEvent.change(search, { target: { value: 'moon' } })
+    expect(within(mine).getByText(/핸드아웃 2개 중 1개/)).toBeInTheDocument()
+    expect(within(mine).getByRole('button', { name: 'Moon 초대장 미리보기' })).toBeInTheDocument()
+    expect(within(mine).queryByRole('button', { name: '봉인된 편지 미리보기' })).not.toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: '보기 방식' })).getByRole('radio', { name: /목록/ }))
+    expect(within(mine).getByRole('table')).not.toHaveTextContent('봉인된 편지')
+    fireEvent.change(search, { target: { value: '우주선' } })
+    expect(within(mine).getByRole('status')).toHaveTextContent('이름이 맞는 핸드아웃이 없어요')
+    fireEvent.change(search, { target: { value: '' } })
+    expect(within(mine).getByText(/핸드아웃 2개 ·/)).toBeInTheDocument()
+  })
+
+  it('로그 목록: 이름으로 거른다', async () => {
+    const fake = createFakeSupabase()
+    fake.control.insertDocument({ type: 'log', title: '안개 낀 도서관' })
+    fake.control.insertDocument({ type: 'log', title: '세션 2' })
+    renderApp('/logs', { client: fake.client })
+    const search = await screen.findByRole('searchbox', { name: '로그 목록 검색' })
+    fireEvent.change(search, { target: { value: '도서관' } })
+    const table = screen.getByRole('table', { name: '문서 목록' })
+    expect(table).toHaveTextContent('안개 낀 도서관')
+    expect(table).not.toHaveTextContent('세션 2')
+    expect(screen.getByText(/로그 2개 중 1개/)).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: '없는 이름' } })
+    expect(screen.getByRole('status')).toHaveTextContent('이름이 맞는 로그가 없어요')
+  })
+})
+
 describe('기본 편집기와의 연결', () => {
   it('/documents/:id 로 연 스튜디오 형식 핸드아웃은 스튜디오로 넘긴다', async () => {
     const fake = createFakeSupabase()

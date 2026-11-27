@@ -351,3 +351,44 @@ a:focus-visible {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* 검색창 (템플릿 선택창 · 템플릿 목록 · 로그 목록) */
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 1px solid #dedbd1;
+  background: #fffdfa;
+  border-radius: 10px;
+  color: #8a918c;
+}
+
+.searchbar input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.searchbar:focus-within {
+  outline: 2px solid #ccb18b;
+  outline-offset: 1px;
+}
+
+.picker-empty,
+.list-search-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 34px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.list-search {
+  max-width: 340px;
+  margin: 0 0 14px;
+}
