@@ -1,3 +1,4 @@
+import { SAMPLE_HANDOUT_CONTENT } from '../templates/sample'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DocumentContent } from '../../../lib/documents'
@@ -877,20 +878,36 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
     expect(screen.queryByRole('region', { name: '새로 시작' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /템플릿으로 시작/ })).not.toBeInTheDocument()
 
+    // 새 계정: 기본 핸드아웃 "핸드아웃 샘플"이 아카이브에 일반 핸드아웃으로 한 번 들어간다
+    const mine = await screen.findByRole('region', { name: '내 핸드아웃' })
+    expect(await within(mine).findByRole('button', { name: '핸드아웃 샘플 미리보기' })).toBeInTheDocument()
+    expect(fake.control.tables.documents).toHaveLength(1)
+    expect(fake.control.tables.documents[0]).toMatchObject({ type: 'handout', title: '핸드아웃 샘플', content: SAMPLE_HANDOUT_CONTENT })
+
     fireEvent.click(await screen.findByRole('button', { name: '새 핸드아웃' }))
-    expect(screen.getByRole('button', { name: /템플릿을 골라 새 핸드아웃 만들기/ })).toBeInTheDocument()
     const dialog = screen.getByRole('dialog', { name: '템플릿 선택' })
-    // 아카이브가 비어 있으면 안내 + 기본 템플릿 (기본 템플릿 핸드아웃을 지정하기 전까지)
+    expect(await within(dialog).findByRole('button', { name: '핸드아웃 샘플 — 이 템플릿 사용하기' })).toBeInTheDocument()
+  })
+
+  it('기본 핸드아웃은 지울 수 있고, 지운 뒤에는 다시 생기지 않는다 · 빈 선택 창에는 기본 핸드아웃만 보인다', async () => {
+    const fake = createFakeSupabase()
+    const sample = fake.control.insertDocument({ type: 'handout', title: '핸드아웃 샘플', content: SAMPLE_HANDOUT_CONTENT })
+    sample.deleted_at = new Date().toISOString()
+    renderApp('/templates', { client: fake.client })
+    const mine = await screen.findByRole('region', { name: '내 핸드아웃' })
+    await waitFor(() => expect(within(mine).getByText(/아직 만든 핸드아웃이 없어요/)).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: '새 핸드아웃' }))
+    const dialog = screen.getByRole('dialog', { name: '템플릿 선택' })
     expect(await within(dialog).findByText(/아직 템플릿 아카이브에 핸드아웃이 없어요/)).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: '비밀 결사의 인장 — 이 템플릿 사용하기' }))
+    // 예전 기본 템플릿 4종은 보이지 않는다
+    expect(within(dialog).getAllByRole('article').map((a) => a.querySelector('strong')!.textContent)).toEqual(['핸드아웃 샘플'])
+    fireEvent.click(within(dialog).getByRole('button', { name: '핸드아웃 샘플 — 이 템플릿 사용하기' }))
     await screen.findByRole('group', { name: '핸드아웃 캔버스' })
-    expect(screen.getByTestId('location').textContent).toMatch(/^\/studio\/handout\/doc-/)
-    expect(fake.control.tables.documents[0]).toMatchObject({
-      type: 'handout',
-      title: '봉인된 서약',
-      content: { templateId: 'order', theme: 'obsidian' },
-    })
-    expect(field('seal')).toHaveTextContent('✠')
+    const created = fake.control.tables.documents.find((d) => d.id !== sample.id)!
+    expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${created.id}`)
+    expect(created).toMatchObject({ type: 'handout', title: '핸드아웃 샘플', content: SAMPLE_HANDOUT_CONTENT })
+    expect(fake.control.tables.documents).toHaveLength(2)
   })
 
   it('핸드아웃을 고르면 미리보기 창이 뜨고, "이 템플릿 사용하기"는 사본을 만들어 연다 (원본 그대로)', async () => {

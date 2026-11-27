@@ -1,6 +1,6 @@
 /**
  * 테스트용 가짜 Supabase 클라이언트.
- * 앱이 쓰는 부분(auth 일부, from().select/insert/update/eq/is/order/single/maybeSingle, rpc)만
+ * 앱이 쓰는 부분(auth 일부, from().select/insert/update/eq/is/order/limit/single/maybeSingle, rpc)만
  * 메모리 테이블 위에서 흉내 낸다. RLS 처럼 현재 사용자의 행만 보이고, documents UPDATE 는 version 을 올린다.
  */
 import type { Session, User } from '@supabase/supabase-js'
@@ -125,6 +125,7 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
     let mode: 'many' | 'single' | 'maybe' = 'many'
     const filters: [string, string, unknown][] = []
     let order: { column: string; ascending: boolean } | null = null
+    let limit: number | null = null
 
     const execute = (): Result => {
       control.calls.push({ table, op, filters: [...filters] })
@@ -168,6 +169,7 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
           const { column, ascending } = order
           rows = [...rows].sort((a, b) => String(a[column]).localeCompare(String(b[column])) * (ascending ? 1 : -1))
         }
+        if (limit !== null) rows = rows.slice(0, limit)
       }
 
       if (op !== 'select' && !returning) return { data: null, error: null }
@@ -211,6 +213,10 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
       },
       order(column: string, opts: { ascending?: boolean } = {}) {
         order = { column, ascending: opts.ascending ?? true }
+        return builder
+      },
+      limit(count: number) {
+        limit = count
         return builder
       },
       single() {

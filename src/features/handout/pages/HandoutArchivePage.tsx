@@ -12,6 +12,7 @@ import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { useRepository } from '../../../lib/useRepository'
 import { HandoutPreview } from '../HandoutPreview'
 import { useCopyHandout } from '../useCopyHandout'
+import { useSeedSampleHandout } from '../useSeedSampleHandout'
 import { TemplatePickerDialog } from './TemplatePicker'
 
 type ArchiveView = 'grid' | 'list'
@@ -119,6 +120,7 @@ export default function HandoutArchivePage() {
   const [previewing, setPreviewing] = useState<DocumentSummary | null>(null)
   const [picking, setPicking] = useState(false)
   const handouts = docs.filter((doc) => doc.type === 'handout')
+  useSeedSampleHandout(status === 'ready', handouts.length, reload)
 
   function changeView(next: ArchiveView) {
     setView(next)

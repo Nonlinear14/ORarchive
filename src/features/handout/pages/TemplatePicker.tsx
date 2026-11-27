@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Icon } from '../../../components/Icon'
 import { LoadingState } from '../../../components/LoadingState'
 import { Modal } from '../../../components/Modal'
-import type { DocumentSummary } from '../../../lib/documents'
+import { documentPath, type DocumentSummary } from '../../../lib/documents'
+import { errorMessageOf } from '../../../lib/documentSync'
+import { useRepository } from '../../../lib/useRepository'
 import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { BlockCanvas } from '../canvas/BlockCanvas'
 import { HandoutPreview } from '../HandoutPreview'
 import { layoutOf } from '../layout'
-import { createHandoutContent, handoutTemplates } from '../templates'
+import { resolveHandout } from '../templates'
+import { sampleHandoutDocument, SAMPLE_HANDOUT_CONTENT, SAMPLE_HANDOUT_TITLE } from '../templates/sample'
 import { useCopyHandout } from '../useCopyHandout'
-import { useCreateHandout } from '../useCreateHandout'
+import { useSeedSampleHandout } from '../useSeedSampleHandout'
 import './TemplateGalleryPage.css'
 
 /** 카드: 미리보기 · 이름 · "이 템플릿 사용하기" */
@@ -41,11 +45,27 @@ function PickCard({
   )
 }
 
-/** 내 핸드아웃이 아직 없을 때만: 기본 템플릿 (기본 템플릿 핸드아웃을 지정하기 전까지 쓰는 임시 목록) */
-function StarterTemplates({ query }: { query: string }) {
-  const { create, busy, error } = useCreateHandout()
-  const list = handoutTemplates.filter((t) => t.name.toLowerCase().includes(query.trim().toLowerCase()))
-  const layouts = useMemo(() => new Map(handoutTemplates.map((t) => [t.id, layoutOf(createHandoutContent(t.id))])), [])
+/** 내 핸드아웃이 하나도 없을 때만: 기본 핸드아웃 "핸드아웃 샘플"로 새로 만든다 */
+function StarterSample({ query }: { query: string }) {
+  const repo = useRepository()
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const layout = useMemo(() => layoutOf(resolveHandout(SAMPLE_HANDOUT_CONTENT)), [])
+  if (!SAMPLE_HANDOUT_TITLE.toLowerCase().includes(query.trim().toLowerCase())) return null
+
+  async function create() {
+    setBusy(true)
+    setError(null)
+    try {
+      const doc = await repo.create({ type: 'handout', ...sampleHandoutDocument() })
+      navigate(documentPath(doc.type, doc.id))
+    } catch (err) {
+      setError(errorMessageOf(err))
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       {error && (
@@ -55,23 +75,20 @@ function StarterTemplates({ query }: { query: string }) {
         </div>
       )}
       <div className="template-grid">
-        {list.map((t) => (
-          <PickCard
-            key={t.id}
-            id={t.id}
-            title={t.name}
-            busy={busy === t.id}
-            disabled={busy !== null}
-            onUse={() => void create(t.id)}
-            preview={
-              <div className={`template-preview tp-${t.id}`} aria-hidden="true">
-                <div className="template-preview-scale">
-                  <BlockCanvas layout={layouts.get(t.id)!} />
-                </div>
+        <PickCard
+          id="sample"
+          title={SAMPLE_HANDOUT_TITLE}
+          busy={busy}
+          disabled={busy}
+          onUse={() => void create()}
+          preview={
+            <div className="template-preview" aria-hidden="true">
+              <div className="template-preview-scale">
+                <BlockCanvas layout={layout} />
               </div>
-            }
-          />
-        ))}
+            </div>
+          }
+        />
       </div>
     </>
   )
@@ -87,6 +104,7 @@ export function TemplatePicker() {
   const [using, setUsing] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const handouts = docs.filter((doc) => doc.type === 'handout')
+  useSeedSampleHandout(status === 'ready', handouts.length, reload)
   const q = query.trim().toLowerCase()
   const titleOf = (doc: DocumentSummary) => doc.title.trim() || '제목 없음'
   const visible = handouts.filter((doc) => titleOf(doc).toLowerCase().includes(q))
@@ -119,9 +137,9 @@ export function TemplatePicker() {
       {status === 'ready' && handouts.length === 0 && (
         <>
           <div className="picker-empty" role="status">
-            아직 템플릿 아카이브에 핸드아웃이 없어요. 아래 기본 템플릿으로 시작해 보세요.
+            아직 템플릿 아카이브에 핸드아웃이 없어요. 아래 기본 핸드아웃으로 시작해 보세요.
           </div>
-          <StarterTemplates query={query} />
+          <StarterSample query={query} />
         </>
       )}
       {status === 'ready' && handouts.length > 0 && visible.length === 0 && (

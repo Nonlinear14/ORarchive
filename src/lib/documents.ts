@@ -30,6 +30,8 @@ export interface DocumentRepository {
   create(input: { type: DocumentType; title?: string; content?: DocumentContent }): Promise<DocumentRecord>
   update(id: string, draft: DocumentDraft, expectedVersion: number): Promise<UpdateResult>
   softDelete(id: string): Promise<void>
+  /** 이 종류 문서를 한 번이라도 만든 적이 있는가 (지운 문서 포함). 기본 핸드아웃을 한 번만 넣는 데 쓴다 */
+  hasEver?(type: DocumentType): Promise<boolean>
 }
 
 export const documentTypeLabels: Record<DocumentType, string> = {
@@ -134,6 +136,13 @@ export function createDocumentRepository(client: FolioClient): DocumentRepositor
     async softDelete(id) {
       const { error } = await table().update({ deleted_at: new Date().toISOString() }).eq('id', id)
       if (error) fail(error)
+    },
+
+    async hasEver(type) {
+      // deleted_at 조건 없음: 지운 문서도 센다 (RLS 의 select 정책은 본인 행이면 지운 것도 돌려준다)
+      const { data, error } = await table().select('id').eq('type', type).limit(1)
+      if (error) fail(error)
+      return (data ?? []).length > 0
     },
   }
 }
