@@ -34,6 +34,7 @@ import { visibleMessages } from '../render'
 import '../../../handout/studio/HandoutStudio.css'
 import '../roll20Log.css'
 import { ImageDialog } from './ImageDialog'
+import type { DetectedColors } from '../detectColors'
 import { LogPanel } from './LogPanel'
 import { LogPreview, type MessageAction, type MessageEdit, type SpeakerTarget } from './LogPreview'
 
@@ -194,6 +195,15 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
   const { toast, show } = useToast()
   const { apply, undo, redo, canUndo, canRedo } = useLogHistory(draft.content, edit)
   const [editingId, setEditingId] = useState<string | null>(null)
+  // 미리보기에서 읽은 원래 색 (저장하지 않음). 지금 안 보이는 캐릭터(숨김)는 전에 읽은 색을 남겨 둔다
+  const [detected, setDetected] = useState<DetectedColors>({})
+  const onDetectColors = useCallback((next: DetectedColors) => {
+    setDetected((prev) => {
+      const merged: DetectedColors = { ...prev }
+      for (const [key, value] of Object.entries(next)) merged[key] = { ...prev[key], ...value }
+      return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged
+    })
+  }, [])
   const [menuId, setMenuId] = useState<string | null>(null)
   const touchMenu = useTouchMenu()
   const rows = useMemo(() => visibleMessages(content), [content])
@@ -344,6 +354,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             speakers={speakers}
             onChangeSpeaker={onChangeSpeaker}
             onImage={onImage}
+            onDetectColors={onDetectColors}
           />
           <div className="log-export-bar" role="group" aria-label="내보내기">
             <button type="button" className="btn primary" onClick={() => downloadTextFile(logFileName(draft.title), logHtmlFile(content, draft.title))}>
@@ -370,7 +381,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             <span>{touchMenu ? '누르면 복제 · 이동 · 삭제' : '마우스를 올리면 복제 · 이동 · 삭제'}</span>
           </div>
         </section>
-        <LogPanel content={content} apply={apply} notify={show} />
+        <LogPanel content={content} apply={apply} notify={show} detected={detected} />
       </div>
       {menuId && menuIndex >= 0 && (
         <MessageSheet

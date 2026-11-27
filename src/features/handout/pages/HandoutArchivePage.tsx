@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { Modal } from '../../../components/Modal'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
-import { DocumentList } from '../../../components/DocumentList'
+import { DocumentList, KindChip } from '../../../components/DocumentList'
 import { Icon } from '../../../components/Icon'
 import { LoadingState } from '../../../components/LoadingState'
 import { PageHeading } from '../../../components/PageHeading'
@@ -10,6 +10,7 @@ import { documentPath, type DocumentSummary } from '../../../lib/documents'
 import { formatRelativeTime } from '../../../lib/format'
 import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { useRepository } from '../../../lib/useRepository'
+import { templateKindChips } from '../../../lib/kindChips'
 import { HandoutPreview } from '../HandoutPreview'
 import { useCopyHandout } from '../useCopyHandout'
 import { useSeedSampleHandout } from '../useSeedSampleHandout'
@@ -68,7 +69,10 @@ function HandoutCard({
       </button>
       <div className="handout-card-info">
         <div>
-          <strong>{title}</strong>
+          <span className="handout-card-name">
+            <strong>{title}</strong>
+            <KindChip {...templateKindChips.handout} />
+          </span>
           <small>
             <time dateTime={doc.updated_at}>{formatRelativeTime(doc.updated_at)}</time> 수정
           </small>
@@ -182,7 +186,7 @@ export default function HandoutArchivePage() {
               ))}
             </div>
           ) : (
-            <DocumentList docs={handouts} onOpen={setPreviewing} onDelete={setDeleting} />
+            <DocumentList docs={handouts} onOpen={setPreviewing} onDelete={setDeleting} kindColumn={{ label: '유형', chip: () => templateKindChips.handout }} />
           ))}
       </section>
 

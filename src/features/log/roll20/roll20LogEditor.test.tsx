@@ -297,12 +297,15 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     expect(within(panel).queryByRole('switch', { name: /시간 표시/ })).not.toBeInTheDocument()
     expect(within(panel).queryByRole('radiogroup', { name: '내 메시지 배경' })).not.toBeInTheDocument()
 
+    // 귓속말 숨기기는 전체 다듬기가 아니라 캐릭터 목록의 귓속말 항목에 있다
+    expect(within(panel).queryByRole('switch', { name: '귓속말 숨기기' })).not.toBeInTheDocument()
     expect(row(root, '-w1')).toBeTruthy()
-    fireEvent.click(within(panel).getByRole('switch', { name: /귓속말 숨기기/ }))
+    fireEvent.click(within(panel).getByRole('switch', { name: '귓속말 메시지 숨기기' }))
     await waitFor(() => expect(row(root, '-w1')).toBeNull())
     fireEvent.click(within(panel).getByRole('switch', { name: /구분선 표시/ }))
     fireEvent.click(within(panel).getByRole('radio', { name: '원형' }))
-    await waitFor(() => expect(saved().options).toMatchObject({ hideWhispers: true, divider: false, avatarShape: 'circle' }), { timeout: 3000 })
+    await waitFor(() => expect(saved().options).toMatchObject({ hideWhispers: false, divider: false, avatarShape: 'circle' }), { timeout: 3000 })
+    expect(saved().characters.__whisper__).toEqual({ hidden: true })
 
     // 색 동그라미: 고르면 반영, 다시 열어 기본 색으로
     fireEvent.click(within(panel).getByRole('button', { name: /엘리너 배경 색/ }))
@@ -344,7 +347,7 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     await waitFor(() => expect(saved().messages[1].text).toBe('책장 번호가 이상해요.'), { timeout: 3000 })
   })
 
-  it('룰: 감지한 룰을 머리에 보여 주고, 바꿀 수 있고, 목록의 룰 칸에 나온다 · 안내와 내보내기는 미리보기 위아래', async () => {
+  it('룰: 감지한 룰을 머리에 보여 주고, 바꿀 수 있고, 로그 목록에는 룰 대신 플랫폼 칩 · 안내와 내보내기는 미리보기 위아래', async () => {
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })
     await stage()
@@ -364,8 +367,12 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     fireEvent.click(screen.getAllByRole('link', { name: '로그 목록' }).find((a) => a.classList.contains('btn'))!)
     expect(screen.getByTestId('location').textContent).toBe('/logs')
     const table = await screen.findByRole('table', { name: '문서 목록' })
-    expect(within(table).getByRole('columnheader', { name: '룰' })).toBeInTheDocument()
-    expect(table).toHaveTextContent('크툴루의 부름 7판')
+    // 로그 목록: 룰 · 공개 범위 칸 없이 플랫폼 칩
+    expect(within(table).getByRole('columnheader', { name: '플랫폼' })).toBeInTheDocument()
+    expect(within(table).queryByRole('columnheader', { name: '룰' })).not.toBeInTheDocument()
+    expect(within(table).queryByRole('columnheader', { name: '공개 범위' })).not.toBeInTheDocument()
+    expect(within(table).getByText('Roll20')).toHaveClass('kind-chip', 'tone-green')
+    expect(table).not.toHaveTextContent('크툴루의 부름 7판')
   })
 
   it('휴대폰: 메시지를 누르면 아래에서 메뉴가 열린다', async () => {
@@ -391,5 +398,86 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     const { client, row: doc } = seedLog()
     renderApp(`/documents/${doc.id}`, { client })
     await waitFor(() => expect(screen.getAllByTestId('location').at(-1)?.textContent).toBe(`/studio/log/roll20/${doc.id}`))
+  })
+})
+
+describe('Roll20 로그 편집 — 귓속말 항목 · 원래 색', () => {
+  /** /w 귓속말 + /gr GM 굴림이 있는 로그 */
+  const WHISPERS = `<html><head><title>Chat Log for 귓속말</title></head><body><div id="textchat" class="textchatcontainer"><div class="content">
+<div class="message general" data-messageid="-a1"><div class="spacer"></div><span class="by">엘리너:</span>안녕하세요.</div>
+<div class="message private whisper" data-messageid="-a2"><div class="spacer"></div><span class="by">(To GM):</span>몰래 말해요.</div>
+<div class="message rollresult private" data-messageid="-a3"><div class="spacer"></div><span class="by">엘리너:</span><div class="formula">rolling 1d100</div></div>
+<div class="message rollresult" data-messageid="-a4"><div class="spacer"></div><span class="by">엘리너:</span><div class="formula">rolling 1d6</div></div>
+</div></div></body></html>`
+
+  function seed(extra: Record<string, unknown> = {}) {
+    const fake = createFakeSupabase()
+    const content = { ...serializeLog(parseRoll20Log(WHISPERS).content), ...extra }
+    const doc = fake.control.insertDocument({ type: 'log', title: '귓속말', content: content as never })
+    const saved = () => resolveLog(fake.control.tables.documents.find((d) => d.id === doc.id)!.content as never)
+    return { ...fake, doc, saved }
+  }
+
+  it('/w 귓속말과 /gr GM 굴림을 묶은 귓속말 항목이 desc 서술 아래에 있고, 귓속말 색이 캐릭터 색보다 우선한다', async () => {
+    const { client, doc, saved } = seed({ characters: { 엘리너: { bg: '#ffdddd', color: '#aa0000' } } })
+    expect(saved().messages.find((m) => m.id === '-a3')).toMatchObject({ kind: 'roll', private: true })
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    const panel = screen.getByRole('complementary', { name: '로그 편집' })
+    const rows = [...panel.querySelectorAll('.char-row')].map((r) => r.querySelector('.char-name')!.textContent)
+    expect(rows.slice(0, 3)).toEqual(['desc 서술', '귓속말 2개', '엘리너'])
+
+    fireEvent.click(within(panel).getByRole('button', { name: /귓속말 배경 색/ }))
+    const picker = within(panel).getByLabelText('귓속말 배경 색 고르기') as HTMLInputElement
+    picker.value = '#eeeeff'
+    picker.dispatchEvent(new Event('change'))
+    await waitFor(() => expect(saved().characters.__whisper__).toEqual({ bg: '#eeeeff' }), { timeout: 3000 })
+    const bg = (id: string) => row(root, id).querySelector<HTMLElement>('.message')!.style.backgroundColor
+    // 귓속말(/w)과 GM 굴림(/gr)은 귓속말 배경, 일반 대사·공개 굴림은 캐릭터 배경
+    expect(bg('-a2')).toBe('rgb(238, 238, 255)')
+    expect(bg('-a3')).toBe('rgb(238, 238, 255)')
+    expect(bg('-a1')).toBe('rgb(255, 221, 221)')
+    expect(bg('-a4')).toBe('rgb(255, 221, 221)')
+    // 귓속말에서 고르지 않은 이름 색은 캐릭터 설정을 따른다
+    expect(row(root, '-a3').querySelector<HTMLElement>('.by')!.style.color).toBe('rgb(170, 0, 0)')
+
+    fireEvent.click(within(panel).getByRole('switch', { name: '귓속말 메시지 숨기기' }))
+    await waitFor(() => expect(row(root, '-a2')).toBeNull())
+    expect(row(root, '-a3')).toBeNull()
+    expect(row(root, '-a4')).toBeTruthy()
+  })
+
+  it('예전 "귓속말 숨기기"를 켠 로그는 그대로 숨기고, 귓속말 항목에서 끄면 함께 꺼진다', async () => {
+    const { client, doc, saved } = seed({ options: { hideWhispers: true } })
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    expect(row(root, '-a2')).toBeNull()
+    const toggle = screen.getByRole('switch', { name: '귓속말 메시지 숨기기' })
+    expect(toggle).toBeChecked()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(row(root, '-a2')).toBeTruthy())
+    await waitFor(() => expect(saved().options.hideWhispers).toBe(false), { timeout: 3000 })
+    expect(saved().characters.__whisper__).toEqual({})
+  })
+
+  it('귓속말이 없는 로그에는 귓속말 항목이 없다', async () => {
+    const fake = createFakeSupabase()
+    const plain = `<html><body><div class="textchatcontainer"><div class="content"><div class="message general" data-messageid="-p1"><span class="by">엘리너:</span>안녕.</div></div></div></body></html>`
+    const doc = fake.control.insertDocument({ type: 'log', title: '평범', content: serializeLog(parseRoll20Log(plain).content) })
+    renderApp(`/studio/log/roll20/${doc.id}`, { client: fake.client })
+    await stage()
+    expect(screen.queryByRole('switch', { name: '귓속말 메시지 숨기기' })).not.toBeInTheDocument()
+  })
+
+  it('색 동그라미: 고른 색이 없으면 불러온 로그의 원래 색을 보여 준다 (저장하지 않음)', async () => {
+    const { client, doc, saved } = seed()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    await stage()
+    const panel = screen.getByRole('complementary', { name: '로그 편집' })
+    // Roll20 기본: 일반 메시지 배경 #f1f1f1, 귓속말 배경 #f2f5d3
+    await waitFor(() => expect(within(panel).getByRole('button', { name: /^엘리너 배경 색/ })).toHaveAccessibleName('엘리너 배경 색 (#f1f1f1, 원래 색)'))
+    expect(within(panel).getByRole('button', { name: /^귓속말 배경 색/ })).toHaveAccessibleName('귓속말 배경 색 (#f2f5d3, 원래 색)')
+    expect(within(panel).getByRole('button', { name: /^엘리너 배경 색/ })).toHaveStyle({ background: '#f1f1f1' })
+    expect(saved().characters).toEqual({})
   })
 })

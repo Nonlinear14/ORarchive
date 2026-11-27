@@ -184,6 +184,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
     seenIds.add(rawId)
     message.id = rawId
     if (el.classList.contains('you')) message.you = true
+    if (kind === 'roll' && (el.classList.contains('private') || el.classList.contains('whisper'))) message.private = true
 
     if (byEl) {
       const { speaker, whisper } = speakerOf(byEl.textContent ?? '')

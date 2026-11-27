@@ -7,6 +7,7 @@ import { PageHeading } from '../../../components/PageHeading'
 import type { DocumentSummary } from '../../../lib/documents'
 import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { useRepository } from '../../../lib/useRepository'
+import { logPlatformChip } from '../../../lib/kindChips'
 import '../roll20/roll20Log.css'
 import { ImportLogDialog } from '../roll20/pages/ImportLogDialog'
 
@@ -59,7 +60,7 @@ export default function LogListPage() {
               </button>
             </div>
           ) : (
-            <DocumentList docs={logs} onDelete={setDeleting} typeColumn={{ label: '룰', value: (doc) => doc.rule?.trim() || '기타' }} />
+            <DocumentList docs={logs} onDelete={setDeleting} showVisibility={false} kindColumn={{ label: '플랫폼', chip: logPlatformChip }} />
           ))}
       </section>
       {importing && <ImportLogDialog onClose={() => setImporting(false)} />}

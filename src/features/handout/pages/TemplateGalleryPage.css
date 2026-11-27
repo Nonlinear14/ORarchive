@@ -275,6 +275,23 @@
   white-space: nowrap;
 }
 
+.handout-card-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.handout-card-name strong {
+  min-width: 0;
+}
+
+.handout-card-name .kind-chip {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  padding: 2px 7px;
+}
+
 .handout-card-info small {
   display: block;
   margin-top: 4px;

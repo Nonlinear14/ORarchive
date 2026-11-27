@@ -129,7 +129,9 @@ export const setMessageSpeaker =
     const list = [...messagesOf(stored)]
     const i = list.findIndex((m) => isObject(m) && m.id === id)
     if (i < 0) return stored
-    const { speaker: _s, avatar: _a, you: _y, whisper: _w, ...rest } = list[i]
+    // 화자를 바꾸면 귓속말 표시(방향 · GM 굴림)도 푼다 — 일반 대사가 된다
+    const { speaker: _s, avatar: _a, you: _y, whisper: _w, private: _p, ...rest } = list[i]
+    void _p
     void _s
     void _a
     void _y

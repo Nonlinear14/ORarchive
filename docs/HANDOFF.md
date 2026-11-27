@@ -15,6 +15,7 @@
 
 **2단계 사용자 확인 (2026-11-26)**
 - ✅ **Roll20 실제 붙여넣기:** 디자인이 유지됨.
+- ✅ **목록 칩 · 귓속말 항목 · 원래 색 (2026-11-27):** `DocumentList` 의 `kindColumn`(컬러칩, `lib/kindChips.ts`)·`showVisibility`. 로그 플랫폼은 목록 조회의 `format:content->>format`(ccfolia 로 시작하면 코코포리아). 로그 편집: `detectColors.ts` 가 미리보기(그림자 DOM)의 계산된 색을 읽어 색 동그라미에 보여 줌(사용자가 고른 칸은 세지 않음, 저장 안 함). 귓속말 묶음 = `kind==='whisper'` 또는 판정 중 `private`/(To·From) 머리(`isWhisperGroup`), 설정 열쇠 `__whisper__`, `effectiveSetting` 으로 캐릭터 설정보다 우선. 예전 `options.hideWhispers` 는 읽기만 하고 귓속말 항목에서 끌 때 함께 끈다.
 - ✅ **기본 핸드아웃 (2026-11-27):** 운영 계정의 "핸드아웃 샘플" content 를 `src/features/handout/templates/sample.ts` 에 그대로 옮겼다. `useSeedSampleHandout` 가 아카이브·템플릿 선택창에서 목록이 비었을 때 `repo.hasEver('handout')`(지운 문서 포함)로 확인해 한 번도 없던 계정에만 만든다(같은 기기 여러 탭은 Web Locks 로 막음). 빈 선택창의 예전 4종은 샘플로 대체. 샘플을 고치려면 운영 계정에서 고친 뒤 content 를 다시 옮긴다.
 - ✅ **Roll20 아웃라인 (2026-11-27):** 블록 편집 뒤 붙여넣기에서 틀·공백·2열 표에 회색 테두리와 여분 여백이 보였다(Roll20 이 표 칸에 스타일을 입힘). 틀·공백은 `<div>`, 남은 표는 테두리·여백을 `!important` 로 지우도록 `blockRoll20.ts` 수정. 사용자 Roll20 확인 완료.
 - ✅ **한글·영어 입력:** 캔버스 입력에 이상 없음.

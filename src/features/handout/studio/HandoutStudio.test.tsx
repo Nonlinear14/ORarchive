@@ -987,6 +987,7 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
     await waitFor(() => expect(within(mine).getByText(/핸드아웃 1개/)).toBeInTheDocument())
     // 기본은 미리보기 카드
     expect(within(mine).getByRole('button', { name: '봉인된 편지 미리보기' })).toBeInTheDocument()
+    expect(within(mine).getByText('핸드아웃')).toHaveClass('kind-chip')
     expect(within(mine).queryByRole('table')).not.toBeInTheDocument()
     expect(within(mine).queryByText('세션 1')).not.toBeInTheDocument()
 
@@ -994,6 +995,9 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
     fireEvent.click(within(toggle).getByRole('radio', { name: /목록/ }))
     const table = within(mine).getByRole('table', { name: '문서 목록' })
     expect(table).toHaveTextContent('봉인된 편지')
+    // 유형은 컬러칩 (핸드아웃 = 녹색), 공개 범위 칸은 그대로
+    expect(within(table).getByText('핸드아웃')).toHaveClass('kind-chip', 'tone-green')
+    expect(within(table).getByRole('columnheader', { name: '공개 범위' })).toBeInTheDocument()
     expect(table).not.toHaveTextContent('세션 1')
     expect(localStorage.getItem('folio-archive-view')).toBe('list')
   })

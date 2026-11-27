@@ -14,6 +14,47 @@
   padding: 16px 19px;
 }
 
+.no-visibility .list-head,
+.no-visibility .list-row {
+  grid-template-columns: minmax(210px, 2fr) 110px 110px 76px;
+}
+
+/* 종류 구분 컬러칩 */
+.kind-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.kind-chip.tone-green {
+  color: #2c4a44;
+  background: #e2ece8;
+  border-color: #c9dbd4;
+}
+
+.kind-chip.tone-brown {
+  color: #6a4f33;
+  background: #f4e9dc;
+  border-color: #e3cfb6;
+}
+
+:root[data-theme='dark'] .kind-chip.tone-green {
+  color: #9ccbb7;
+  background: #1c3229;
+  border-color: #2a4a3c;
+}
+
+:root[data-theme='dark'] .kind-chip.tone-brown {
+  color: #dcb98a;
+  background: #33291c;
+  border-color: #4f3f29;
+}
+
 .list-head {
   background: #f2f0e9;
   border-bottom: 1px solid var(--line);
@@ -110,9 +151,9 @@
     padding: 13px;
   }
 
-  .list-row > div:nth-child(2),
-  .list-row > div:nth-child(3),
-  .list-row > div:nth-child(4) {
+  .list-row > .cell-kind,
+  .list-row > .cell-visibility,
+  .list-row > .cell-date {
     display: none;
   }
 }

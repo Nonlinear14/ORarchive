@@ -24,6 +24,8 @@ export interface LogMessage {
   speaker?: string
   /** 귓속말 방향: "(From 이름)" / "(To 이름)" */
   whisper?: 'from' | 'to'
+  /** GM 에게만 보이는 굴림(/gr): Roll20 이 private 로 표시한 판정 결과 */
+  private?: boolean
   /** 저널 이미지 주소 (원본 그대로) */
   avatar?: string
   /** Roll20 시간 표시 원문 */
@@ -56,6 +58,7 @@ export type AvatarShape = 'square' | 'circle' | 'none'
 export interface LogOptions {
   /** "This message has been hidden." 메시지를 빼고 보여 준다 */
   removeHidden: boolean
+  /** 예전 '귓속말 숨기기' (지금은 캐릭터 목록의 귓속말 항목 › 메시지 숨기기. 켜 둔 예전 로그도 그대로 숨긴다) */
   hideWhispers: boolean
   /** /r 굴림과 시트 판정 메시지를 숨김 */
   hideRolls: boolean
@@ -115,6 +118,7 @@ function readMessage(raw: unknown, index: number): LogMessage | null {
   const speaker = str(raw.speaker)
   if (speaker) message.speaker = speaker
   if (raw.whisper === 'from' || raw.whisper === 'to') message.whisper = raw.whisper
+  if (raw.private === true) message.private = true
   const avatar = str(raw.avatar)
   if (avatar) message.avatar = avatar
   const ts = str(raw.ts)
@@ -205,6 +209,23 @@ export const RULE_SUGGESTIONS = ['크툴루의 부름', '인세인', 'D&D 5판',
 
 /** 캐릭터 설정에서 desc 서술 메시지 전체를 가리키는 열쇠 (배경색·대사색만) */
 export const DESC_KEY = '__desc__'
+
+/** 캐릭터 설정에서 귓속말 전체(/w 귓속말 + /gr GM 굴림)를 가리키는 열쇠. 캐릭터 설정보다 우선한다 */
+export const WHISPER_KEY = '__whisper__'
+
+/** 귓속말 묶음에 드는 메시지: /w 귓속말, /gr GM 굴림(private 표시 또는 (To …)/(From …) 머리의 판정) */
+export const isWhisperGroup = (m: LogMessage) => m.kind === 'whisper' || (m.kind === 'roll' && (m.private === true || !!m.whisper))
+
+/** 귓속말을 숨기는가 (귓속말 항목의 메시지 숨기기, 또는 예전 '귓속말 숨기기' 설정) */
+export const whispersHidden = (content: Roll20LogContent) => !!content.characters[WHISPER_KEY]?.hidden || content.options.hideWhispers
+
+/** 캐릭터 설정 열쇠별로 실제 적용할 색: 귓속말 묶음이면 귓속말 설정이 캐릭터 설정보다 우선 (고르지 않은 색은 캐릭터 설정) */
+export function effectiveSetting(content: Roll20LogContent, m: LogMessage): Pick<CharacterSetting, 'color' | 'bg' | 'text'> {
+  const own = (m.kind === 'desc' || m.kind === 'emote' ? content.characters[DESC_KEY] : m.speaker ? content.characters[m.speaker] : undefined) ?? {}
+  if (!isWhisperGroup(m)) return { color: own.color, bg: own.bg, text: own.text }
+  const w = content.characters[WHISPER_KEY] ?? {}
+  return { color: w.color ?? own.color, bg: w.bg ?? own.bg, text: w.text ?? own.text }
+}
 
 /** 화자 목록 (메시지 수 순) */
 export function speakersOf(content: Roll20LogContent): { speaker: string; count: number; avatar?: string }[] {

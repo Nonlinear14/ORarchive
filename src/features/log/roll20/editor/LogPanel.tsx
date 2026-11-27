@@ -4,7 +4,8 @@ import { Icon } from '../../../../components/Icon'
 import { Modal } from '../../../../components/Modal'
 import type { ToastTone } from '../../../../lib/useToast'
 import { countMatches, removeSpeakerMessages, replaceAll, setCharacter, setOption, type LogEdit } from '../edits'
-import { DESC_KEY, isUsableAvatar, isWebUrl, speakersOf, type CharacterSetting, type LogOptions, type Roll20LogContent } from '../model'
+import { type ColorKey, type DetectedColors } from '../detectColors'
+import { DESC_KEY, WHISPER_KEY, isUsableAvatar, isWhisperGroup, whispersHidden, isWebUrl, speakersOf, type CharacterSetting, type LogOptions, type Roll20LogContent } from '../model'
 import { displayName, extensionSetsDescItalic } from '../render'
 import { imageFileToAvatar } from './avatarImage'
 
@@ -12,9 +13,9 @@ interface PanelProps {
   content: Roll20LogContent
   apply(op: LogEdit): void
   notify(message: string, tone?: ToastTone): void
+  /** 미리보기에서 읽은 원래 색 (고른 색이 없을 때 동그라미에 보여 준다) */
+  detected?: DetectedColors
 }
-
-type ColorKey = 'color' | 'bg' | 'text'
 
 const COLOR_LABELS: Record<ColorKey, string> = { color: '이름', bg: '배경', text: '대사' }
 
@@ -24,15 +25,20 @@ function ColorRound({
   name,
   colorKey,
   value,
+  detected,
   apply,
 }: {
   speaker: string
   /** 화면에 보이는 이름 (desc 서술 등) */
   name: string
   colorKey: ColorKey
+  /** 사용자가 고른 색 (저장된 값) */
   value: string | undefined
+  /** 불러온 로그의 원래 색 (고른 색이 없을 때 보여 준다) */
+  detected?: string
   apply(op: LogEdit): void
 }) {
+  const shown = value ?? detected
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -65,9 +71,9 @@ function ColorRound({
     <div className="color-round" ref={wrapRef}>
       <button
         type="button"
-        className={value ? 'round' : 'round is-default'}
-        style={value ? { background: value } : undefined}
-        aria-label={`${label}${value ? ` (${value})` : ' (기본)'}`}
+        className={shown ? 'round' : 'round is-default'}
+        style={shown ? { background: shown } : undefined}
+        aria-label={`${label}${value ? ` (${value})` : detected ? ` (${detected}, 원래 색)` : ' (기본)'}`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       />
@@ -75,7 +81,7 @@ function ColorRound({
       {open && (
         <div className="color-pop" role="dialog" aria-label={label}>
           <label className="color-pick">
-            <input ref={inputRef} type="color" defaultValue={value ?? (colorKey === 'bg' ? '#f1f1f1' : '#000000')} aria-label={`${label} 고르기`} />
+            <input ref={inputRef} type="color" defaultValue={shown ?? (colorKey === 'bg' ? '#f1f1f1' : '#000000')} aria-label={`${label} 고르기`} />
             <span>색 고르기</span>
           </label>
           <button
@@ -197,12 +203,14 @@ function CharacterRow({
   count,
   avatar,
   content,
+  detected,
   apply,
 }: {
   speaker: string
   count: number
   avatar?: string
   content: Roll20LogContent
+  detected?: Partial<Record<ColorKey, string>>
   apply(op: LogEdit): void
 }) {
   const setting = content.characters[speaker] ?? {}
@@ -227,7 +235,7 @@ function CharacterRow({
           <b className="char-name">{name}</b>
           <div className="char-colors">
             {(['color', 'bg', 'text'] as const).map((key) => (
-              <ColorRound key={key} speaker={speaker} name={name} colorKey={key} value={setting[key]} apply={apply} />
+              <ColorRound key={key} speaker={speaker} name={name} colorKey={key} value={setting[key]} detected={detected?.[key]} apply={apply} />
             ))}
           </div>
         </div>
@@ -282,7 +290,15 @@ function CharacterRow({
 }
 
 /** desc 서술: 캐릭터 목록 맨 위. 배경색·대사색만 (저널·이름·숨기기·삭제 없음) */
-function DescRow({ content, apply }: { content: Roll20LogContent; apply(op: LogEdit): void }) {
+function DescRow({
+  content,
+  detected,
+  apply,
+}: {
+  content: Roll20LogContent
+  detected?: Partial<Record<ColorKey, string>>
+  apply(op: LogEdit): void
+}) {
   const setting = content.characters[DESC_KEY] ?? {}
   return (
     <div className="char-row desc-row">
@@ -294,7 +310,7 @@ function DescRow({ content, apply }: { content: Roll20LogContent; apply(op: LogE
           <b className="char-name">desc 서술</b>
           <div className="char-colors">
             {(['bg', 'text'] as const).map((key) => (
-              <ColorRound key={key} speaker={DESC_KEY} name="desc 서술" colorKey={key} value={setting[key]} apply={apply} />
+              <ColorRound key={key} speaker={DESC_KEY} name="desc 서술" colorKey={key} value={setting[key]} detected={detected?.[key]} apply={apply} />
             ))}
           </div>
         </div>
@@ -312,6 +328,65 @@ function DescRow({ content, apply }: { content: Roll20LogContent; apply(op: LogE
           <span aria-hidden="true">기울이기</span>
         </label>
         {extensionSetsDescItalic(content) && <small className="char-note">확장 프로그램 설정이 우선 적용돼요</small>}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 귓속말: desc 서술 아래. /w 귓속말과 /gr GM 굴림을 묶어 배경 · 이름 · 대사 색과 숨기기를 정한다.
+ * 고른 색은 캐릭터 설정보다 우선한다. 로그에 귓속말이 있을 때만 보인다.
+ */
+function WhisperRow({
+  content,
+  count,
+  detected,
+  apply,
+}: {
+  content: Roll20LogContent
+  count: number
+  detected?: Partial<Record<ColorKey, string>>
+  apply(op: LogEdit): void
+}) {
+  const setting = content.characters[WHISPER_KEY] ?? {}
+  const hidden = whispersHidden(content)
+  return (
+    <div className={hidden ? 'char-row desc-row whisper-row is-hidden' : 'char-row desc-row whisper-row'}>
+      <div className="char-main">
+        <span className="char-av desc-av whisper-av" aria-hidden="true">
+          귓
+        </span>
+        <div className="char-body">
+          <b className="char-name">
+            귓속말 <em className="opt-count">{count.toLocaleString('ko-KR')}개</em>
+          </b>
+          <div className="char-colors">
+            {(['color', 'bg', 'text'] as const).map((key) => (
+              <ColorRound key={key} speaker={WHISPER_KEY} name="귓속말" colorKey={key} value={setting[key]} detected={detected?.[key]} apply={apply} />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="char-foot">
+        <label className="mini-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            className="opt-switch"
+            checked={hidden}
+            aria-label="귓속말 메시지 숨기기"
+            onChange={(e) => {
+              const on = e.target.checked
+              // 예전 '귓속말 숨기기'(전체 다듬기)가 켜진 로그는 끌 때 그 설정도 함께 끈다 (한 번에 되돌리기)
+              apply((stored) => {
+                const next = setCharacter(WHISPER_KEY, 'hidden', on)(stored)
+                return !on && content.options.hideWhispers ? setOption('hideWhispers', false)(next) : next
+              })
+            }}
+          />
+          <span aria-hidden="true">메시지 숨기기</span>
+        </label>
+        <small className="char-note">캐릭터 색보다 우선</small>
       </div>
     </div>
   )
@@ -353,7 +428,7 @@ function Section({ label, extra, children }: { label: string; extra?: ReactNode;
   )
 }
 
-export function LogPanel({ content, apply, notify }: PanelProps) {
+export function LogPanel({ content, apply, notify, detected }: PanelProps) {
   const speakers = speakersOf(content)
   const { options } = content
   const [find, setFind] = useState('')
@@ -361,6 +436,7 @@ export function LogPanel({ content, apply, notify }: PanelProps) {
   const matches = countMatches(content.messages, find)
   const set = <K extends keyof LogOptions>(key: K) => (value: LogOptions[K]) => apply(setOption(key, value))
   const count = (pred: (m: Roll20LogContent['messages'][number]) => boolean) => content.messages.filter(pred).length
+  const whisperCount = count(isWhisperGroup)
   const shapes: [LogOptions['avatarShape'], string][] = [
     ['square', '사각형'],
     ['circle', '원형'],
@@ -382,7 +458,6 @@ export function LogPanel({ content, apply, notify }: PanelProps) {
           checked={options.removeHidden}
           onChange={set('removeHidden')}
         />
-        <Toggle label="귓속말 숨기기" count={count((m) => m.kind === 'whisper')} checked={options.hideWhispers} onChange={set('hideWhispers')} />
         <Toggle
           label="주사위 결과 숨기기"
           sub="/r 굴림과 시트 판정"
@@ -410,9 +485,10 @@ export function LogPanel({ content, apply, notify }: PanelProps) {
       </Section>
 
       <Section label="캐릭터" extra={<em className="opt-count">{speakers.length}명</em>}>
-        <DescRow content={content} apply={apply} />
+        <DescRow content={content} detected={detected?.[DESC_KEY]} apply={apply} />
+        {whisperCount > 0 && <WhisperRow content={content} count={whisperCount} detected={detected?.[WHISPER_KEY]} apply={apply} />}
         {speakers.map((s) => (
-          <CharacterRow key={s.speaker} {...s} content={content} apply={apply} />
+          <CharacterRow key={s.speaker} {...s} content={content} detected={detected?.[s.speaker]} apply={apply} />
         ))}
         <p className="field-help">저널을 누르면 이미지를 바꿀 수 있어요. 색 동그라미를 누르면 색을 고르거나 기본 색으로 되돌려요.</p>
       </Section>

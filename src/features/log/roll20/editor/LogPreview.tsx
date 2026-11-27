@@ -4,6 +4,7 @@ import { Icon } from '../../../../components/Icon'
 import { isEditable, type LogMessage, type Roll20LogContent } from '../model'
 import { containerClass, displayName, logCss, messageClass, messageInnerHtml, messageStyle, textToHtml, visibleMessages } from '../render'
 import { editableHtmlToText } from './inlineText'
+import { detectColors, type DetectedColors } from '../detectColors'
 import { lockInlineParts } from '../styledText'
 import { ensureViewerFonts, VIEWER_FONT_CSS } from '../../../../lib/pretendard'
 
@@ -427,6 +428,8 @@ interface LogPreviewProps {
   onChangeSpeaker(message: LogMessage, target: SpeakerTarget): void
   /** 로그 속 이미지를 눌렀을 때 (이미지 바꾸기) */
   onImage(message: LogMessage, index: number, src: string): void
+  /** 그려진 메시지에서 읽은 원래 색 (캐릭터 색 동그라미에 보여 준다) */
+  onDetectColors?(colors: DetectedColors): void
 }
 
 export function LogPreview({
@@ -440,6 +443,7 @@ export function LogPreview({
   onOpenMenu,
   onChangeSpeaker,
   onImage,
+  onDetectColors,
 }: LogPreviewProps) {
   const [shadow, setShadow] = useState<ShadowRoot | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -447,6 +451,17 @@ export function LogPreview({
     if (host) setShadow(host.shadowRoot ?? host.attachShadow({ mode: 'open' }))
   }, [])
   useEffect(() => ensureViewerFonts(), [])
+
+  // 그린 뒤 원래 색을 읽는다 (편집이 이어질 때 매번 읽지 않게 잠깐 기다린다)
+  const detectRef = useRef(onDetectColors)
+  useEffect(() => {
+    detectRef.current = onDetectColors
+  })
+  useEffect(() => {
+    if (!shadow) return
+    const timer = window.setTimeout(() => detectRef.current?.(detectColors(shadow, content)), 120)
+    return () => window.clearTimeout(timer)
+  }, [shadow, content])
 
   const rows = visibleMessages(content)
   const onOpen = useCallback(

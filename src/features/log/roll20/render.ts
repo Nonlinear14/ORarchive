@@ -1,4 +1,4 @@
-import { DESC_KEY, type LogMessage, type Roll20LogContent } from './model'
+import { DESC_KEY, effectiveSetting, isWhisperGroup, whispersHidden, type LogMessage, type Roll20LogContent } from './model'
 
 /**
  * 로그 → Roll20 채팅 모양 HTML. 미리보기(그림자 DOM)와 내보내기가 같은 결과를 쓴다.
@@ -87,11 +87,12 @@ const isRoll = (m: LogMessage) => m.kind === 'roll' || (m.html ?? '').includes('
 /** 표시 설정(일괄 정리·캐릭터 숨김)을 적용한 메시지 목록 */
 export function visibleMessages(content: Roll20LogContent): RenderedMessage[] {
   const { options, characters } = content
+  const hideWhisper = whispersHidden(content)
   const out: RenderedMessage[] = []
   let prev: LogMessage | undefined
   for (const m of content.messages) {
     if (options.removeHidden && m.kind === 'hidden') continue
-    if (options.hideWhispers && m.kind === 'whisper') continue
+    if (hideWhisper && isWhisperGroup(m)) continue
     if (options.hideRolls && isRoll(m)) continue
     if (m.speaker && characters[m.speaker]?.hidden) continue
     const named = m.kind !== 'desc' && m.kind !== 'emote' && !!m.speaker
@@ -137,10 +138,11 @@ export function messageInnerHtml(content: Roll20LogContent, m: LogMessage, showH
   let head = ''
   if (showHeader && m.speaker) {
     const setting = content.characters[m.speaker] ?? {}
+    const nameColor = effectiveSetting(content, m).color
     const avatar = setting.avatar?.trim() || m.avatar
     const name = displayName(content, m.speaker)
     const label = m.whisper === 'from' ? `(From ${name})` : m.whisper === 'to' ? `(To ${name})` : name
-    const color = setting.color ? ` style="color:${setting.color} !important"` : ''
+    const color = nameColor ? ` style="color:${nameColor} !important"` : ''
     head =
       '<div class="spacer"></div>' +
       (avatar ? `<div class="avatar"><img src="${escapeHtml(avatar)}" alt=""></div>` : '') +
@@ -153,9 +155,8 @@ export function messageInnerHtml(content: Roll20LogContent, m: LogMessage, showH
 
 /** 캐릭터별 메시지 배경색·대사 색 (style 속성 값, 없으면 빈 글자) */
 export function messageStyle(content: Roll20LogContent, m: LogMessage): string {
-  const key = m.kind === 'desc' || m.kind === 'emote' ? DESC_KEY : m.speaker
-  const setting = key ? content.characters[key] : undefined
-  if (!setting) return ''
+  // 귓속말 묶음은 귓속말 설정이 캐릭터 설정보다 우선
+  const setting = effectiveSetting(content, m)
   // !important: 사용자가 직접 고른 색이 확장 프로그램 꾸밈(!important 포함)보다 우선
   return [setting.bg ? `background-color:${setting.bg} !important` : '', setting.text ? `color:${setting.text} !important` : '']
     .filter(Boolean)
