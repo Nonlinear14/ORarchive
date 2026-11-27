@@ -61,7 +61,7 @@ interface PanelProps {
  * 색 고르기 창에서는 끌면서 골라도 저장하지 않고, 창을 닫으며 고른 색이 정해질 때(change: Enter 등) 한 번만 적용한다.
  * HEX 를 직접 넣어 적용할 수도 있다.
  */
-function ColorField({ label, value, onChange, onReset }: { label: string; value: string; onChange(hex: string): void; onReset?: () => void }) {
+export function ColorField({ label, value, onChange, onReset }: { label: string; value: string; onChange(hex: string): void; onReset?: () => void }) {
   const id = useId()
   const [draft, setDraft] = useState(value)
   const [error, setError] = useState<string | null>(null)

@@ -6,7 +6,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type DocumentType = 'handout' | 'log' | 'character'
+export type DocumentType = 'handout' | 'log' | 'character' | 'roll20code'
 export type Visibility = 'private' | 'link' | 'public'
 
 export type Database = {

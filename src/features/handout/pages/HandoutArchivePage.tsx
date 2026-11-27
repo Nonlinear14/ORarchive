@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Modal } from '../../../components/Modal'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList, KindChip } from '../../../components/DocumentList'
@@ -14,6 +14,7 @@ import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { useRepository } from '../../../lib/useRepository'
 import { templateKindChips } from '../../../lib/kindChips'
 import { HandoutPreview } from '../HandoutPreview'
+import { Roll20CodePreview } from '../../roll20code/Roll20CodePreview'
 import { useCopyHandout } from '../useCopyHandout'
 import { useSeedSampleHandout } from '../useSeedSampleHandout'
 import { TemplatePickerDialog } from './TemplatePicker'
@@ -49,16 +50,17 @@ function ViewToggle({ view, onChange }: { view: ArchiveView; onChange(view: Arch
 
 function HandoutCard({ doc, onOpen, onDelete }: { doc: DocumentSummary; onOpen(doc: DocumentSummary): void; onDelete(doc: DocumentSummary): void }) {
   const title = doc.title.trim() || '제목 없음'
+  const code = doc.type === 'roll20code'
   return (
     <article className="handout-card">
-      <button type="button" className="handout-card-open" aria-label={`${title} 미리보기`} onClick={() => onOpen(doc)}>
-        <HandoutPreview id={doc.id} />
+      <button type="button" className="handout-card-open" aria-label={code ? `${title} 열기` : `${title} 미리보기`} onClick={() => onOpen(doc)}>
+        {code ? <Roll20CodePreview id={doc.id} /> : <HandoutPreview id={doc.id} />}
       </button>
       <div className="handout-card-info">
         <div>
           <span className="handout-card-name">
             <strong>{title}</strong>
-            <KindChip {...templateKindChips.handout} />
+            <KindChip {...(code ? templateKindChips.roll20code : templateKindChips.handout)} />
           </span>
           <small>
             <time dateTime={doc.updated_at}>{formatRelativeTime(doc.updated_at)}</time> 수정
@@ -100,7 +102,7 @@ function HandoutPreviewDialog({ doc, onClose }: { doc: DocumentSummary; onClose(
   )
 }
 
-/** /templates — 템플릿 아카이브 › 템플릿 목록 (지금은 핸드아웃만, 롤꾸코드는 나중에): 내 핸드아웃 (미리보기/목록). 고르면 미리보기 창 */
+/** /templates — 템플릿 아카이브 › 템플릿 목록: 내 핸드아웃 + 롤꾸코드 (미리보기/목록). 핸드아웃은 미리보기 창, 롤꾸코드는 편집기 */
 export default function HandoutArchivePage() {
   const repo = useRepository()
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
@@ -108,10 +110,16 @@ export default function HandoutArchivePage() {
   const [deleting, setDeleting] = useState<DocumentSummary | null>(null)
   const [previewing, setPreviewing] = useState<DocumentSummary | null>(null)
   const [picking, setPicking] = useState(false)
+  const navigate = useNavigate()
   const handouts = docs.filter((doc) => doc.type === 'handout')
+  // 템플릿 = 핸드아웃 + 롤꾸코드 (같은 목록에 유형 칩으로 구분)
+  const templates = docs.filter((doc) => doc.type === 'handout' || doc.type === 'roll20code')
+  const codeCount = templates.length - handouts.length
   const [query, setQuery] = useState('')
-  const shown = handouts.filter((doc) => matchesTitle(doc.title, query))
+  const shown = templates.filter((doc) => matchesTitle(doc.title, query))
   useSeedSampleHandout(status === 'ready', handouts.length, reload)
+  // 핸드아웃은 미리보기 창, 롤꾸코드는 바로 편집기
+  const open = (doc: DocumentSummary) => (doc.type === 'roll20code' ? navigate(documentPath(doc.type, doc.id)) : setPreviewing(doc))
 
   function changeView(next: ArchiveView) {
     setView(next)
@@ -127,10 +135,13 @@ export default function HandoutArchivePage() {
       <PageHeading
         title="템플릿 목록"
         eyebrow="TEMPLATE ARCHIVE / LIST"
-        description="만들어 둔 핸드아웃을 골라 미리 보고, 템플릿으로 다시 쓰거나 이어서 편집하세요."
+        description="만들어 둔 핸드아웃과 롤꾸코드를 골라 미리 보고, 템플릿으로 다시 쓰거나 이어서 편집하세요."
         action={
           <div className="archive-actions">
             <ViewToggle view={view} onChange={changeView} />
+            <Link to="/studio/roll20code" className="btn">
+              <Icon name="plus" /> 새 롤꾸코드
+            </Link>
             <button type="button" className="btn primary" onClick={() => setPicking(true)}>
               <Icon name="plus" /> 새 핸드아웃
             </button>
@@ -141,10 +152,10 @@ export default function HandoutArchivePage() {
       <section aria-labelledby="archive-mine">
         <div className="section-top">
           <div>
-            <h2 id="archive-mine">내 핸드아웃</h2>
+            <h2 id="archive-mine">내 템플릿</h2>
             <p>
               {status === 'ready'
-                ? `핸드아웃 ${query.trim() ? `${handouts.length}개 중 ${shown.length}개` : `${handouts.length}개`} · 고르면 미리보기가 열려요`
+                ? `${query.trim() ? `템플릿 ${templates.length}개 중 ${shown.length}개` : `핸드아웃 ${handouts.length}개 · 롤꾸코드 ${codeCount}개`} · 고르면 미리보기가 열려요`
                 : ' '}
             </p>
           </div>
@@ -162,7 +173,7 @@ export default function HandoutArchivePage() {
           </div>
         )}
         {status === 'ready' &&
-          (handouts.length === 0 ? (
+          (templates.length === 0 ? (
             <div className="library-list empty">
               아직 만든 핸드아웃이 없어요.
               <br />
@@ -175,20 +186,20 @@ export default function HandoutArchivePage() {
               <ListSearch label="템플릿 목록 검색" value={query} onChange={setQuery} />
               {shown.length === 0 ? (
                 <div className="list-search-empty" role="status">
-                  이름이 맞는 핸드아웃이 없어요. 다른 검색어로 찾아보세요.
+                  이름이 맞는 템플릿이 없어요. 다른 검색어로 찾아보세요.
                 </div>
               ) : view === 'grid' ? (
                 <div className="handout-grid">
                   {shown.map((doc) => (
-                    <HandoutCard key={doc.id} doc={doc} onOpen={setPreviewing} onDelete={setDeleting} />
+                    <HandoutCard key={doc.id} doc={doc} onOpen={open} onDelete={setDeleting} />
                   ))}
                 </div>
               ) : (
                 <DocumentList
                   docs={shown}
-                  onOpen={setPreviewing}
+                  onOpen={open}
                   onDelete={setDeleting}
-                  kindColumn={{ label: '유형', chip: () => templateKindChips.handout }}
+                  kindColumn={{ label: '유형', chip: (doc) => (doc.type === 'roll20code' ? templateKindChips.roll20code : templateKindChips.handout) }}
                 />
               )}
             </>
@@ -199,10 +210,10 @@ export default function HandoutArchivePage() {
       {picking && <TemplatePickerDialog onClose={() => setPicking(false)} />}
       {deleting && (
         <ConfirmDialog
-          title="핸드아웃을 삭제할까요?"
+          title={deleting.type === 'roll20code' ? '롤꾸코드를 삭제할까요?' : '핸드아웃을 삭제할까요?'}
           message={
             <>
-              <b>{deleting.title || '제목 없음'}</b> 핸드아웃을 삭제합니다. 모든 기기에서 사라져요.
+              <b>{deleting.title || '제목 없음'}</b> {deleting.type === 'roll20code' ? '롤꾸코드를' : '핸드아웃을'} 삭제합니다. 모든 기기에서 사라져요.
             </>
           }
           confirmLabel="삭제"

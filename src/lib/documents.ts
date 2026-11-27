@@ -40,6 +40,7 @@ export const documentTypeLabels: Record<DocumentType, string> = {
   handout: '핸드아웃',
   log: '세션 로그',
   character: '캐릭터 시트',
+  roll20code: '롤꾸코드',
 }
 
 export const visibilityLabels: Record<Visibility, string> = {
@@ -48,7 +49,7 @@ export const visibilityLabels: Record<Visibility, string> = {
   public: '전체 공개',
 }
 
-export const documentTypes: DocumentType[] = ['handout', 'log', 'character']
+export const documentTypes: DocumentType[] = ['handout', 'log', 'character', 'roll20code']
 
 export function defaultTitle(type: DocumentType): string {
   return `제목 없는 ${documentTypeLabels[type]}`
@@ -58,6 +59,7 @@ export function defaultTitle(type: DocumentType): string {
 export function documentPath(type: DocumentType, id: string): string {
   if (type === 'handout') return `/studio/handout/${id}`
   if (type === 'log') return `/studio/log/roll20/${id}`
+  if (type === 'roll20code') return `/studio/roll20code/${id}`
   return `/documents/${id}`
 }
 
