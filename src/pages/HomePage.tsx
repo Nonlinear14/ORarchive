@@ -18,11 +18,11 @@ const RECENT_LIMIT = 4
 
 const kindLabel: Record<RecentView['kind'], string> = {
   handout: '핸드아웃',
-  roll20code: 'Roll20 코드',
+  roll20code: '롤꾸코드',
   character: '캐릭터',
 }
 
-/** 기록된 종류와 실제 문서 종류가 맞는지 (Roll20 코드 문서 종류는 아직 없다) */
+/** 기록된 종류와 실제 문서 종류가 맞는지 (롤꾸코드 문서 종류는 아직 없다) */
 const kindDocType: Record<RecentView['kind'], DocumentSummary['type'] | null> = {
   handout: 'handout',
   roll20code: null,
@@ -134,22 +134,22 @@ function RecentSection({
   )
 }
 
-/** 템플릿 에디터 / 로그 에디터 2분할 바로가기 */
+/** 템플릿 목록 / 로그 목록 2분할 바로가기 */
 function EditorLaunch() {
   return (
-    <section className="editor-launch" aria-label="에디터 바로가기">
-      <Link to="/studio/handout" className="launch-tile launch-template">
-        <span className="launch-kicker">TEMPLATE EDITOR</span>
-        <strong>템플릿 에디터</strong>
-        <span className="launch-desc">템플릿을 골라 새 핸드아웃을 만들고 캔버스에서 바로 고쳐요.</span>
+    <section className="editor-launch" aria-label="바로가기">
+      <Link to="/templates" className="launch-tile launch-template">
+        <span className="launch-kicker">TEMPLATE ARCHIVE</span>
+        <strong>템플릿 목록</strong>
+        <span className="launch-desc">만들어 둔 핸드아웃을 보고, 골라서 이어서 편집하거나 새로 시작해요.</span>
         <span className="launch-go">
           열기 <Icon name="arrow" />
         </span>
       </Link>
-      <Link to="/studio/log/roll20" className="launch-tile launch-log">
-        <span className="launch-kicker">LOG EDITOR</span>
-        <strong>로그 에디터</strong>
-        <span className="launch-desc">Roll20·코코포리아 세션 기록을 정리하고 HTML로 내보내요.</span>
+      <Link to="/logs" className="launch-tile launch-log">
+        <span className="launch-kicker">LOG ARCHIVE</span>
+        <strong>로그 목록</strong>
+        <span className="launch-desc">불러온 Roll20·코코포리아 세션 기록을 열어 정리하고 HTML로 내보내요.</span>
         <span className="launch-go">
           열기 <Icon name="arrow" />
         </span>
@@ -158,7 +158,7 @@ function EditorLaunch() {
   )
 }
 
-/** / — 첫 화면: 에디터 바로가기 · 최근 템플릿 · 최근 캐릭터 */
+/** / — 첫 화면: 목록 바로가기 · 최근 템플릿 · 최근 캐릭터 */
 export function HomePage() {
   const { user, profile } = useAuth()
   const { status, docs, error, reload } = useMyDocuments()
@@ -183,7 +183,7 @@ export function HomePage() {
       <RecentSection
         id="home-templates"
         title="템플릿 아카이브"
-        description="최근에 연 핸드아웃과 Roll20 코드"
+        description="최근에 연 핸드아웃과 롤꾸코드"
         items={templates}
         loading={loading}
         more={{ to: '/templates', label: '템플릿 보기' }}
@@ -192,7 +192,7 @@ export function HomePage() {
             아직 열어 본 템플릿이 없어요.
             <br />
             <Link to="/templates" className="text-link">
-              템플릿 아카이브에서 시작하기 <Icon name="arrow" />
+              템플릿 목록에서 시작하기 <Icon name="arrow" />
             </Link>
           </>
         }

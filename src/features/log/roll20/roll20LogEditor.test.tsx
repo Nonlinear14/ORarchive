@@ -45,11 +45,23 @@ async function stage() {
 
 const row = (root: HTMLElement, id: string) => root.querySelector<HTMLElement>(`.log-msg[data-mid="${id}"]`)!
 
-describe('Roll20 로그 편집 — 목록과 불러오기', () => {
-  it('HTML 파일을 올리면 읽은 결과를 보여 주고, 불러오면 로그 문서를 만들어 편집 화면을 연다', async () => {
-    const fake = createFakeSupabase()
-    renderApp('/studio/log/roll20', { client: fake.client })
+describe('로그 목록 · Roll20 로그 편집 — 불러오기', () => {
+  it('Roll20 로그 편집 메뉴는 제목 위에 로그 등록 창을 바로 띄우고, 바로 들어와 닫으면 로그 목록으로 간다', async () => {
+    renderApp('/studio/log/roll20', { client: createFakeSupabase().client })
     expect(await screen.findByRole('heading', { level: 1, name: 'Roll20 로그 편집' })).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: 'Roll20 로그 불러오기' })
+    // 목록은 이 화면에 없다 (로그 목록 메뉴로 옮김)
+    expect(screen.queryByRole('table', { name: '문서 목록' })).not.toBeInTheDocument()
+    expect(screen.queryByText('아직 불러온 로그가 없어요.')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
+    expect(await screen.findByRole('heading', { level: 1, name: '로그 목록' })).toBeInTheDocument()
+    expect(screen.getByTestId('location').textContent).toBe('/logs')
+  })
+
+  it('로그 목록: HTML 파일을 올리면 읽은 결과를 보여 주고, 불러오면 로그 문서를 만들어 편집 화면을 연다', async () => {
+    const fake = createFakeSupabase()
+    renderApp('/logs', { client: fake.client })
+    expect(await screen.findByRole('heading', { level: 1, name: '로그 목록' })).toBeInTheDocument()
     expect(await screen.findByText('아직 불러온 로그가 없어요.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /새 로그 불러오기/ }))
@@ -75,8 +87,7 @@ describe('Roll20 로그 편집 — 목록과 불러오기', () => {
 
   it('채팅 아카이브를 복사해 붙여 넣어도 읽는다 · 채팅이 아니면 알려 준다', async () => {
     renderApp('/studio/log/roll20', { client: createFakeSupabase().client })
-    fireEvent.click(await screen.findByRole('button', { name: /새 로그 불러오기/ }))
-    const dialog = screen.getByRole('dialog')
+    const dialog = await screen.findByRole('dialog')
     fireEvent.click(within(dialog).getByRole('tab', { name: /붙여넣기/ }))
     const zone = within(dialog).getByLabelText('채팅 로그 붙여넣기')
 
@@ -349,7 +360,9 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     expect(within(exportBar).getByRole('button', { name: /HTML 파일 저장/ })).toBeInTheDocument()
     expect(within(exportBar).getByRole('button', { name: /블로그용 코드 복사/ })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('link', { name: '로그 목록' }))
+    // 편집 화면 위쪽 "로그 목록" 버튼 (사이드바 메뉴에도 같은 이름이 있다)
+    fireEvent.click(screen.getAllByRole('link', { name: '로그 목록' }).find((a) => a.classList.contains('btn'))!)
+    expect(screen.getByTestId('location').textContent).toBe('/logs')
     const table = await screen.findByRole('table', { name: '문서 목록' })
     expect(within(table).getByRole('columnheader', { name: '룰' })).toBeInTheDocument()
     expect(table).toHaveTextContent('크툴루의 부름 7판')

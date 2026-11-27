@@ -307,7 +307,7 @@ function LogEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
           >
             <Icon name="redo" />
           </button>
-          <Link to="/studio/log/roll20" className="btn small">
+          <Link to="/logs" className="btn small">
             로그 목록
           </Link>
         </div>

@@ -95,8 +95,8 @@ function StarterSample({ query }: { query: string }) {
 }
 
 /**
- * 템플릿 선택: 템플릿 아카이브 › 핸드아웃의 내 핸드아웃 목록 (최근 수정순, 열 때마다 새로 불러온다) + 이름 검색.
- * "이 템플릿 사용하기"는 아카이브와 같다: 사본을 만들어 템플릿 에디터를 연다. 원본은 그대로.
+ * 템플릿 선택: 템플릿 목록의 내 핸드아웃 (최근 수정순, 열 때마다 새로 불러온다) + 이름 검색.
+ * "이 템플릿 사용하기"는 아카이브와 같다: 사본을 만들어 핸드아웃 편집기를 연다. 원본은 그대로.
  */
 export function TemplatePicker() {
   const { status, docs, error, reload } = useMyDocuments()
@@ -137,7 +137,7 @@ export function TemplatePicker() {
       {status === 'ready' && handouts.length === 0 && (
         <>
           <div className="picker-empty" role="status">
-            아직 템플릿 아카이브에 핸드아웃이 없어요. 아래 기본 핸드아웃으로 시작해 보세요.
+            아직 템플릿 목록에 핸드아웃이 없어요. 아래 기본 핸드아웃으로 시작해 보세요.
           </div>
           <StarterSample query={query} />
         </>
@@ -169,11 +169,11 @@ export function TemplatePicker() {
   )
 }
 
-/** 템플릿 선택 창 (템플릿 에디터 메뉴 · 템플릿 아카이브의 새 핸드아웃 버튼) */
+/** 템플릿 선택 창 (핸드아웃 편집 메뉴 · 템플릿 목록의 새 핸드아웃 버튼) */
 export function TemplatePickerDialog({ onClose }: { onClose(): void }) {
   return (
-    <Modal title="템플릿 선택" eyebrow="TEMPLATE EDITOR" onClose={onClose} wide>
-      <p>템플릿 아카이브의 핸드아웃을 골라 사본으로 새 핸드아웃을 만들고 바로 편집기를 열어요. 원본은 그대로 남아요.</p>
+    <Modal title="템플릿 선택" eyebrow="HANDOUT EDITOR" onClose={onClose} wide>
+      <p>템플릿 목록의 핸드아웃을 골라 사본으로 새 핸드아웃을 만들고 바로 편집기를 열어요. 원본은 그대로 남아요.</p>
       <div className="picker-in-modal">
         <TemplatePicker />
       </div>

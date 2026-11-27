@@ -16,7 +16,8 @@ import { navRoutes } from './routes'
 // 스튜디오 화면은 처음 열 때 불러온다 (첫 화면 번들을 가볍게)
 const HandoutArchivePage = lazy(() => import('./features/handout/pages/HandoutArchivePage'))
 const TemplateEditorPage = lazy(() => import('./features/handout/pages/TemplateEditorPage'))
-const Roll20LogListPage = lazy(() => import('./features/log/roll20/pages/Roll20LogListPage'))
+const LogListPage = lazy(() => import('./features/log/pages/LogListPage'))
+const Roll20LogStartPage = lazy(() => import('./features/log/roll20/pages/Roll20LogStartPage'))
 const Roll20LogEditorPage = lazy(() => import('./features/log/roll20/editor/Roll20LogEditorPage'))
 const HandoutStudioPage = lazy(() => import('./features/handout/studio/HandoutStudioPage'))
 
@@ -25,7 +26,7 @@ function Lazy({ children }: { children: ReactNode }) {
 }
 
 /** 실제 화면이 있는 경로 (나머지 내비 경로는 '준비 중' 자리표시) */
-const implemented = new Set(['/', '/settings', '/templates', '/studio/handout', '/studio/log/roll20'])
+const implemented = new Set(['/', '/settings', '/templates', '/studio/handout', '/logs', '/studio/log/roll20'])
 
 export function App() {
   return (
@@ -41,10 +42,12 @@ export function App() {
             <Route path="/templates" element={<Lazy><HandoutArchivePage /></Lazy>} />
             <Route path="/studio/handout" element={<Lazy><TemplateEditorPage /></Lazy>} />
             <Route path="/studio/handout/:id" element={<Lazy><HandoutStudioPage /></Lazy>} />
-            <Route path="/studio/log/roll20" element={<Lazy><Roll20LogListPage /></Lazy>} />
+            <Route path="/logs" element={<Lazy><LogListPage /></Lazy>} />
+            <Route path="/studio/log/roll20" element={<Lazy><Roll20LogStartPage /></Lazy>} />
             <Route path="/studio/log/roll20/:id" element={<Lazy><Roll20LogEditorPage /></Lazy>} />
             {/* 예전 주소 */}
-            <Route path="/studio/log" element={<Navigate to="/studio/log/roll20" replace />} />
+            <Route path="/studio/log" element={<Navigate to="/logs" replace />} />
+            <Route path="/templates/roll20" element={<Navigate to="/templates" replace />} />
             {navRoutes
               .filter((route) => !implemented.has(route.path))
               .map((route) => (

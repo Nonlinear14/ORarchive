@@ -1,17 +1,17 @@
 import { useState } from 'react'
-import { ConfirmDialog } from '../../../../components/ConfirmDialog'
-import { DocumentList } from '../../../../components/DocumentList'
-import { Icon } from '../../../../components/Icon'
-import { LoadingState } from '../../../../components/LoadingState'
-import { PageHeading } from '../../../../components/PageHeading'
-import type { DocumentSummary } from '../../../../lib/documents'
-import { useMyDocuments } from '../../../../lib/useMyDocuments'
-import { useRepository } from '../../../../lib/useRepository'
-import '../roll20Log.css'
-import { ImportLogDialog } from './ImportLogDialog'
+import { ConfirmDialog } from '../../../components/ConfirmDialog'
+import { DocumentList } from '../../../components/DocumentList'
+import { Icon } from '../../../components/Icon'
+import { LoadingState } from '../../../components/LoadingState'
+import { PageHeading } from '../../../components/PageHeading'
+import type { DocumentSummary } from '../../../lib/documents'
+import { useMyDocuments } from '../../../lib/useMyDocuments'
+import { useRepository } from '../../../lib/useRepository'
+import '../roll20/roll20Log.css'
+import { ImportLogDialog } from '../roll20/pages/ImportLogDialog'
 
-/** /studio/log/roll20 — 로그 에디터 › Roll20 로그 편집: 내 로그 목록 + 새 로그 불러오기 */
-export default function Roll20LogListPage() {
+/** /logs — 로그 아카이브 › 로그 목록: 내 로그 목록 + 새 로그 불러오기 (코코포리아 로그도 생기면 여기에 함께) */
+export default function LogListPage() {
   const repo = useRepository()
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
   const [importing, setImporting] = useState(false)
@@ -21,9 +21,9 @@ export default function Roll20LogListPage() {
   return (
     <>
       <PageHeading
-        title="Roll20 로그 편집"
-        eyebrow="LOG EDITOR / ROLL20"
-        description="Roll20 채팅 아카이브를 불러와 다듬고, HTML 파일이나 블로그용 코드로 내보내세요."
+        title="로그 목록"
+        eyebrow="LOG ARCHIVE / LIST"
+        description="불러온 세션 로그를 모아 보고, 열어서 이어서 편집하세요."
         action={
           <button type="button" className="btn primary" onClick={() => setImporting(true)}>
             <Icon name="plus" /> 새 로그 불러오기
@@ -33,8 +33,8 @@ export default function Roll20LogListPage() {
       <section aria-labelledby="logs-mine">
         <div className="section-top">
           <div>
-            <h2 id="logs-mine">내 Roll20 로그</h2>
-            <p>{status === 'ready' ? `로그 ${logs.length}개 · 열면 로그 에디터에서 이어서 편집해요` : ' '}</p>
+            <h2 id="logs-mine">내 로그</h2>
+            <p>{status === 'ready' ? `로그 ${logs.length}개 · 열면 로그 편집기에서 이어서 편집해요` : ' '}</p>
           </div>
         </div>
         {status === 'loading' && <LoadingState label="내 로그를 불러오는 중…" />}

@@ -36,47 +36,50 @@ export const navSections: NavSection[] = [
     children: [
       {
         path: '/templates',
-        label: '핸드아웃',
+        label: '템플릿 목록',
         icon: 'templates',
-        eyebrow: 'TEMPLATE ARCHIVE / HANDOUT',
-        description: '취향에 맞는 디자인을 골라 내 핸드아웃으로 시작해 보세요.',
+        eyebrow: 'TEMPLATE ARCHIVE / LIST',
+        description: '내 핸드아웃을 모아 보고, 골라서 미리 보거나 사본으로 새로 시작하세요.',
       },
       {
-        path: '/templates/roll20',
-        label: 'Roll20 코드',
+        path: '/studio/handout',
+        label: '핸드아웃 편집',
+        icon: 'handout',
+        eyebrow: 'TEMPLATE ARCHIVE / HANDOUT EDITOR',
+        description: '캔버스의 글자를 직접 클릭해 수정하고, 완성된 디자인을 Roll20 핸드아웃에 바로 붙여넣어 보세요.',
+      },
+      {
+        path: '/studio/roll20code',
+        label: '롤꾸코드 편집',
         icon: 'code',
-        eyebrow: 'TEMPLATE ARCHIVE / ROLL20 CODE',
-        description: 'Roll20에 바로 붙여 넣을 수 있는 코드 템플릿을 모아 둡니다.',
+        eyebrow: 'TEMPLATE ARCHIVE / ROLL20 CODE EDITOR',
+        description: '템플릿 목록의 롤꾸코드를 고치고 Roll20에 바로 붙여 넣으세요.',
       },
     ],
   },
   {
-    label: '템플릿 에디터',
-    icon: 'handout',
-    route: {
-      path: '/studio/handout',
-      label: '템플릿 에디터',
-      icon: 'handout',
-      eyebrow: 'STUDIO / TEMPLATE EDITOR',
-      description: '캔버스의 글자를 직접 클릭해 수정하고, 완성된 디자인을 Roll20 핸드아웃에 바로 붙여넣어 보세요.',
-    },
-  },
-  {
-    label: '로그 에디터',
+    label: '로그 아카이브',
     icon: 'logs',
     children: [
+      {
+        path: '/logs',
+        label: '로그 목록',
+        icon: 'logs',
+        eyebrow: 'LOG ARCHIVE / LIST',
+        description: '불러온 세션 로그를 모아 보고, 열어서 이어서 편집하세요.',
+      },
       {
         path: '/studio/log/roll20',
         label: 'Roll20 로그 편집',
         icon: 'logs',
-        eyebrow: 'LOG EDITOR / ROLL20',
+        eyebrow: 'LOG ARCHIVE / ROLL20',
         description: 'Roll20 채팅 기록을 가져와 간단히 고치고 HTML로 내보내세요.',
       },
       {
         path: '/studio/log/ccfolia',
         label: '코코포리아 로그 편집',
         icon: 'logs',
-        eyebrow: 'LOG EDITOR / CCFOLIA',
+        eyebrow: 'LOG ARCHIVE / CCFOLIA',
         description: '코코포리아 기록에 이미지를 넣고, 캐릭터별로 걸러 보고, 주사위 표시를 다듬어 보세요.',
       },
     ],
@@ -118,9 +121,9 @@ export const navRoutes: NavRoute[] = [
 export const mobileNav: { path: string; label: string; icon: IconName }[] = [
   { path: '/', label: '홈', icon: 'home' },
   { path: '/templates', label: '템플릿', icon: 'templates' },
-  { path: '/studio/handout', label: '에디터', icon: 'handout' },
-  { path: '/studio/log/roll20', label: '로그', icon: 'logs' },
+  { path: '/logs', label: '로그', icon: 'logs' },
   { path: '/characters', label: '캐릭터', icon: 'characters' },
+  { path: '/settings', label: '설정', icon: 'settings' },
 ]
 
 const extraTitles: Record<string, string> = {
@@ -131,7 +134,7 @@ const extraTitles: Record<string, string> = {
 export function pageLabel(pathname: string): string {
   const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (normalized.startsWith('/documents/')) return '문서'
-  if (normalized.startsWith('/studio/handout/')) return '템플릿 에디터'
+  if (normalized.startsWith('/studio/handout/')) return '핸드아웃 편집'
   if (normalized.startsWith('/studio/log/roll20/')) return 'Roll20 로그 편집'
   return (
     navRoutes.find((route) => route.path === normalized)?.label ??

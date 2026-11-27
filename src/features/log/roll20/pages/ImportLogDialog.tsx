@@ -127,7 +127,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
   }
 
   return (
-    <Modal title="Roll20 로그 불러오기" eyebrow="LOG EDITOR / ROLL20" onClose={onClose} wide>
+    <Modal title="Roll20 로그 불러오기" eyebrow="LOG ARCHIVE / ROLL20" onClose={onClose} wide>
       <div className="segmented import-tabs" role="tablist" aria-label="불러오는 방법">
         <button type="button" role="tab" aria-selected={tab === 'file'} className={tab === 'file' ? 'active' : ''} onClick={() => setTab('file')}>
           <Icon name="upload" /> HTML 파일 올리기

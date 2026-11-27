@@ -234,7 +234,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             </button>
           )}
           <Link to="/templates" className="btn small">
-            템플릿 아카이브
+            템플릿 목록
           </Link>
         </div>
       </div>

@@ -870,11 +870,11 @@ describe('핸드아웃 스튜디오 — 내보내기', () => {
   })
 })
 
-describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () => {
+describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', () => {
   it('핸드아웃 화면에는 "새로 시작"이 없고, 새 핸드아웃 버튼이 템플릿 선택 창을 띄운다', async () => {
     const fake = createFakeSupabase()
     renderApp('/templates', { client: fake.client })
-    expect(await screen.findByRole('heading', { level: 1, name: '핸드아웃' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '템플릿 목록' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: '새로 시작' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /템플릿으로 시작/ })).not.toBeInTheDocument()
 
@@ -899,7 +899,7 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
 
     fireEvent.click(screen.getByRole('button', { name: '새 핸드아웃' }))
     const dialog = screen.getByRole('dialog', { name: '템플릿 선택' })
-    expect(await within(dialog).findByText(/아직 템플릿 아카이브에 핸드아웃이 없어요/)).toBeInTheDocument()
+    expect(await within(dialog).findByText(/아직 템플릿 목록에 핸드아웃이 없어요/)).toBeInTheDocument()
     // 예전 기본 템플릿 4종은 보이지 않는다
     expect(within(dialog).getAllByRole('article').map((a) => a.querySelector('strong')!.textContent)).toEqual(['핸드아웃 샘플'])
     fireEvent.click(within(dialog).getByRole('button', { name: '핸드아웃 샘플 — 이 템플릿 사용하기' }))
@@ -1018,7 +1018,7 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
     await waitFor(() => expect(within(mine).getByText(/아직 만든 핸드아웃이 없어요/)).toBeInTheDocument())
   })
 
-  it('/studio/handout(템플릿 에디터 메뉴): 고르면 사본을 만들어 연다 (원본 그대로)', async () => {
+  it('/studio/handout(핸드아웃 편집 메뉴): 고르면 사본을 만들어 연다 (원본 그대로)', async () => {
     const fake = createFakeSupabase()
     const stored = serializeHandout(createHandoutContent('forest'))
     const original = fake.control.insertDocument({ type: 'handout', title: '잃어버린 연대기', content: stored })
@@ -1032,10 +1032,10 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
     expect(fake.control.tables.documents.find((d) => d.id === original.id)!.content).toEqual(stored)
   })
 
-  it('템플릿 선택 창을 닫으면 (바로 들어온 경우) 템플릿 아카이브로 간다', async () => {
+  it('템플릿 선택 창을 닫으면 (바로 들어온 경우) 템플릿 목록으로 간다', async () => {
     renderApp('/studio/handout', { client: createFakeSupabase().client })
     fireEvent.click(within(await screen.findByRole('dialog', { name: '템플릿 선택' })).getByRole('button', { name: '닫기' }))
-    expect(await screen.findByRole('heading', { level: 1, name: '핸드아웃' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '템플릿 목록' })).toBeInTheDocument()
   })
 
   it('없는 핸드아웃은 404', async () => {

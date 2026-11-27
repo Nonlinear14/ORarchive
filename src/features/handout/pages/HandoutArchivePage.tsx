@@ -111,7 +111,7 @@ function HandoutPreviewDialog({ doc, onClose }: { doc: DocumentSummary; onClose(
   )
 }
 
-/** /templates — 템플릿 아카이브 › 핸드아웃: 내 핸드아웃 (미리보기/목록). 고르면 미리보기 창 */
+/** /templates — 템플릿 아카이브 › 템플릿 목록 (지금은 핸드아웃만, 롤꾸코드는 나중에): 내 핸드아웃 (미리보기/목록). 고르면 미리보기 창 */
 export default function HandoutArchivePage() {
   const repo = useRepository()
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
@@ -134,8 +134,8 @@ export default function HandoutArchivePage() {
   return (
     <>
       <PageHeading
-        title="핸드아웃"
-        eyebrow="TEMPLATE ARCHIVE / HANDOUT"
+        title="템플릿 목록"
+        eyebrow="TEMPLATE ARCHIVE / LIST"
         description="만들어 둔 핸드아웃을 골라 미리 보고, 템플릿으로 다시 쓰거나 이어서 편집하세요."
         action={
           <div className="archive-actions">

@@ -11,7 +11,7 @@ describe('앱 셸', () => {
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
     expect(screen.getAllByText('ORarchive').length).toBeGreaterThan(0)
     expect(screen.getByText('ORPG를 위한 툴 아카이브')).toBeInTheDocument()
-    for (const section of ['템플릿 아카이브', '템플릿 에디터', '로그 에디터', '캐릭터 아카이브', '설정']) {
+    for (const section of ['템플릿 아카이브', '로그 아카이브', '캐릭터 아카이브', '설정']) {
       expect(within(sidebar).getByText(section)).toBeInTheDocument()
     }
     // 예전 WORKSPACE 묶음은 없다
@@ -20,9 +20,10 @@ describe('앱 셸', () => {
     }
     // 하위 메뉴는 각각 링크
     for (const [name, href] of [
-      ['핸드아웃', '/templates'],
-      ['Roll20 코드', '/templates/roll20'],
-      ['템플릿 에디터', '/studio/handout'],
+      ['템플릿 목록', '/templates'],
+      ['핸드아웃 편집', '/studio/handout'],
+      ['롤꾸코드 편집', '/studio/roll20code'],
+      ['로그 목록', '/logs'],
       ['Roll20 로그 편집', '/studio/log/roll20'],
       ['코코포리아 로그 편집', '/studio/log/ccfolia'],
       ['캐릭터 아카이브', '/characters'],
@@ -32,7 +33,18 @@ describe('앱 셸', () => {
     }
     // 하위 메뉴가 있는 상위 메뉴 제목은 링크가 아니다
     expect(within(sidebar).queryByRole('link', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
-    expect(within(sidebar).queryByRole('link', { name: '로그 에디터' })).not.toBeInTheDocument()
+    expect(within(sidebar).queryByRole('link', { name: '로그 아카이브' })).not.toBeInTheDocument()
+    // 예전 메뉴 이름은 없다
+    for (const removed of ['템플릿 에디터', '로그 에디터', 'Roll20 코드']) expect(within(sidebar).queryByText(removed)).not.toBeInTheDocument()
+    // 모바일 하단 메뉴: 홈 · 템플릿(템플릿 목록) · 로그(로그 목록) · 캐릭터 · 설정
+    const mobile = screen.getByRole('navigation', { name: '모바일 메뉴' })
+    expect([...mobile.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+      ['홈', '/'],
+      ['템플릿', '/templates'],
+      ['로그', '/logs'],
+      ['캐릭터', '/characters'],
+      ['설정', '/settings'],
+    ])
     expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '알림' })).toBeInTheDocument()
@@ -59,15 +71,15 @@ describe('접힌 사이드바 (≤1050px)', () => {
       renderApp('/', { client: createFakeSupabase().client })
       const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
       // 하위 메뉴는 처음엔 보이지 않는다
-      expect(within(sidebar).queryByRole('link', { name: 'Roll20 코드' })).not.toBeInTheDocument()
+      expect(within(sidebar).queryByRole('link', { name: '롤꾸코드 편집' })).not.toBeInTheDocument()
       const archive = within(sidebar).getByRole('button', { name: '템플릿 아카이브' })
       expect(archive).toHaveAttribute('aria-expanded', 'false')
 
       fireEvent.click(archive)
       expect(archive).toHaveAttribute('aria-expanded', 'true')
       const bubble = within(sidebar).getByRole('group', { name: '템플릿 아카이브' })
-      fireEvent.click(within(bubble).getByRole('link', { name: 'Roll20 코드' }))
-      expect(await screen.findByRole('heading', { level: 1, name: 'Roll20 코드' })).toBeInTheDocument()
+      fireEvent.click(within(bubble).getByRole('link', { name: '롤꾸코드 편집' }))
+      expect(await screen.findByRole('heading', { level: 1, name: '롤꾸코드 편집' })).toBeInTheDocument()
       expect(within(sidebar).queryByRole('group', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
       // 현재 화면이 속한 상위 메뉴가 활성 표시된다
       expect(within(sidebar).getByRole('button', { name: '템플릿 아카이브' })).toHaveClass('active')
@@ -78,7 +90,7 @@ describe('접힌 사이드바 (≤1050px)', () => {
       fireEvent.keyDown(document, { key: 'Escape' })
       expect(within(sidebar).queryByRole('switch')).not.toBeInTheDocument()
       // 하위 메뉴가 없는 상위 메뉴는 그대로 링크
-      expect(within(sidebar).getByRole('link', { name: '템플릿 에디터' })).toHaveAttribute('href', '/studio/handout')
+      expect(within(sidebar).getByRole('link', { name: '캐릭터 아카이브' })).toHaveAttribute('href', '/characters')
     } finally {
       window.matchMedia = original
     }
@@ -89,9 +101,10 @@ describe('라우트 (로그인 상태)', () => {
   // [경로, 화면 제목, 브레드크럼, 사이드바에서 활성화되는 메뉴(없으면 null)]
   const cases: [string, string, string, string | null][] = [
     ['/', '홈', '홈', null],
-    ['/templates', '핸드아웃', '핸드아웃', '핸드아웃'],
-    ['/templates/roll20', 'Roll20 코드', 'Roll20 코드', 'Roll20 코드'],
-    ['/studio/handout', '템플릿 에디터', '템플릿 에디터', '템플릿 에디터'],
+    ['/templates', '템플릿 목록', '템플릿 목록', '템플릿 목록'],
+    ['/studio/handout', '핸드아웃 편집', '핸드아웃 편집', '핸드아웃 편집'],
+    ['/studio/roll20code', '롤꾸코드 편집', '롤꾸코드 편집', '롤꾸코드 편집'],
+    ['/logs', '로그 목록', '로그 목록', '로그 목록'],
     ['/studio/log/roll20', 'Roll20 로그 편집', 'Roll20 로그 편집', 'Roll20 로그 편집'],
     ['/studio/log/ccfolia', '코코포리아 로그 편집', '코코포리아 로그 편집', '코코포리아 로그 편집'],
     ['/characters', '캐릭터 아카이브', '캐릭터 아카이브', '캐릭터 아카이브'],
@@ -116,11 +129,14 @@ describe('라우트 (로그인 상태)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '페이지를 찾을 수 없음' })).toBeInTheDocument()
   })
 
-  it('예전 /studio/log 주소는 Roll20 로그 편집으로 보낸다', async () => {
-    const { client } = createFakeSupabase()
-    renderApp('/studio/log', { client })
+  it('예전 /studio/log 주소는 로그 목록으로 보낸다', async () => {
+    renderApp('/studio/log', { client: createFakeSupabase().client })
+    expect(await screen.findByRole('heading', { level: 1, name: '로그 목록' })).toBeInTheDocument()
+  })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Roll20 로그 편집' })).toBeInTheDocument()
+  it('예전 /templates/roll20 주소는 템플릿 목록으로 보낸다', async () => {
+    renderApp('/templates/roll20', { client: createFakeSupabase().client })
+    expect(await screen.findByRole('heading', { level: 1, name: '템플릿 목록' })).toBeInTheDocument()
   })
 
   it('알 수 없는 경로는 404 페이지를 보여준다 (로그인 불필요)', async () => {
@@ -188,7 +204,7 @@ describe('basename="/ORarchive" (GitHub Pages)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '계정 설정' })).toBeInTheDocument()
     const sidebar = screen.getByRole('navigation', { name: '주 메뉴' })
     expect(screen.getAllByRole('link', { name: 'ORarchive 홈으로 이동' })[0]).toHaveAttribute('href', '/ORarchive')
-    expect(within(sidebar).getByRole('link', { name: '핸드아웃' })).toHaveAttribute('href', '/ORarchive/templates')
+    expect(within(sidebar).getByRole('link', { name: '템플릿 목록' })).toHaveAttribute('href', '/ORarchive/templates')
   })
 
   it('basename 아래에서도 비로그인 사용자를 /ORarchive/login 으로 보낸다', async () => {
