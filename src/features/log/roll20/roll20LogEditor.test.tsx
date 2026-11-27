@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createFakeSupabase } from '../../../test/fakeSupabase'
 import { renderApp } from '../../../test/renderApp'
-import { resolveLog, serializeLog } from './model'
+import { resolveLog, resolveTypedSpeaker, serializeLog } from './model'
 import { parseRoll20Log } from './parse'
 
 /** 실제 Roll20 채팅 아카이브와 같은 구조 (대사는 지어낸 내용) */
@@ -481,3 +481,64 @@ describe('Roll20 로그 편집 — 귓속말 항목 · 원래 색', () => {
     expect(saved().characters).toEqual({})
   })
 })
+
+describe('Roll20 로그 편집 — 이름 직접 고치기', () => {
+  it('이름을 더블 클릭해 고친다: 기존 캐릭터(대소문자 무시)면 그 캐릭터로, 처음 보는 이름이면 새 캐릭터 · 그 메시지만', async () => {
+    const { client, row: doc, saved } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    fireEvent.doubleClick(row(root, '-g1').querySelector('.by')!)
+    const input = within(root).getByRole('combobox', { name: '캐릭터 이름' }) as HTMLInputElement
+    expect(input.value).toBe('엘리너')
+    // 앞뒤 공백은 빼고 기존 캐릭터로 옮긴다 (대소문자 무시는 아래 테스트)
+    fireEvent.change(input, { target: { value: '  토마스 ' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(saved().messages[1]).toMatchObject({ id: '-g1', speaker: '토마스', avatar: './x_files/b.png' }), { timeout: 3000 })
+    // 이어지는 메시지(-g2)는 그대로
+    expect(saved().messages[2]).toMatchObject({ id: '-g2', speaker: '엘리너' })
+
+    fireEvent.doubleClick(row(root, '-g1').querySelector('.by')!)
+    const again = within(root).getByRole('combobox', { name: '캐릭터 이름' })
+    fireEvent.change(again, { target: { value: '사서' } })
+    fireEvent.keyDown(again, { key: 'Enter' })
+    await waitFor(() => expect(saved().messages[1]).toMatchObject({ id: '-g1', speaker: '사서' }), { timeout: 3000 })
+    expect(saved().messages[1].avatar).toBeUndefined()
+    // 새 캐릭터 항목이 패널에 생긴다
+    const panel = screen.getByRole('complementary', { name: '로그 편집' })
+    expect(within(panel).getByRole('switch', { name: '사서 메시지 숨기기' })).toBeInTheDocument()
+
+    // Esc 는 취소
+    fireEvent.doubleClick(row(root, '-g1').querySelector('.by')!)
+    const cancel = within(root).getByRole('combobox', { name: '캐릭터 이름' })
+    fireEvent.change(cancel, { target: { value: '아무개' } })
+    fireEvent.keyDown(cancel, { key: 'Escape' })
+    expect(within(root).queryByRole('combobox', { name: '캐릭터 이름' })).not.toBeInTheDocument()
+    expect(saved().messages[1].speaker).toBe('사서')
+  })
+
+  it('대소문자만 다른 이름은 기존 캐릭터 이름으로 맞춘다', () => {
+    const content = parseRoll20Log(SAMPLE).content
+    content.messages[1] = { ...content.messages[1], speaker: 'Toast' }
+    expect(resolveTypedSpeaker(content, 'toast')).toBe('Toast')
+    expect(resolveTypedSpeaker(content, ' TOAST ')).toBe('Toast')
+    expect(resolveTypedSpeaker(content, 'Toaster')).toBe('Toaster')
+    expect(resolveTypedSpeaker(content, '   ')).toBeNull()
+  })
+
+  it('휴대폰: 캐릭터 바꾸기 목록 아래의 이름 직접 입력 칸', async () => {
+    stubMobile()
+    const { client, row: doc, saved } = seedLog()
+    renderApp(`/studio/log/roll20/${doc.id}`, { client })
+    const root = await stage()
+    fireEvent.click(row(root, '-g2').querySelector('.message')!)
+    fireEvent.click(screen.getByRole('button', { name: /^수정/ }))
+    fireEvent.mouseDown(row(root, '-g2').querySelector('.speaker-btn')!)
+    const menu = within(root).getByRole('menu', { name: '캐릭터 바꾸기' })
+    const typed = within(menu).getByRole('combobox', { name: '이름 직접 입력' })
+    fireEvent.change(typed, { target: { value: '토마스' } })
+    fireEvent.click(within(menu).getByRole('button', { name: '적용' }))
+    await waitFor(() => expect(saved().messages[2]).toMatchObject({ id: '-g2', speaker: '토마스' }), { timeout: 3000 })
+  })
+})
+

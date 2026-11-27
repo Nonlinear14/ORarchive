@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../../components/Icon'
-import { isEditable, type LogMessage, type Roll20LogContent } from '../model'
+import { isEditable, resolveTypedSpeaker, type LogMessage, type Roll20LogContent } from '../model'
 import { containerClass, displayName, logCss, messageClass, messageInnerHtml, messageStyle, textToHtml, visibleMessages } from '../render'
 import { editableHtmlToText } from './inlineText'
 import { detectColors, type DetectedColors } from '../detectColors'
@@ -43,6 +43,13 @@ const OVERLAY_CSS = `
 .log-msg.is-editing.no-head:hover .speaker-btn,.speaker-btn:focus-visible,.speaker-btn[aria-expanded="true"]{display:inline-flex}
 .speaker-btn .ico{width:15px;height:15px}
 .speaker-menu{position:absolute;left:8px;top:32px;z-index:6;min-width:200px;max-height:260px;overflow:auto;background:#fffdfa;border:1px solid #e1ded6;border-radius:10px;box-shadow:0 12px 28px rgba(23,36,42,.22);padding:5px;font:600 12.5px var(--font, sans-serif);text-align:left;font-style:normal}
+.name-edit{position:absolute;left:8px;top:28px;z-index:6;display:flex;gap:6px;align-items:center;background:#fffdfa;border:1px solid #e1ded6;border-radius:10px;box-shadow:0 12px 28px rgba(23,36,42,.22);padding:6px;font:600 12.5px var(--font, sans-serif);font-style:normal}
+.name-edit input,.speaker-typed input{font:600 13px var(--font, sans-serif);border:1px solid #d9d3c7;border-radius:7px;padding:6px 8px;min-width:0;width:180px;color:#26332f;background:#fff}
+.name-edit small{color:#7d8987;font-size:10.5px;font-weight:600;white-space:nowrap}
+.speaker-typed{display:flex;gap:6px;padding:8px 6px 4px;border-top:1px solid #ece7dd;margin-top:4px}
+.speaker-typed input{flex:1;width:auto}
+.speaker-typed button{width:auto;flex:none;background:#26413d;color:#fff;justify-content:center}
+.speaker-typed button:hover,.speaker-typed button:focus-visible{background:#1d332f}
 .speaker-menu .speaker-title{padding:6px 8px 5px;font-size:10.5px;color:#7d8987;font-weight:700}
 .speaker-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:7px 8px;border-radius:7px;color:#26332f;font:inherit;cursor:pointer;text-align:left}
 .speaker-menu button:hover,.speaker-menu button:focus-visible{background:#f1ede4;outline:none}
@@ -67,15 +74,23 @@ function SpeakerMenu({
   current,
   options,
   content,
+  typed,
   onPick,
+  onType,
 }: {
   current: SpeakerTarget
   options: SpeakerOption[]
   content: Roll20LogContent
+  /** 휴대폰: 목록 아래에 이름 직접 입력 칸 */
+  typed?: boolean
   onPick(target: SpeakerTarget): void
+  onType(name: string): void
 }) {
-  // 메뉴를 눌러도 글자 칸의 포커스가 빠지지 않게 (빠지면 수정이 끝나 버린다)
-  const keep = (e: MouseEvent) => e.preventDefault()
+  const [name, setName] = useState('')
+  // 메뉴를 눌러도 글자 칸의 포커스가 빠지지 않게 (빠지면 수정이 끝나 버린다). 이름 입력 칸은 예외
+  const keep = (e: MouseEvent) => {
+    if (!(e.target as Element).closest('input')) e.preventDefault()
+  }
   return (
     <div className="speaker-menu" role="menu" aria-label="캐릭터 바꾸기" onMouseDown={keep}>
       <div className="speaker-title">이 메시지의 캐릭터</div>
@@ -91,6 +106,94 @@ function SpeakerMenu({
           </button>
         )
       })}
+      {typed && (
+        <form
+          className="speaker-typed"
+          onSubmit={(e) => {
+            e.preventDefault()
+            onType(name)
+          }}
+        >
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="이름 직접 입력"
+            aria-label="이름 직접 입력"
+            maxLength={80}
+            list="speaker-names"
+            enterKeyHint="done"
+          />
+          <button type="submit" disabled={!name.trim()}>
+            적용
+          </button>
+          <SpeakerNames options={options} />
+        </form>
+      )}
+    </div>
+  )
+}
+
+/** 이름 입력 칸의 자동 완성 목록 (기존 캐릭터 이름) */
+function SpeakerNames({ options }: { options: SpeakerOption[] }) {
+  return (
+    <datalist id="speaker-names">
+      {options.map((o) => (
+        <option key={o.speaker} value={o.speaker} />
+      ))}
+    </datalist>
+  )
+}
+
+/** 이름을 더블 클릭했을 때: 이름을 글자로 직접 고친다 (Enter · 칸 밖 누르기 적용, Esc 취소) */
+function NameEditor({
+  initial,
+  options,
+  onCommit,
+  onCancel,
+}: {
+  initial: string
+  options: SpeakerOption[]
+  onCommit(name: string, next: Element | null): void
+  onCancel(): void
+}) {
+  const [name, setName] = useState(initial)
+  const ref = useRef<HTMLInputElement>(null)
+  const closed = useRef(false)
+  useEffect(() => {
+    ref.current?.focus()
+    ref.current?.select()
+  }, [])
+  return (
+    <div className="name-edit" role="group" aria-label="이름 직접 고치기">
+      <input
+        ref={ref}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        aria-label="캐릭터 이름"
+        maxLength={80}
+        list="speaker-names"
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            closed.current = true
+            onCommit(name, null)
+          } else if (e.key === 'Escape') {
+            e.preventDefault()
+            e.stopPropagation()
+            closed.current = true
+            onCancel()
+          }
+        }}
+        onBlur={(e) => {
+          if (closed.current) return
+          closed.current = true
+          // 칸 밖을 눌러 나갔다 (포커스를 받지 않는 곳이면 body 로 본다)
+          onCommit(name, (e.relatedTarget as Element | null) ?? document.body)
+        }}
+      />
+      <small>Enter 적용 · Esc 취소</small>
+      <SpeakerNames options={options} />
     </div>
   )
 }
@@ -116,6 +219,7 @@ function EditingMessage({
   message,
   showHeader,
   speakers,
+  touch,
   onSave,
   onCancel,
   onChangeSpeaker,
@@ -125,6 +229,8 @@ function EditingMessage({
   message: LogMessage
   showHeader: boolean
   speakers: SpeakerOption[]
+  /** 휴대폰: 캐릭터 바꾸기 목록에 이름 직접 입력 칸 */
+  touch: boolean
   onSave(value: MessageEdit): void
   onCancel(): void
   onChangeSpeaker(target: SpeakerTarget): void
@@ -132,6 +238,7 @@ function EditingMessage({
 }) {
   const ref = useRef<HTMLSpanElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [naming, setNaming] = useState(false)
   const done = useRef(false)
   // 꾸민 글자 메시지는 HTML 그대로 고친다 (꾸밈은 두고 글자만)
   const styled = message.text === undefined
@@ -204,6 +311,22 @@ function EditingMessage({
     if (target !== current) onChangeSpeaker(target)
     ref.current?.focus()
   }
+  /** 직접 입력한 이름: 기존 캐릭터(대소문자 무시)면 그 캐릭터로, 아니면 새 캐릭터로. 이 메시지만 바꾼다 */
+  const typeName = (typed: string, next: Element | null = null) => {
+    setNaming(false)
+    setMenuOpen(false)
+    const target = resolveTypedSpeaker(content, typed)
+    if (target !== null && target !== current) onChangeSpeaker(target)
+    // 이름 칸에서 다른 곳을 눌러 나갔으면 메시지 수정도 마친다
+    if (next && next !== ref.current && !ref.current?.contains(next)) save()
+    else ref.current?.focus()
+  }
+  /** 글자 칸에서 포커스가 이름 입력 칸으로 옮겨 갈 때는 수정을 끝내지 않는다 */
+  const onTextBlur = (e: React.FocusEvent) => {
+    const next = e.relatedTarget as Element | null
+    if (next?.closest('.name-edit, .speaker-menu')) return
+    save()
+  }
 
   return (
     <>
@@ -211,11 +334,20 @@ function EditingMessage({
         ref={styleRef}
         className={messageClass(content, message)}
         onMouseDown={(e) => {
-          // 수정 중에 저널·이름을 누르면 캐릭터 바꾸기
+          // 수정 중에 저널·이름을 누르면 캐릭터 바꾸기 (두 번째 누르기는 더블 클릭으로 이름 고치기)
           if ((e.target as Element).closest('.avatar, .by')) {
             e.preventDefault()
+            if (e.detail >= 2) return
+            setNaming(false)
             setMenuOpen((v) => !v)
           }
+        }}
+        onDoubleClick={(e) => {
+          // 이름을 더블 클릭하면 이름을 글자로 직접 고친다
+          if (!(e.target as Element).closest('.by')) return
+          e.preventDefault()
+          setMenuOpen(false)
+          setNaming(true)
         }}
       >
         <span dangerouslySetInnerHTML={{ __html: head }} />
@@ -229,7 +361,7 @@ function EditingMessage({
           aria-label="메시지 내용"
           spellCheck={false}
           onKeyDown={onKeyDown}
-          onBlur={save}
+          onBlur={onTextBlur}
           onClick={(e) => {
             // 글자와 함께 있는 이미지: 고친 글자를 먼저 저장하고 이미지 바꾸기
             const img = (e.target as Element).closest('img')
@@ -258,7 +390,18 @@ function EditingMessage({
       >
         <Icon name="characters" />
       </button>
-      {menuOpen && <SpeakerMenu current={current} options={speakers} content={content} onPick={pick} />}
+      {menuOpen && <SpeakerMenu current={current} options={speakers} content={content} typed={touch} onPick={pick} onType={(name) => typeName(name)} />}
+      {naming && (
+        <NameEditor
+          initial={message.speaker ? displayName(content, message.speaker) : ''}
+          options={speakers}
+          onCommit={typeName}
+          onCancel={() => {
+            setNaming(false)
+            ref.current?.focus()
+          }}
+        />
+      )}
     </>
   )
 }
@@ -275,6 +418,8 @@ interface RowProps {
   first: boolean
   last: boolean
   speakers: SpeakerOption[]
+  /** 휴대폰 (캐릭터 바꾸기 목록에 이름 직접 입력 칸) */
+  touch: boolean
   onHover(id: string): void
   onOpen(message: LogMessage): void
   onAction(action: MessageAction, message: LogMessage): void
@@ -326,6 +471,7 @@ const MessageRow = memo(function MessageRow({
   first,
   last,
   speakers,
+  touch,
   onHover,
   onOpen,
   onAction,
@@ -367,6 +513,7 @@ const MessageRow = memo(function MessageRow({
           message={message}
           showHeader={showHeader}
           speakers={speakers}
+          touch={touch}
           onSave={(value) => onSaveText(message, value)}
           onImage={(index, src) => onImage(message, index, src)}
           onCancel={onCancelEdit}
@@ -493,6 +640,7 @@ export function LogPreview({
                     content={content}
                     message={message}
                     showHeader={showHeader}
+                    touch={touchMenu}
                     active={!touchMenu && hoverId === message.id && editingId !== message.id}
                     editing={editingId === message.id}
                     first={index === 0}

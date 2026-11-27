@@ -239,3 +239,19 @@ export function speakersOf(content: Roll20LogContent): { speaker: string; count:
   }
   return [...map.entries()].map(([speaker, v]) => ({ speaker, ...v })).sort((a, b) => b.count - a.count)
 }
+
+/**
+ * 직접 입력한 화자 이름 → 실제로 쓸 화자. 앞뒤 공백은 빼고, 기존 캐릭터와 대소문자만 다르면 그 캐릭터의 이름으로 맞춘다
+ * (이름 · 바꾼 표시 이름 모두 비교). 없으면 입력한 이름 그대로 (새 캐릭터). 빈 이름이면 null.
+ */
+export function resolveTypedSpeaker(content: Roll20LogContent, typed: string): string | null {
+  const name = typed.trim()
+  if (!name) return null
+  const lower = name.toLowerCase()
+  for (const { speaker } of speakersOf(content)) {
+    const shown = content.characters[speaker]?.name?.trim()
+    if (speaker.toLowerCase() === lower || (shown && shown.toLowerCase() === lower)) return speaker
+  }
+  return name
+}
+

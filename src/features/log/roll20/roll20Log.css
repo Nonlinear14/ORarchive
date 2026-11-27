@@ -31,6 +31,29 @@
   white-space: nowrap;
 }
 
+.char-list {
+  max-height: min(560px, 62vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0 -4px;
+  padding: 2px 4px;
+  scrollbar-width: thin;
+}
+
+.char-list:focus-visible {
+  outline: 2px solid #caa574;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* 패널이 로그 아래로 내려가는 좁은 화면은 목록을 다 펼친다 */
+@media (max-width: 1050px) {
+  .char-list {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 .char-row {
   border: 1px solid var(--line);
   border-radius: 10px;

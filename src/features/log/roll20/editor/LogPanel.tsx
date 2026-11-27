@@ -485,11 +485,14 @@ export function LogPanel({ content, apply, notify, detected }: PanelProps) {
       </Section>
 
       <Section label="캐릭터" extra={<em className="opt-count">{speakers.length}명</em>}>
-        <DescRow content={content} detected={detected?.[DESC_KEY]} apply={apply} />
-        {whisperCount > 0 && <WhisperRow content={content} count={whisperCount} detected={detected?.[WHISPER_KEY]} apply={apply} />}
-        {speakers.map((s) => (
-          <CharacterRow key={s.speaker} {...s} content={content} detected={detected?.[s.speaker]} apply={apply} />
-        ))}
+        {/* 캐릭터가 많아도 패널이 길어지지 않게 목록만 따로 스크롤 */}
+        <div className="char-list" role="group" aria-label="캐릭터 목록" tabIndex={0}>
+          <DescRow content={content} detected={detected?.[DESC_KEY]} apply={apply} />
+          {whisperCount > 0 && <WhisperRow content={content} count={whisperCount} detected={detected?.[WHISPER_KEY]} apply={apply} />}
+          {speakers.map((s) => (
+            <CharacterRow key={s.speaker} {...s} content={content} detected={detected?.[s.speaker]} apply={apply} />
+          ))}
+        </div>
         <p className="field-help">저널을 누르면 이미지를 바꿀 수 있어요. 색 동그라미를 누르면 색을 고르거나 기본 색으로 되돌려요.</p>
       </Section>
 
