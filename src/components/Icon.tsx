@@ -97,6 +97,7 @@ const paths = {
   plus: <path d="M12 5v14m-7-7h14" />,
   chev: <path d="M9 18l6-6-6-6" />,
   bell: <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />,
+  sidebar: <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm5 0v14" />,
   cloud: (
     <>
       <path d="M20 17a4 4 0 0 0-1.8-7.5A6.5 6.5 0 0 0 5.7 11 4 4 0 0 0 7 19h11" />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSidebarCollapsed } from '../lib/sidebar'
 import { NavLink, useLocation } from 'react-router'
 import { toggleTheme, useTheme } from '../lib/theme'
 import { navSections, type NavSection } from '../routes'
@@ -25,23 +26,6 @@ function ThemeToggle() {
       <span className="sr-only">{dark ? '지금은 다크모드' : '지금은 라이트모드'}</span>
     </button>
   )
-}
-
-/** 접힌 사이드바(≤1050px)에서는 하위 메뉴를 펼칠 공간이 없다 */
-const COLLAPSED_QUERY = '(max-width: 1050px)'
-
-function useCollapsed() {
-  const [collapsed, setCollapsed] = useState(() =>
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(COLLAPSED_QUERY).matches : false,
-  )
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return
-    const media = window.matchMedia(COLLAPSED_QUERY)
-    const onChange = () => setCollapsed(media.matches)
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
-  }, [])
-  return collapsed
 }
 
 function SubLinks({ section }: { section: NavSection }) {
@@ -161,9 +145,9 @@ function SectionNav({ section, collapsed }: { section: NavSection; collapsed: bo
 }
 
 export function Sidebar() {
-  const collapsed = useCollapsed()
+  const collapsed = useSidebarCollapsed()
   return (
-    <aside className="sidebar">
+    <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'}>
       <SidebarBrand />
       <nav className="side-content" aria-label="주 메뉴">
         {navSections.map((section) => (

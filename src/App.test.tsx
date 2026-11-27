@@ -46,8 +46,10 @@ describe('앱 셸', () => {
       ['설정', '/settings'],
     ])
     expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '알림' })).toBeInTheDocument()
+    // 상단 검색 · 알림 버튼은 없고, 그 자리에 사이드바 접고 펴기
+    expect(screen.queryByRole('button', { name: '검색' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '알림' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '사이드바 접기' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('navigation', { name: '모바일 메뉴' }).querySelectorAll('a')).toHaveLength(5)
 
     // Google 이름(프로필 행이 없으면 자동 생성) + 이니셜 아바타
@@ -55,6 +57,23 @@ describe('앱 셸', () => {
     // 사이드바 아래 계정 칸은 없다 (계정은 오른쪽 위 프로필 버튼 · 설정 › 계정 설정)
     expect(screen.queryByTitle('달빛 기록자 · 계정 설정')).not.toBeInTheDocument()
     expect(screen.getByText('내 클라우드 공간')).toBeInTheDocument()
+  })
+})
+
+describe('사이드바 접고 펴기 버튼', () => {
+  it('넓은 화면: 접으면 상위 아이콘만(말풍선), 다시 펴기 · 이 기기에 기억', async () => {
+    localStorage.removeItem('folio-sidebar-collapsed')
+    renderApp('/', { client: createFakeSupabase().client })
+    const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
+    expect(within(sidebar).getByRole('link', { name: '템플릿 목록' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '사이드바 접기' }))
+    expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
+    expect(within(sidebar).queryByRole('link', { name: '템플릿 목록' })).not.toBeInTheDocument()
+    expect(within(sidebar).getByRole('button', { name: '템플릿 아카이브' })).toHaveAttribute('aria-expanded', 'false')
+    expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('1')
+    fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
+    expect(document.querySelector('.sidebar')).not.toHaveClass('is-collapsed')
+    expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('0')
   })
 })
 
@@ -91,6 +110,14 @@ describe('접힌 사이드바 (≤1050px)', () => {
       expect(within(sidebar).queryByRole('switch')).not.toBeInTheDocument()
       // 하위 메뉴가 없는 상위 메뉴는 그대로 링크
       expect(within(sidebar).getByRole('link', { name: '캐릭터 아카이브' })).toHaveAttribute('href', '/characters')
+
+      // 좁은 화면에서도 버튼으로 펼친다 (기억하지 않음)
+      localStorage.removeItem('folio-sidebar-collapsed')
+      fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
+      expect(within(sidebar).getByRole('link', { name: '템플릿 목록' })).toBeInTheDocument()
+      expect(localStorage.getItem('folio-sidebar-collapsed')).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: '사이드바 접기' }))
+      expect(within(sidebar).queryByRole('link', { name: '템플릿 목록' })).not.toBeInTheDocument()
     } finally {
       window.matchMedia = original
     }

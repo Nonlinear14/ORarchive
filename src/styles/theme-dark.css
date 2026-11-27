@@ -111,8 +111,7 @@
 
 :root[data-theme='dark'] .field-input,
 :root[data-theme='dark'] .field-textarea,
-:root[data-theme='dark'] .searchbar,
-:root[data-theme='dark'] .search-trigger {
+:root[data-theme='dark'] .searchbar {
   background: #142128;
   border-color: var(--d-border);
   color: var(--d-text);

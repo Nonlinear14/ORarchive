@@ -16,13 +16,15 @@ interface DeletedRecoveryProps {
   restorePath(id: string): string
   onRestore(): Promise<string>
   onDiscard(): Promise<void>
+  /** "내용 복사" 없이 새 문서로 복구만 (핸드아웃: 글자만 복사하면 꾸밈·배치가 빠지므로) */
+  restoreOnly?: boolean
 }
 
 /**
  * 서버에서 삭제된 문서. 이 기기에 남아 있는 내용(서버에 반영되지 않은 변경, 또는 마지막 사본)을
  * 읽기 전용으로 보여 주고, 새 문서로 복구 · 내용 복사 · (확인 후) 버리기를 고르게 한다.
  */
-export function DeletedRecovery({ doc, draft, source, bodyText, restorePath, onRestore, onDiscard }: DeletedRecoveryProps) {
+export function DeletedRecovery({ doc, draft, source, bodyText, restorePath, onRestore, onDiscard, restoreOnly = false }: DeletedRecoveryProps) {
   const navigate = useNavigate()
   const [restoring, setRestoring] = useState(false)
   const [restoreError, setRestoreError] = useState<string | null>(null)
@@ -61,16 +63,18 @@ export function DeletedRecovery({ doc, draft, source, bodyText, restorePath, onR
           <b>서버에서 삭제된 문서입니다</b>
           <p>
             {pending
-              ? '다른 곳에서 이 문서를 삭제했어요. 아래는 이 기기에만 남아 있는, 서버에 반영되지 않은 변경이에요. 새 문서로 복구하거나 내용을 복사해 두세요.'
-              : '아래는 이 기기에 마지막으로 저장해 둔 사본이에요. 필요하면 새 문서로 복구하거나 내용을 복사해 두세요.'}
+              ? `다른 곳에서 이 문서를 삭제했어요. 아래는 이 기기에만 남아 있는, 서버에 반영되지 않은 변경이에요. ${restoreOnly ? '새 문서로 복구하면 꾸밈과 배치까지 그대로 살아나요.' : '새 문서로 복구하거나 내용을 복사해 두세요.'}`
+              : `아래는 이 기기에 마지막으로 저장해 둔 사본이에요. ${restoreOnly ? '필요하면 새 문서로 복구하세요.' : '필요하면 새 문서로 복구하거나 내용을 복사해 두세요.'}`}
           </p>
           <div className="conflict-actions">
             <button type="button" className="btn small primary" onClick={() => void restore()} disabled={restoring}>
               {restoring ? '복구하는 중…' : '새 문서로 복구'}
             </button>
-            <button type="button" className="btn small" onClick={() => void copy()}>
-              내용 복사
-            </button>
+            {!restoreOnly && (
+              <button type="button" className="btn small" onClick={() => void copy()}>
+                내용 복사
+              </button>
+            )}
             <button
               type="button"
               className="btn small danger"

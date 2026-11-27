@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router'
+import { toggleSidebar, useSidebarCollapsed } from '../lib/sidebar'
 import { pageLabel } from '../routes'
 import { MobileBrand } from './Brand'
 import { Icon } from './Icon'
@@ -8,6 +9,7 @@ import './Topbar.css'
 
 export function Topbar() {
   const { pathname } = useLocation()
+  const collapsed = useSidebarCollapsed()
 
   return (
     <header className="topbar">
@@ -19,13 +21,15 @@ export function Topbar() {
       </nav>
       <div className="top-actions">
         <PendingIndicator />
-        <button type="button" className="search-trigger" aria-label="검색" title="검색은 준비 중입니다">
-          <Icon name="search" />
-          <span>작품, 캐릭터, 프로젝트 검색...</span>
-          <span className="key">⌘ K</span>
-        </button>
-        <button type="button" className="iconbtn" aria-label="알림" title="알림은 준비 중입니다">
-          <Icon name="bell" />
+        <button
+          type="button"
+          className="iconbtn side-toggle"
+          aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          title={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          aria-expanded={!collapsed}
+          onClick={toggleSidebar}
+        >
+          <Icon name="sidebar" />
         </button>
         <ProfileMenu />
       </div>

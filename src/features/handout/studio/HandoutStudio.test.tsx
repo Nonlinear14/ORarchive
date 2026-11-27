@@ -1133,6 +1133,8 @@ describe('서버에서 삭제된 핸드아웃', () => {
     expect(body).toHaveAttribute('readonly')
     expect((body as HTMLTextAreaElement).value).toContain('오프라인 연대기')
     expect((body as HTMLTextAreaElement).value).toContain('서버에 없는 기록')
+    // 핸드아웃은 복구만 (글자만 복사하면 꾸밈·배치가 빠지므로 "내용 복사" 없음)
+    expect(screen.queryByRole('button', { name: '내용 복사' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '새 문서로 복구' }))
     await screen.findByRole('group', { name: '핸드아웃 캔버스' })

@@ -262,41 +262,38 @@
 }
 
 
-/* ≤1050px: 상위 메뉴 아이콘만 보이는 접힌 사이드바 (하위 메뉴는 말풍선) */
-@media (max-width: 1050px) {
-  .sidebar {
-    width: 75px;
-  }
+/* 접힌 사이드바: 상위 메뉴 아이콘만 (하위 메뉴는 말풍선). 좁은 화면(≤1050px)은 기본으로 접힘, 상단바 버튼으로 접고 편다 */
+.sidebar.is-collapsed {
+  width: 75px;
+}
 
-  .brand {
-    padding: 19px;
-    justify-content: center;
-  }
+.sidebar.is-collapsed .brand {
+  padding: 19px;
+  justify-content: center;
+}
 
-  .brand .brandtext,
-  .nav-title-text,
-  .side-footer {
-    display: none;
-  }
+.sidebar.is-collapsed .brand .brandtext,
+.sidebar.is-collapsed .nav-title-text,
+.sidebar.is-collapsed .side-footer {
+  display: none;
+}
 
-  .side-content {
-    padding: 16px 9px;
-  }
+.sidebar.is-collapsed .side-content {
+  padding: 16px 9px;
+}
 
-  .nav-section {
-    margin: 0 0 4px;
-  }
+.sidebar.is-collapsed .nav-section {
+  margin: 0 0 4px;
+}
 
-  .nav-title {
-    justify-content: center;
-    padding: 14px 4px;
-  }
+.sidebar.is-collapsed .nav-title {
+  justify-content: center;
+  padding: 14px 4px;
+}
 
-  .nav-title .ico {
-    width: 21px;
-    height: 21px;
-  }
-
+.sidebar.is-collapsed .nav-title .ico {
+  width: 21px;
+  height: 21px;
 }
 
 /* ≤750px: 사이드바 숨김 (하단 모바일 내비 사용) */

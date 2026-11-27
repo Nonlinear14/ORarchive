@@ -376,6 +376,7 @@ function HandoutStudio({ docId }: { docId: string }) {
         source={recoverSource ?? 'pending'}
         bodyText={layout ? blockRoll20Text(layout) : ''}
         restorePath={(id) => `/studio/handout/${id}`}
+        restoreOnly
         onRestore={restoreAsNew}
         onDiscard={discardDeleted}
       />
