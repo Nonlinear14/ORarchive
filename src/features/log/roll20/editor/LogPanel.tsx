@@ -240,15 +240,6 @@ function CharacterRow({
           </div>
         </div>
       </div>
-      {broken && (
-        <div className="char-warn">
-          <Icon name="alert" />
-          <span>저널이 PC 폴더 경로라 다른 사람에게 안 보여요.</span>
-          <button type="button" className="text-link" onClick={() => setAvatarOpen(true)}>
-            바꾸기
-          </button>
-        </div>
-      )}
       <div className="char-foot">
         <label className="mini-toggle">
           <input

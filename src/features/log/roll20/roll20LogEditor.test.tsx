@@ -328,8 +328,9 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     fireEvent.click(within(panel).getByRole('switch', { name: '토마스 메시지 숨기기' }))
     await waitFor(() => expect(row(root, '-r1')).toBeNull())
 
-    // 깨진 저널 → 링크 주소로 바꾸기
-    expect(within(panel).getByText(/저널이 PC 폴더 경로라/)).toBeInTheDocument()
+    // 깨진 저널: 안내 박스 없이 저널 칸에 "?" → 저널 칸을 눌러 링크 주소로 바꾸기
+    expect(within(panel).queryByText(/저널이 PC 폴더 경로라/)).not.toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: '토마스 저널 바꾸기' })).toHaveTextContent('?')
     fireEvent.click(within(panel).getByRole('button', { name: '토마스 저널 바꾸기' }))
     const dialog = screen.getByRole('dialog', { name: '토마스 저널' })
     fireEvent.change(within(dialog).getByLabelText('저널 이미지 주소'), { target: { value: 'javascript:alert(1)' } })
@@ -338,7 +339,7 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     fireEvent.change(within(dialog).getByLabelText('저널 이미지 주소'), { target: { value: 'https://i.imgur.com/t.png' } })
     fireEvent.click(within(dialog).getByRole('button', { name: '적용' }))
     await waitFor(() => expect(saved().characters['토마스']).toMatchObject({ avatar: 'https://i.imgur.com/t.png', hidden: true }), { timeout: 3000 })
-    expect(within(panel).queryByText(/저널이 PC 폴더 경로라/)).not.toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: '토마스 저널 바꾸기' }).querySelector('img')).toHaveAttribute('src', 'https://i.imgur.com/t.png')
 
     fireEvent.change(within(panel).getByLabelText('찾을 글자'), { target: { value: '서가' } })
     expect(within(panel).getByText('1곳 찾음')).toBeInTheDocument()

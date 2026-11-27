@@ -129,30 +129,6 @@
   border-radius: 50%;
 }
 
-.char-warn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 7px;
-  font-size: 10.5px;
-  color: #93524d;
-  background: #f8ecea;
-  border-radius: 7px;
-  padding: 6px 8px;
-}
-
-.char-warn .ico {
-  width: 14px;
-  height: 14px;
-  flex: none;
-}
-
-.char-warn .text-link {
-  margin-left: auto;
-  color: #93524d;
-  flex: none;
-}
-
 .char-more {
   margin-top: 9px;
   padding-top: 9px;
@@ -462,15 +438,6 @@
 :root[data-theme='dark'] .char-row {
   background: #142128;
   border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .char-warn {
-  background: #3a2422;
-  color: #e8aaa3;
-}
-
-:root[data-theme='dark'] .char-warn .text-link {
-  color: #e8aaa3;
 }
 
 :root[data-theme='dark'] .char-more,
