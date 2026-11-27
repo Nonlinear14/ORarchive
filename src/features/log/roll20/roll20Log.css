@@ -428,9 +428,11 @@
   margin-top: 6px;
 }
 
+/* 휴대폰: 로그 미리보기만 따로 스크롤 — 긴 로그도 끝까지 내리지 않고 아래 편집 패널로 갈 수 있게 */
 @media (max-width: 750px) {
   .log-stage {
-    max-height: none;
+    max-height: max(320px, 68dvh);
+    overscroll-behavior: contain;
   }
 }
 
