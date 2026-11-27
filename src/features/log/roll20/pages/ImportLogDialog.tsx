@@ -30,6 +30,11 @@ function Summary({ result, fileName }: { result: ParseResult; fileName?: string 
             <Icon name="check" /> 확장 프로그램 사용 감지 — 메시지와 판정 표 꾸밈을 그대로 반영해요.
           </span>
         )}
+        {stats.restoredImages > 0 && (
+          <span className="ext-line">
+            <Icon name="check" /> PC 폴더 경로로 바뀐 저널 · 이미지 {n(stats.restoredImages)}개의 원래 주소를 파일에서 찾아 되살렸어요.
+          </span>
+        )}
         {stats.brokenAvatars > 0 && (
           <span className="warn-line">
             <Icon name="alert" /> 저널 {n(stats.brokenAvatars)}개가 PC 폴더 경로예요. 불러온 뒤 캐릭터 설정에서 주소를 넣을 수 있어요.
@@ -37,7 +42,7 @@ function Summary({ result, fileName }: { result: ParseResult; fileName?: string 
         )}
         {stats.brokenImages > 0 && (
           <span className="warn-line">
-            <Icon name="alert" /> 메시지 속 이미지 {n(stats.brokenImages)}개도 PC 폴더 경로라 내보낸 파일에서 보이지 않아요. 'HTML만'으로 저장한 파일을 쓰면 원래 주소가 남아요.
+            <Icon name="alert" /> 메시지 속 이미지 {n(stats.brokenImages)}개는 원래 주소를 찾지 못해 PC 폴더 경로로 남아요. 내보낸 파일에서 보이지 않을 수 있어요.
           </span>
         )}
       </div>
@@ -150,7 +155,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
           >
             <Icon name="upload" />
             <b>저장한 채팅 로그 HTML 파일을 끌어다 놓거나 눌러서 고르세요</b>
-            <small>Roll20 채팅 아카이브에서 Ctrl+S → 파일 형식 '웹페이지, HTML만'으로 저장한 파일</small>
+            <small>Roll20 채팅 아카이브에서 Ctrl+S → 파일 형식 '웹페이지, 전체'로 저장한 파일</small>
             <input
               ref={fileRef}
               type="file"
@@ -161,7 +166,7 @@ export function ImportLogDialog({ onClose }: { onClose(): void }) {
             />
           </label>
           <p className="field-help">
-            '웹페이지, 전체'로 저장하면 저널 이미지 주소가 PC 폴더 경로로 바뀌어 다른 사람에게 보이지 않아요. 'HTML만'으로 저장하면 원래 이미지 주소가 그대로 남아요.
+            '웹페이지, 전체'로 저장해 주세요. 저장 파일 속 저널 · 이미지 주소는 PC 폴더 경로로 바뀌지만, 불러올 때 파일 안에 남아 있는 원래 주소로 되살려요. ('HTML만'으로 저장하면 메시지가 담기지 않아 불러올 수 없어요)
           </p>
         </div>
       ) : (

@@ -342,3 +342,37 @@ describe('Roll20 로그 그리기·내보내기', () => {
     expect(code).toContain('관찰력')
   })
 })
+
+describe("'웹페이지, 전체' 저장 파일: msgdata 로 원래 이미지 주소 되살리기", () => {
+  /** Roll20 아카이브처럼 msgdata 에 메시지를 base64 JSON 으로 싣는다 */
+  const msgdata = (data: unknown) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(data))))
+  const archive = msgdata([
+    {
+      '-m1': { type: 'general', who: '엘리너', avatar: 'https://files.d20.io/images/1/a/med.png?1', content: '안녕' },
+      '-m2': { type: 'desc', who: '', content: 'https://imgur.com/abc.png' },
+      '-m3': { type: 'general', who: '엘리너', content: '<img src="https://i.imgur.com/x.png"> 그리고 [그림](https://i.imgur.com/y.jpg)' },
+    },
+  ])
+  const page = (messages: string) => `<html><head><title>Chat Log for 테스트</title></head><body>
+<div id="textchat" class="textchatcontainer"><div class="content">${messages}</div></div>
+<script>var msgdata = "${archive}";</script></body></html>`
+
+  it('PC 폴더 경로가 된 저널 · 메시지 속 이미지를 원래 주소로 바꾸고 개수를 알려 준다', () => {
+    const { content, stats } = parseRoll20Log(
+      page(`<div class="message general" data-messageid="-m1"><div class="avatar"><img src="./Chat_files/med.png"></div><span class="by">엘리너:</span>안녕</div>
+<div class="message desc" data-messageid="-m2"><img src="./Chat_files/abc.png"></div>
+<div class="message general" data-messageid="-m3"><span class="by">엘리너:</span><img src="./Chat_files/x.png"> 그리고 <img src="./Chat_files/y.jpg"></div>`),
+    )
+    expect(content.messages[0].avatar).toBe('https://files.d20.io/images/1/a/med.png?1')
+    const all = content.messages.map((m) => m.html ?? m.text ?? '').join('\n')
+    expect(all).toContain('https://imgur.com/abc.png')
+    expect(all).toContain('https://i.imgur.com/x.png')
+    expect(all).toContain('https://i.imgur.com/y.jpg')
+    expect(all).not.toContain('./Chat_files/')
+    expect(stats).toMatchObject({ brokenAvatars: 0, brokenImages: 0, restoredImages: 4 })
+  })
+
+  it("'HTML만' 저장 파일(메시지가 그려지기 전, msgdata 만): '웹페이지, 전체'로 다시 저장하라고 알려 준다", () => {
+    expect(() => parseRoll20Log(page(''))).toThrow(/'웹페이지, HTML만'으로 저장한 파일이에요.*'웹페이지, 전체'로 다시 저장/)
+  })
+})

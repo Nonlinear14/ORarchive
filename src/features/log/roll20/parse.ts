@@ -29,6 +29,8 @@ export interface ParseStats {
   brokenAvatars: number
   /** 메시지 안의 PC 폴더 경로 이미지 수 */
   brokenImages: number
+  /** PC 폴더 경로였다가 파일 속 원래 주소(msgdata)로 되살린 저널 · 이미지 수 */
+  restoredImages: number
   sheetCss: boolean
   /** 확장 프로그램 꾸밈을 찾았는가 (저장 파일의 스타일 블록, 또는 붙여넣은 내용의 style 속성) */
   extension: boolean
@@ -42,6 +44,64 @@ export interface ParseResult {
 }
 
 export class Roll20ParseError extends Error {}
+
+/** msgdata 에서 찾은 메시지 하나의 원래 이미지 주소 */
+interface ArchiveImages {
+  avatar?: string
+  images: string[]
+}
+
+/**
+ * Roll20 채팅 아카이브 페이지는 메시지를 `msgdata = "<base64 JSON>"` 로 싣고 스크립트로 그린다.
+ * '웹페이지, 전체'로 저장하면 그려진 메시지(div.message)와 msgdata 가 함께 남지만, 저널 · 이미지 주소는 PC 폴더 경로로 바뀐다.
+ * msgdata 에는 원래 주소가 메시지 번호별로 남아 있으므로 그것으로 되살린다. ('HTML만'은 그려지기 전 원본이라 div.message 가 없다)
+ */
+export function readArchiveImages(doc: Document): Map<string, ArchiveImages> {
+  const out = new Map<string, ArchiveImages>()
+  let b64: string | undefined
+  for (const script of doc.querySelectorAll('script')) {
+    const m = /msgdata\s*=\s*"([A-Za-z0-9+/=\s]+)"/.exec(script.textContent ?? '')
+    if (m) {
+      b64 = m[1].replace(/\s+/g, '')
+      break
+    }
+  }
+  if (!b64) return out
+  let data: unknown
+  try {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+    data = JSON.parse(new TextDecoder().decode(bytes))
+  } catch {
+    return out
+  }
+  const chunks = Array.isArray(data) ? data : [data]
+  for (const chunk of chunks) {
+    if (!chunk || typeof chunk !== 'object') continue
+    for (const [id, raw] of Object.entries(chunk as Record<string, unknown>)) {
+      if (!raw || typeof raw !== 'object') continue
+      const msg = raw as Record<string, unknown>
+      const avatar = typeof msg.avatar === 'string' && isWebUrl(msg.avatar) ? msg.avatar : undefined
+      const source = [msg.htmlcontent, msg.content].filter((v): v is string => typeof v === 'string').join('\n')
+      out.set(id, { avatar, images: imageUrlsIn(source) })
+    }
+  }
+  return out
+}
+
+/**
+ * 메시지 원문 속 이미지 주소 (나온 차례대로): <img src="…">, [글자](주소), 그리고 Roll20 이 그림으로 바꿔 보여 주는
+ * 맨 이미지 주소(https://….png 등)
+ */
+function imageUrlsIn(source: string): string[] {
+  const urls: string[] = []
+  const re =
+    /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["']|\[[^\]]*\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s"'<>()[\]]+?\.(?:png|jpe?g|gif|webp)(?:\?[^\s"'<>()[\]]*)?)(?=[\s"'<>()[\]]|$)/gi
+  for (let m = re.exec(source); m; m = re.exec(source)) {
+    const url = (m[1] ?? m[2] ?? m[3] ?? '').replace(/&amp;/g, '&')
+    if (isWebUrl(url) && !urls.includes(url)) urls.push(url)
+  }
+  return urls
+}
 
 const ALLOWED_TAGS = [
   'a', 'b', 'br', 'caption', 'code', 'col', 'colgroup', 'del', 'div', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i',
@@ -146,6 +206,11 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
   const doc = new DOMParser().parseFromString(input, 'text/html')
   const root = doc.querySelector('#textchat .content') ?? doc.querySelector('.textchatcontainer .content') ?? doc.body
   const elements = [...root.querySelectorAll('div.message')].filter((el) => !el.parentElement?.closest('div.message'))
+  const archive = readArchiveImages(doc)
+  if (elements.length === 0 && archive.size > 0)
+    throw new Roll20ParseError(
+      "'웹페이지, HTML만'으로 저장한 파일이에요. 이 방식은 메시지가 그려지기 전 원본만 저장해서 불러올 수 없어요. 채팅 아카이브에서 Ctrl+S → '웹페이지, 전체'로 다시 저장해 주세요.",
+    )
   if (elements.length === 0)
     throw new Roll20ParseError(
       'Roll20 채팅 메시지를 찾지 못했어요. 채팅 아카이브에서 저장한 HTML 파일이나, 아카이브 페이지를 전체 선택해 복사한 내용인지 확인해 주세요.',
@@ -170,12 +235,20 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
   const messages: LogMessage[] = []
   let prev: LogMessage | undefined
   let brokenImages = 0
+  let restoredImages = 0
+  const restoredAvatars = new Set<string>()
   const seenIds = new Set<string>()
 
   for (const el of elements) {
     const kind = kindOf(el)
     const byEl = el.querySelector(':scope > .by')
-    const avatarSrc = el.querySelector(':scope > .avatar img')?.getAttribute('src') ?? undefined
+    const original = archive.get(el.getAttribute('data-messageid') ?? '')
+    let avatarSrc = el.querySelector(':scope > .avatar img')?.getAttribute('src') ?? undefined
+    // PC 폴더 경로가 된 저널 → 파일 속 원래 주소
+    if (avatarSrc && !isWebUrl(avatarSrc) && original?.avatar) {
+      avatarSrc = original.avatar
+      restoredAvatars.add(original.avatar)
+    }
     const ts = el.querySelector(':scope > .tstamp')?.textContent?.trim() || undefined
 
     const message: LogMessage = { id: '', kind }
@@ -202,6 +275,22 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
 
     const body = el.cloneNode(true) as Element
     for (const child of [...body.children]) if (SKIP_CHILD(child)) child.remove()
+    // 메시지 속 PC 폴더 경로 이미지 → 파일 속 원래 주소 (나온 차례대로 짝짓기)
+    if (original && original.images.length > 0) {
+      const urls = [...original.images]
+      for (const img of body.querySelectorAll('img')) {
+        const src = img.getAttribute('src') ?? ''
+        if (isWebUrl(src)) {
+          const at = urls.indexOf(src)
+          if (at >= 0) urls.splice(at, 1)
+          continue
+        }
+        const url = urls.shift()
+        if (!url) break
+        img.setAttribute('src', url)
+        restoredImages += 1
+      }
+    }
     for (const menu of body.querySelectorAll('[id^="menu-"], .flyout')) menu.remove()
     // 확장 프로그램을 쓴 페이지에서 붙여 넣었다면 본문 속 style 속성도 정리 (글꼴 제외, 굳은 표 폭 제거)
     if (pastedExtension) for (const styledEl of body.querySelectorAll('[style]')) cleanPastedStyle(styledEl)
@@ -248,6 +337,7 @@ export function parseRoll20Log(input: string, fileName?: string): ParseResult {
       rolls: messages.filter((m) => m.kind === 'roll' || (m.html ?? '').includes('sheet-rolltemplate')).length,
       brokenAvatars,
       brokenImages,
+      restoredImages: restoredImages + restoredAvatars.size,
       sheetCss: sheetCss.length > 0,
       extension: extCss.length > 0,
       rule: content.rule,
