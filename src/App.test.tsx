@@ -52,19 +52,26 @@ describe('앱 셸', () => {
   })
 })
 
+const nav = () => screen.queryByRole('navigation', { name: '주 메뉴' })
+
 describe('사이드바 접고 펴기 버튼', () => {
-  it('넓은 화면: 접으면 상위 아이콘만(말풍선), 다시 펴기 · 이 기기에 기억', async () => {
+  it('넓은 화면: 접으면 사이트 아이콘만 남는다 (메뉴 아이콘 없음) · 다시 펴기 · 이 기기에 기억', async () => {
     localStorage.removeItem('folio-sidebar-collapsed')
     renderApp('/', { client: createFakeSupabase().client })
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
     expect(within(sidebar).getByRole('link', { name: '템플릿 목록' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '사이드바 접기' }))
-    expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
-    expect(within(sidebar).queryByRole('link', { name: '템플릿 목록' })).not.toBeInTheDocument()
-    expect(within(sidebar).getByRole('button', { name: '템플릿 아카이브' })).toHaveAttribute('aria-expanded', 'false')
-    expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('1')
-    fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
+    try {
+      expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
+      expect(nav()).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
+      expect(screen.getAllByRole('link', { name: 'ORarchive 홈으로 이동' })[0]).toBeVisible()
+      expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('1')
+    } finally {
+      fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
+    }
     expect(document.querySelector('.sidebar')).not.toHaveClass('is-collapsed')
+    expect(nav()).toBeInTheDocument()
     expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('0')
   })
 })
@@ -80,12 +87,13 @@ describe('휴대폰 (≤750px): 사이드바 서랍', () => {
     })) as unknown as typeof window.matchMedia
     try {
       renderApp('/', { client: createFakeSupabase().client })
-      await screen.findByRole('navigation', { name: '주 메뉴' })
+      await screen.findByRole('button', { name: '사이드바 펼치기' })
       expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
+      expect(nav()).not.toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
       expect(document.querySelector('.sidebar')).not.toHaveClass('is-collapsed')
       // 펼친 서랍은 하위 메뉴를 그대로 보여 준다
-      fireEvent.click(within(screen.getByRole('navigation', { name: '주 메뉴' })).getByRole('link', { name: '로그 목록' }))
+      fireEvent.click(within(nav()!).getByRole('link', { name: '로그 목록' }))
       expect(await screen.findByRole('heading', { level: 1, name: '로그 목록' })).toBeInTheDocument()
       expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
       fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
@@ -97,8 +105,8 @@ describe('휴대폰 (≤750px): 사이드바 서랍', () => {
   })
 })
 
-describe('접힌 사이드바 (≤1050px)', () => {
-  it('상위 메뉴 아이콘만 보이고, 누르면 하위 메뉴 말풍선을 띄운다', async () => {
+describe('좁은 화면 (≤1050px)', () => {
+  it('기본으로 접혀 사이트 아이콘만 · 버튼으로 펼친다 (기억하지 않음)', async () => {
     const original = window.matchMedia
     window.matchMedia = ((query: string) => ({
       matches: query.includes('1050'),
@@ -107,37 +115,16 @@ describe('접힌 사이드바 (≤1050px)', () => {
       removeEventListener: () => {},
     })) as unknown as typeof window.matchMedia
     try {
-      renderApp('/', { client: createFakeSupabase().client })
-      const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
-      // 하위 메뉴는 처음엔 보이지 않는다
-      expect(within(sidebar).queryByRole('link', { name: '롤꾸코드 편집' })).not.toBeInTheDocument()
-      const archive = within(sidebar).getByRole('button', { name: '템플릿 아카이브' })
-      expect(archive).toHaveAttribute('aria-expanded', 'false')
-
-      fireEvent.click(archive)
-      expect(archive).toHaveAttribute('aria-expanded', 'true')
-      const bubble = within(sidebar).getByRole('group', { name: '템플릿 아카이브' })
-      fireEvent.click(within(bubble).getByRole('link', { name: '롤꾸코드 편집' }))
-      expect(await screen.findByRole('heading', { level: 1, name: '롤꾸코드 편집' })).toBeInTheDocument()
-      expect(within(sidebar).queryByRole('group', { name: '템플릿 아카이브' })).not.toBeInTheDocument()
-      // 현재 화면이 속한 상위 메뉴가 활성 표시된다
-      expect(within(sidebar).getByRole('button', { name: '템플릿 아카이브' })).toHaveClass('active')
-
-      // Esc 로 닫힘, 설정 말풍선에는 테마 토글
-      fireEvent.click(within(sidebar).getByRole('button', { name: '설정' }))
-      expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
-      fireEvent.keyDown(document, { key: 'Escape' })
-      expect(within(sidebar).queryByRole('switch')).not.toBeInTheDocument()
-      // 하위 메뉴가 없는 상위 메뉴는 그대로 링크
-      expect(within(sidebar).getByRole('link', { name: '캐릭터 아카이브' })).toHaveAttribute('href', '/characters')
-
-      // 좁은 화면에서도 버튼으로 펼친다 (기억하지 않음)
       localStorage.removeItem('folio-sidebar-collapsed')
+      renderApp('/', { client: createFakeSupabase().client })
+      await screen.findByRole('button', { name: '사이드바 펼치기' })
+      expect(nav()).not.toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
-      expect(within(sidebar).getByRole('link', { name: '템플릿 목록' })).toBeInTheDocument()
+      fireEvent.click(within(nav()!).getByRole('link', { name: '롤꾸코드 편집' }))
+      expect(await screen.findByRole('heading', { level: 1, name: '롤꾸코드 편집' })).toBeInTheDocument()
       expect(localStorage.getItem('folio-sidebar-collapsed')).toBeNull()
       fireEvent.click(screen.getByRole('button', { name: '사이드바 접기' }))
-      expect(within(sidebar).queryByRole('link', { name: '템플릿 목록' })).not.toBeInTheDocument()
+      expect(nav()).not.toBeInTheDocument()
     } finally {
       window.matchMedia = original
     }

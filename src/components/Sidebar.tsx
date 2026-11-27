@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { closeMobileSidebar, useSidebarCollapsed } from '../lib/sidebar'
 import { NavLink, useLocation } from 'react-router'
 import { toggleTheme, useTheme } from '../lib/theme'
@@ -34,75 +34,7 @@ function SubLinks({ section }: { section: NavSection }) {
   )
 }
 
-/** 접힌 사이드바: 상위 메뉴 아이콘을 누르면 오른쪽에 하위 메뉴 말풍선을 띄운다 */
-function SectionBubble({ section, active }: { section: NavSection; active: boolean }) {
-  const [open, setOpen] = useState(false)
-  const [top, setTop] = useState(0)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const bubbleRef = useRef<HTMLDivElement>(null)
-  const bubbleId = `bubble-${section.label.replace(/\s+/g, '-')}`
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (!bubbleRef.current?.contains(target) && !buttonRef.current?.contains(target)) setOpen(false)
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false)
-        buttonRef.current?.focus()
-      }
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={active ? 'nav-title nav-title-button active' : 'nav-title nav-title-button'}
-        aria-expanded={open}
-        aria-controls={open ? bubbleId : undefined}
-        title={section.label}
-        onClick={() => {
-          const rect = buttonRef.current?.getBoundingClientRect()
-          if (rect) setTop(rect.top)
-          setOpen((value) => !value)
-        }}
-      >
-        <Icon name={section.icon} />
-        <span className="sr-only">{section.label}</span>
-      </button>
-      {open && (
-        <div
-          ref={bubbleRef}
-          id={bubbleId}
-          className="nav-bubble"
-          role="group"
-          aria-label={section.label}
-          style={{ top }}
-          // 하위 메뉴를 고르면 닫는다 (테마 토글은 열어 둔다)
-          onClick={(event) => {
-            if ((event.target as HTMLElement).closest('a')) setOpen(false)
-          }}
-        >
-          <div className="nav-bubble-title">{section.label}</div>
-          <SubLinks section={section} />
-        </div>
-      )}
-    </>
-  )
-}
-
-function SectionNav({ section, collapsed }: { section: NavSection; collapsed: boolean }) {
-  const { pathname } = useLocation()
+function SectionNav({ section }: { section: NavSection }) {
   // 하위 메뉴가 없으면 제목 자체가 링크
   if (section.route)
     return (
@@ -113,15 +45,6 @@ function SectionNav({ section, collapsed }: { section: NavSection; collapsed: bo
         </NavLink>
       </div>
     )
-
-  if (collapsed) {
-    const active = section.children?.some((route) => route.path === pathname) ?? false
-    return (
-      <div className="nav-section">
-        <SectionBubble section={section} active={active} />
-      </div>
-    )
-  }
 
   const headingId = `nav-${section.label.replace(/\s+/g, '-')}`
   return (
@@ -156,12 +79,13 @@ export function Sidebar() {
       {!collapsed && <button type="button" className="side-backdrop" aria-label="메뉴 닫기" tabIndex={-1} onClick={closeMobileSidebar} />}
       <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'} id="main-sidebar">
         <SidebarBrand />
-        <nav className="side-content" aria-label="주 메뉴">
+        {/* 접으면 사이트 아이콘만 남는다 (메뉴는 상단바 버튼으로 펼친 뒤) */}
+        <nav className="side-content" aria-label="주 메뉴" hidden={collapsed}>
           {navSections.map((section) => (
-            <SectionNav key={section.label} section={section} collapsed={collapsed} />
+            <SectionNav key={section.label} section={section} />
           ))}
         </nav>
-        <div className="side-footer">
+        <div className="side-footer" hidden={collapsed}>
           <div className="quota">
             <div className="quota-title">
               <span>내 클라우드 공간</span>
