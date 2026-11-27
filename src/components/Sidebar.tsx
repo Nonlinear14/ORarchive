@@ -75,15 +75,23 @@ export function Sidebar() {
   useCloseDrawerOnNavigate()
   return (
     <>
-      {!collapsed && <button type="button" className="side-backdrop" aria-label="메뉴 닫기" tabIndex={-1} onClick={closeMobileSidebar} />}
-      <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'} id="main-sidebar">
-        {/* 접으면 사이트 아이콘만 남는다 (메뉴는 상단바 버튼으로 펼친 뒤) */}
-        <nav className="side-content" aria-label="주 메뉴" hidden={collapsed}>
+      {/* 서랍 뒤 어두운 배경 (좁은 화면만 보임). 접힌 동안에도 남겨 두어 서서히 사라지게 한다 */}
+      <button
+        type="button"
+        className={collapsed ? 'side-backdrop' : 'side-backdrop is-open'}
+        aria-label="메뉴 닫기"
+        aria-hidden={collapsed || undefined}
+        tabIndex={-1}
+        onClick={closeMobileSidebar}
+      />
+      {/* 접혀도 그려 둔 채 움직임으로 숨긴다 (inert · aria-hidden 으로 키보드 · 화면 낭독기에서는 바로 빠진다) */}
+      <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'} id="main-sidebar" inert={collapsed} aria-hidden={collapsed || undefined}>
+        <nav className="side-content" aria-label="주 메뉴">
           {navSections.map((section) => (
             <SectionNav key={section.label} section={section} />
           ))}
         </nav>
-        <div className="side-footer" hidden={collapsed}>
+        <div className="side-footer">
           <div className="quota">
             <div className="quota-title">
               <span>내 클라우드 공간</span>

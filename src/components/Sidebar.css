@@ -1,5 +1,12 @@
 .sidebar {
-  width: 248px;
+  --side-w: 248px;
+  --side-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --side-dur: 0.28s;
+  width: var(--side-w);
+  overflow: hidden;
+  transition:
+    width var(--side-dur) var(--side-ease),
+    border-color var(--side-dur) var(--side-ease);
   background: var(--side-bg);
   color: var(--side-text);
   display: flex;
@@ -217,9 +224,46 @@
 }
 
 
-/* 넓은 화면에서 접으면 완전히 사라진다 */
+/* 접고 펼 때 메뉴 글자는 찌그러지지 않게 폭을 고정한 채 밀려 들어가고 나온다 */
+.sidebar > .side-content,
+.sidebar > .side-footer {
+  min-width: var(--side-w);
+  transition: opacity var(--side-dur) var(--side-ease);
+}
+
+/* 넓은 화면에서 접으면 폭이 0으로 줄며 완전히 사라진다 */
 .sidebar.is-collapsed {
-  display: none;
+  width: 0;
+  border-right-color: transparent;
+}
+
+.sidebar.is-collapsed > .side-content,
+.sidebar.is-collapsed > .side-footer {
+  opacity: 0;
+}
+
+/*
+ * 아주 긴 로그를 연 편집 화면: 폭을 매 순간 바꾸면 로그 전체를 다시 그리느라 끊긴다.
+ * 사이드바만 미끄러지고, 본문 폭은 닫을 때는 끝에서 · 열 때는 처음에 한 번만 바뀐다.
+ */
+@media (min-width: 1051px) {
+  .app:has(.log-editor) .sidebar {
+    transition:
+      transform var(--side-dur) var(--side-ease),
+      width 0s;
+  }
+
+  .app:has(.log-editor) .sidebar.is-collapsed {
+    transform: translateX(-100%);
+    transition:
+      transform var(--side-dur) var(--side-ease),
+      width 0s linear var(--side-dur);
+  }
+
+  .app:has(.log-editor) .sidebar.is-collapsed > .side-content,
+  .app:has(.log-editor) .sidebar.is-collapsed > .side-footer {
+    opacity: 1;
+  }
 }
 
 /* ≤1050px: 평소에는 사라져 있고, 상단바 버튼으로 본문 위에 겹쳐 여는 서랍 (상단바 아래) */
@@ -230,22 +274,36 @@
 @media (max-width: 1050px) {
   .sidebar,
   .sidebar.is-collapsed {
-    display: flex;
+    --side-w: min(290px, 84vw);
     position: fixed;
     left: 0;
     top: var(--topbar-h, 76px);
-    width: min(290px, 84vw);
+    width: var(--side-w);
     height: calc(100dvh - var(--topbar-h, 76px));
     z-index: 60;
+    border-right-color: #283941;
     transform: translateX(-102%);
-    transition: transform 0.22s ease;
+    /* 닫힐 때: 끝까지 미끄러져 들어간 뒤에 감춘다 */
+    transition:
+      transform var(--side-dur) var(--side-ease),
+      box-shadow var(--side-dur) var(--side-ease),
+      visibility 0s linear var(--side-dur);
     visibility: hidden;
+  }
+
+  .sidebar.is-collapsed > .side-content,
+  .sidebar.is-collapsed > .side-footer {
+    opacity: 1;
   }
 
   .sidebar:not(.is-collapsed) {
     transform: none;
     visibility: visible;
     box-shadow: 0 0 40px rgba(10, 20, 24, 0.35);
+    transition:
+      transform var(--side-dur) var(--side-ease),
+      box-shadow var(--side-dur) var(--side-ease),
+      visibility 0s;
   }
 
   .side-backdrop {
@@ -256,12 +314,24 @@
     background: rgba(14, 24, 28, 0.42);
     border: 0;
     padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .sidebar,
-    .sidebar.is-collapsed {
-      transition: none;
-    }
+  .side-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar.is-collapsed,
+  .sidebar:not(.is-collapsed),
+  .sidebar > .side-content,
+  .sidebar > .side-footer,
+  .side-backdrop {
+    transition: none;
   }
 }
