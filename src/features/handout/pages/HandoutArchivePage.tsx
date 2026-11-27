@@ -8,10 +8,9 @@ import { LoadingState } from '../../../components/LoadingState'
 import { PageHeading } from '../../../components/PageHeading'
 import { documentPath, type DocumentSummary } from '../../../lib/documents'
 import { formatRelativeTime } from '../../../lib/format'
-import { useDocumentContent } from '../../../lib/useDocumentContent'
 import { useMyDocuments } from '../../../lib/useMyDocuments'
 import { useRepository } from '../../../lib/useRepository'
-import HandoutThumbnail from '../HandoutThumbnail'
+import { HandoutPreview } from '../HandoutPreview'
 import { useCopyHandout } from '../useCopyHandout'
 import { TemplatePickerDialog } from './TemplatePicker'
 
@@ -49,23 +48,6 @@ function ViewToggle({ view, onChange }: { view: ArchiveView; onChange(view: Arch
       ))}
     </div>
   )
-}
-
-function HandoutPreview({ id }: { id: string }) {
-  const content = useDocumentContent(id)
-  if (content === undefined)
-    return (
-      <div className="recent-preview-empty" aria-hidden="true">
-        <span>불러오는 중…</span>
-      </div>
-    )
-  if (content === null)
-    return (
-      <div className="recent-preview-empty" aria-hidden="true">
-        <span>미리보기를 불러오지 못했어요</span>
-      </div>
-    )
-  return <HandoutThumbnail content={content} />
 }
 
 function HandoutCard({

@@ -328,3 +328,26 @@
     display: none;
   }
 }
+
+/* 템플릿 선택 카드: 미리보기 · 이름 · 이 템플릿 사용하기 */
+.pick-card .recent-preview-empty {
+  height: 170px;
+  --tp-scale: 0.38;
+}
+
+.pick-card .template-info strong {
+  display: block;
+  margin-bottom: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-card .template-start {
+  width: 100%;
+  justify-content: center;
+}
+
+.picker-empty + .template-grid {
+  margin-top: 14px;
+}

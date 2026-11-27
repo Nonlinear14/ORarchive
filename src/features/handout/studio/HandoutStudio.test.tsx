@@ -775,7 +775,9 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
     fireEvent.click(await screen.findByRole('button', { name: '새 핸드아웃' }))
     expect(screen.getByRole('button', { name: /템플릿을 골라 새 핸드아웃 만들기/ })).toBeInTheDocument()
     const dialog = screen.getByRole('dialog', { name: '템플릿 선택' })
-    fireEvent.click(within(dialog).getByRole('button', { name: '비밀 결사의 인장 템플릿으로 시작' }))
+    // 아카이브가 비어 있으면 안내 + 기본 템플릿 (기본 템플릿 핸드아웃을 지정하기 전까지)
+    expect(await within(dialog).findByText(/아직 템플릿 아카이브에 핸드아웃이 없어요/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: '비밀 결사의 인장 — 이 템플릿 사용하기' }))
     await screen.findByRole('group', { name: '핸드아웃 캔버스' })
     expect(screen.getByTestId('location').textContent).toMatch(/^\/studio\/handout\/doc-/)
     expect(fake.control.tables.documents[0]).toMatchObject({
@@ -825,24 +827,28 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
     expect(screen.getByRole('dialog', { name: '봉인된 편지' })).toBeInTheDocument()
   })
 
-  it('템플릿 선택 창 검색: 이름·분류·설명으로 거르고, 없으면 안내한다', async () => {
-    renderApp('/studio/handout', { client: createFakeSupabase().client })
+  it('템플릿 선택 창: 내 핸드아웃 목록(최근 수정순) · 카드는 미리보기 · 이름 · 이 템플릿 사용하기 · 이름 검색', async () => {
+    const fake = createFakeSupabase()
+    fake.control.insertDocument({ type: 'handout', title: '봉인된 편지', content: serializeHandout(createHandoutContent('order')) })
+    fake.control.insertDocument({ type: 'handout', title: '달빛 초대장 (사본)', content: serializeHandout(createHandoutContent('moonlit')) })
+    fake.control.insertDocument({ type: 'log', title: '세션 1' })
+    renderApp('/studio/handout', { client: fake.client })
     const dialog = await screen.findByRole('dialog', { name: '템플릿 선택' })
     const search = within(dialog).getByRole('searchbox', { name: '템플릿 검색' })
     expect(search).toHaveFocus()
-    const shown = () => within(dialog).queryAllByRole('article').map((a) => a.getAttribute('aria-labelledby'))
+    await within(dialog).findByText('봉인된 편지')
+    const names = () => within(dialog).queryAllByRole('article').map((a) => a.querySelector('strong')!.textContent)
+    expect(names()).toEqual(['달빛 초대장 (사본)', '봉인된 편지'])
+    const card = within(dialog).getAllByRole('article')[0]
+    expect(within(card).getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['이 템플릿 사용하기'])
+    expect(card.querySelector('small, .template-themes')).toBeNull()
+    expect(within(dialog).queryByText(/기본 템플릿/)).not.toBeInTheDocument()
 
-    fireEvent.change(search, { target: { value: '판타지' } }) // 분류
-    expect(shown()).toEqual(['tpl-order', 'tpl-forest'])
-    fireEvent.change(search, { target: { value: '조사 기록' } }) // 이름 (공백 무시)
-    expect(shown()).toEqual(['tpl-casefile'])
-    fireEvent.change(search, { target: { value: '1920년대' } }) // 설명
-    expect(shown()).toEqual(['tpl-casefile'])
+    fireEvent.change(search, { target: { value: '편지' } })
+    expect(names()).toEqual(['봉인된 편지'])
     fireEvent.change(search, { target: { value: '우주선' } })
-    expect(shown()).toEqual([])
-    expect(within(dialog).getByRole('status')).toHaveTextContent('맞는 템플릿이 없어요')
-    fireEvent.change(search, { target: { value: '' } })
-    expect(shown()).toHaveLength(4)
+    expect(names()).toEqual([])
+    expect(within(dialog).getByRole('status')).toHaveTextContent('이름이 맞는 핸드아웃이 없어요')
   })
 
   it('내 핸드아웃: 미리보기/목록 토글(기억), 핸드아웃만 보인다', async () => {
@@ -890,16 +896,18 @@ describe('템플릿 아카이브 › 핸드아웃 · 템플릿 에디터', () =>
     await waitFor(() => expect(within(mine).getByText(/아직 만든 핸드아웃이 없어요/)).toBeInTheDocument())
   })
 
-  it('/studio/handout(템플릿 에디터 메뉴)은 템플릿 선택 창을 띄우고, 고르면 새 핸드아웃을 연다', async () => {
+  it('/studio/handout(템플릿 에디터 메뉴): 고르면 사본을 만들어 연다 (원본 그대로)', async () => {
     const fake = createFakeSupabase()
+    const stored = serializeHandout(createHandoutContent('forest'))
+    const original = fake.control.insertDocument({ type: 'handout', title: '잃어버린 연대기', content: stored })
     renderApp('/studio/handout', { client: fake.client })
     const dialog = await screen.findByRole('dialog', { name: '템플릿 선택' })
-    expect(within(dialog).getAllByRole('article')).toHaveLength(4)
-    fireEvent.click(within(dialog).getByRole('button', { name: '숲의 기록 템플릿으로 시작' }))
-
+    fireEvent.click(await within(dialog).findByRole('button', { name: '잃어버린 연대기 — 이 템플릿 사용하기' }))
     await screen.findByRole('group', { name: '핸드아웃 캔버스' })
-    expect(screen.getByTestId('location').textContent).toMatch(/^\/studio\/handout\/doc-/)
-    expect(fake.control.tables.documents[0]).toMatchObject({ content: { templateId: 'forest' } })
+    const copy = fake.control.tables.documents.find((d) => d.id !== original.id)!
+    expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${copy.id}`)
+    expect(copy).toMatchObject({ title: '잃어버린 연대기 (사본)', content: stored })
+    expect(fake.control.tables.documents.find((d) => d.id === original.id)!.content).toEqual(stored)
   })
 
   it('템플릿 선택 창을 닫으면 (바로 들어온 경우) 템플릿 아카이브로 간다', async () => {
