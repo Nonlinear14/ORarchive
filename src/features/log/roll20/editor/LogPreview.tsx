@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../../components/Icon'
 import { isEditable, resolveTypedSpeaker, type LogMessage, type Roll20LogContent } from '../model'
@@ -47,9 +47,12 @@ const OVERLAY_CSS = `
 .name-edit input,.speaker-typed input{font:600 13px var(--font, sans-serif);border:1px solid #d9d3c7;border-radius:7px;padding:6px 8px;min-width:0;width:180px;color:#26332f;background:#fff}
 .name-edit small{color:#7d8987;font-size:10.5px;font-weight:600;white-space:nowrap}
 .speaker-typed{display:flex;gap:6px;padding:8px 6px 4px;border-top:1px solid #ece7dd;margin-top:4px}
-.speaker-typed input{flex:1;width:auto}
-.speaker-typed button{width:auto;flex:none;background:#26413d;color:#fff;justify-content:center}
-.speaker-typed button:hover,.speaker-typed button:focus-visible{background:#1d332f}
+.speaker-menu .speaker-typed input{flex:1;width:auto;min-width:0}
+.speaker-menu .speaker-typed button{width:auto;flex:none;background:#26413d;color:#fff;justify-content:center;padding:7px 12px}
+.speaker-menu .speaker-typed button:hover,.speaker-menu .speaker-typed button:focus-visible{background:#1d332f}
+.speaker-menu .speaker-typed button:disabled{opacity:.45;cursor:default}
+.speaker-menu{max-width:calc(100% - 16px)}
+.speaker-menu.open-up{top:auto;bottom:calc(100% - 6px)}
 .speaker-menu .speaker-title{padding:6px 8px 5px;font-size:10.5px;color:#7d8987;font-weight:700}
 .speaker-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:7px 8px;border-radius:7px;color:#26332f;font:inherit;cursor:pointer;text-align:left}
 .speaker-menu button:hover,.speaker-menu button:focus-visible{background:#f1ede4;outline:none}
@@ -67,6 +70,32 @@ const OVERLAY_CSS = `
 export interface SpeakerOption {
   speaker: string
   avatar?: string
+}
+
+/**
+ * 아래로 열면 로그 상자(스크롤 영역) 아래로 잘릴 때 위로 연다.
+ * 미리보기는 그림자 DOM 안이라 상자는 그림자의 바깥 host(.log-stage).
+ */
+function useOpenUpward(ref: React.RefObject<HTMLElement | null>) {
+  const [up, setUp] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const root = el.getRootNode()
+    const box = (root instanceof ShadowRoot ? root.host : el.closest('.log-stage')) as HTMLElement | null
+    if (!box) return
+    const menu = el.getBoundingClientRect()
+    const area = box.getBoundingClientRect()
+    const row = (el.closest('.log-msg') as HTMLElement | null)?.getBoundingClientRect()
+    const below = area.bottom - menu.top
+    const above = (row ? row.top : menu.top) - area.top
+    const openUp = menu.height > below && above > below
+    if (openUp) setUp(true)
+    // 고른 쪽도 모자라면 그 안에 맞게 줄이고 목록 안에서 스크롤
+    const room = (openUp ? above : below) - 8
+    if (menu.height > room && room > 120) el.style.maxHeight = `${Math.floor(room)}px`
+  }, [ref])
+  return up
 }
 
 /** 화자 바꾸기 드롭다운 */
@@ -91,8 +120,10 @@ function SpeakerMenu({
   const keep = (e: MouseEvent) => {
     if (!(e.target as Element).closest('input')) e.preventDefault()
   }
+  const menuRef = useRef<HTMLDivElement>(null)
+  const up = useOpenUpward(menuRef)
   return (
-    <div className="speaker-menu" role="menu" aria-label="캐릭터 바꾸기" onMouseDown={keep}>
+    <div ref={menuRef} className={up ? 'speaker-menu open-up' : 'speaker-menu'} role="menu" aria-label="캐릭터 바꾸기" onMouseDown={keep}>
       <div className="speaker-title">이 메시지의 캐릭터</div>
       <button type="button" role="menuitem" aria-current={current === null} onClick={() => onPick(null)}>
         <span className="sp-av">desc</span> desc 서술
