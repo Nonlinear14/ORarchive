@@ -632,6 +632,55 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(blockOf(saved().content, 'f-body')).toBeDefined()
   })
 
+  it('꾸밈 단축키(Ctrl+B · I · U · D) · 밑줄 · 취소선 버튼: 손잡이로 고른 글상자는 전체에', async () => {
+    const { saved } = await openStudio()
+    select('f-body')
+    expect(screen.getAllByRole('button', { name: /^(굵게|기울임|밑줄|취소선)$/ }).map((b) => b.getAttribute('aria-label'))).toEqual(['굵게', '기울임', '밑줄', '취소선'])
+    vi.useFakeTimers()
+    fireEvent.keyDown(document.body, { key: 'b', ctrlKey: true })
+    fireEvent.keyDown(document.body, { key: 'i', metaKey: true })
+    fireEvent.keyDown(document.body, { key: 'u', ctrlKey: true })
+    const d = fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true })
+    expect(d).toBe(false) // 브라우저 북마크(Ctrl+D) 대신
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ bold: true, italic: true, underline: true, strike: true })
+    expect(field('body').querySelector('span')!.style.textDecoration).toBe('underline line-through')
+    fireEvent.click(screen.getByRole('button', { name: '취소선' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-body')?.style).not.toHaveProperty('strike')
+    // 입력칸에서는 브라우저 기본 (가로채지 않는다)
+    expect(fireEvent.keyDown(screen.getByLabelText('배경색 HEX 코드'), { key: 'b', ctrlKey: true })).toBe(true)
+  })
+
+  it('드래그한 글자에만 꾸밈 (색 · 굵게 · 크기), 정렬은 글상자 전체', async () => {
+    const { saved } = await openStudio()
+    select('f-title')
+    const box = field('title')
+    box.focus()
+    // "달빛 아래의 초대장" 에서 "아래의" (3–6) 를 고른다
+    const r = document.createRange()
+    const text = box.querySelector('span')!.firstChild as Text
+    r.setStart(text, 3)
+    r.setEnd(text, 6)
+    window.getSelection()!.removeAllRanges()
+    window.getSelection()!.addRange(r)
+    document.dispatchEvent(new Event('selectionchange'))
+    expect(await screen.findByText(/드래그한 글자에만 적용돼요/)).toBeInTheDocument()
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: '굵게' }))
+    fireEvent.click(screen.getByRole('button', { name: '글자 크게' }))
+    fireEvent.click(screen.getByRole('button', { name: '오른쪽 정렬' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    const title = blockOf(saved().content, 'f-title') as unknown as { text: string; runs: unknown; style: Record<string, unknown> }
+    expect(title.text).toBe('달빛 아래의 초대장')
+    expect(title.runs).toEqual([{ t: '달빛 ' }, { t: '아래의', s: { bold: true, size: 31 } }, { t: ' 초대장' }])
+    expect(title.style).toMatchObject({ align: 'right', size: 30 })
+    expect(title.style).not.toHaveProperty('bold')
+    const spans = [...field('title').querySelectorAll('span')]
+    expect(spans.map((sp) => sp.textContent)).toEqual(['달빛 ', '아래의', ' 초대장'])
+    expect(spans[1].style.fontWeight).toBe('700')
+  })
+
   it('글상자 자간(px, 0.5 단위, −5–20) · 행간(배수, 0.1 단위, 0.8–3) — 가로 정렬 위', async () => {
     const { saved } = await openStudio()
     select('f-body')

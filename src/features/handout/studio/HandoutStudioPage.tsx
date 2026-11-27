@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { DeletedRecovery } from '../../../components/document/DeletedRecovery'
 import '../../../components/document/DocumentEditor.css'
@@ -19,11 +19,13 @@ import { useToast } from '../../../lib/useToast'
 import { NotFoundPage } from '../../../pages/NotFoundPage'
 import { blockRoll20Text } from '../blockRoll20'
 import { BlockCanvas } from '../canvas/BlockCanvas'
-import { blockKind, DEFAULT_SPACE, findBlock, resolveLayout, type HandoutLayout, type ImageBlock, type LayoutBlock } from '../layout'
-import { addBlock, moveBlock, newBlockId, resetToTemplate, setBlockText, setRowSplit } from '../layoutEdits'
+import { blockKind, DEFAULT_SPACE, findBlock, resolveLayout, type HandoutLayout, type ImageBlock, type LayoutBlock, type TextBlock } from '../layout'
+import { addBlock, moveBlock, newBlockId, resetToTemplate, setBlockContent, setBlockStyle, setRowSplit, type TextStylePatch } from '../layoutEdits'
+import { applyToRange, baseValue, normalizeRuns, rangeAllOn, rangeValue, TOGGLE_KEYS, type ToggleKey } from '../richText'
+import { caretOffsets, rangeAt } from '../canvas/richDom'
 import { RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
 import { resolveHandout, resolveLook } from '../templates'
-import { DesignPanel } from './DesignPanel'
+import { DesignPanel, type TextOps } from './DesignPanel'
 import { ExportBar } from './ExportPanel'
 import './HandoutStudio.css'
 
@@ -90,6 +92,82 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
   const [confirmReset, setConfirmReset] = useState(false)
   const selection = selectedIds.map((id) => findBlock(layout, id)).filter((b): b is LayoutBlock => b !== null)
   const selected = selection.at(-1) ?? null
+  // 드래그한 글자 범위 (글상자 하나만 골랐을 때): 꾸밈을 그 글자에만. 패널 칸으로 포커스가 옮겨가도 남긴다
+  const [textRange, setTextRange] = useState<{ id: string; start: number; end: number } | null>(null)
+  useEffect(() => {
+    const onSelChange = () => {
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) return
+      const node = sel.anchorNode
+      const el = (node instanceof Element ? node : node?.parentElement)?.closest<HTMLElement>('.hb-canvas.editable [data-block-id] [data-hfield]')
+      if (!el) return // 패널 등 다른 곳: 범위를 그대로 둔다
+      const id = el.closest<HTMLElement>('[data-block-id]')!.dataset.blockId!
+      const off = caretOffsets(el)
+      if (!off || off.start === off.end) setTextRange((r) => (r ? null : r))
+      else setTextRange({ id, start: Math.min(off.start, off.end), end: Math.max(off.start, off.end) })
+    }
+    document.addEventListener('selectionchange', onSelChange)
+    return () => document.removeEventListener('selectionchange', onSelChange)
+  }, [])
+  const textBlocks = selection.filter((b): b is TextBlock => b.type === 'text')
+  const rangeBlock =
+    textRange && selection.length === 1 && textBlocks[0]?.id === textRange.id && textRange.end <= textBlocks[0].text.length ? textBlocks[0] : null
+  const textOps: TextOps = {
+    ranged: rangeBlock !== null,
+    value: (key) =>
+      rangeBlock && textRange
+        ? rangeValue(rangeBlock.text, rangeBlock.runs, rangeBlock.style, textRange.start, textRange.end, key)
+        : textBlocks[0]
+          ? baseValue(textBlocks[0].style, key)
+          : undefined,
+    allOn: (key) =>
+      rangeBlock && textRange
+        ? rangeAllOn(rangeBlock.text, rangeBlock.runs, rangeBlock.style, textRange.start, textRange.end, key)
+        : textBlocks.length > 0 && textBlocks.every((b) => !!b.style[key] && !(b.runs ?? []).some((r) => r.s?.[key] === false)),
+    set: (patch) => {
+      if (rangeBlock && textRange) {
+        const runs = normalizeRuns(applyToRange(rangeBlock.text, rangeBlock.runs, textRange.start, textRange.end, patch), rangeBlock.style)
+        apply(setBlockContent(rangeBlock.id, rangeBlock.text, runs))
+        return
+      }
+      const whole: TextStylePatch = { ...patch }
+      for (const k of TOGGLE_KEYS) if (k in patch) whole[k] = patch[k] ? true : undefined
+      apply((stored) => textBlocks.reduce((acc, b) => setBlockStyle(b.id, whole)(acc), stored))
+    },
+    toggle: (key) => textOps.set({ [key]: !textOps.allOn(key) }),
+  }
+  const textOpsRef = useRef(textOps)
+  useEffect(() => {
+    textOpsRef.current = textOps
+  })
+  // 꾸밈 단축키: 글상자를 골랐을 때만 (Ctrl+B 굵게 · I 기울임 · U 밑줄 · D 취소선, Mac 은 Cmd). 입력칸에서는 브라우저 기본
+  const hasText = textBlocks.length > 0
+  useEffect(() => {
+    if (!hasText) return
+    const KEYS: Record<string, ToggleKey> = { b: 'bold', i: 'italic', u: 'underline', d: 'strike' }
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return
+      const key = KEYS[e.key.toLowerCase()]
+      if (!key) return
+      const target = e.target as HTMLElement | null
+      if (target?.matches('input, textarea, select')) return
+      e.preventDefault()
+      textOpsRef.current.toggle(key)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [hasText])
+  // 드래그한 범위 표시: 글상자 밖(패널)으로 포커스가 옮겨가도 그 글자를 칠해 둔다 (CSS Custom Highlight)
+  useLayoutEffect(() => {
+    const highlights = (CSS as unknown as { highlights?: Map<string, unknown> }).highlights
+    const HighlightCtor = (window as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight
+    if (!highlights || !HighlightCtor) return
+    highlights.delete('hb-range')
+    if (!rangeBlock || !textRange) return
+    const el = stage.current?.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(rangeBlock.id)}"] [data-hfield]`)
+    const r = el ? rangeAt(el, textRange.start, textRange.end) : null
+    if (r) highlights.set('hb-range', new HighlightCtor(r))
+  })
   const snapshot = useRef<HTMLDivElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   // 새로 넣은 텍스트 블록에 바로 입력할 수 있게 커서를 둔다
@@ -189,6 +267,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
               editing={{
                 selectedIds,
                 onSelect: (id, additive) => {
+                  if (!id || id !== textRange?.id) setTextRange(null)
                   if (!additive || !id) {
                     if (id === null || selectedIds.length !== 1 || selectedIds[0] !== id) breakGroup()
                     setSelectedId(id)
@@ -203,7 +282,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
                   breakGroup()
                   setSelectedIds(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id])
                 },
-                onText: (id, text) => apply(setBlockText(id, text), `text:${id}`),
+                onText: (id, text, runs) => apply(setBlockContent(id, text, runs), `text:${id}`),
                 onMove: (id, target) => apply(moveBlock(id, target)),
                 onSplit: (rowId, split) => apply(setRowSplit(rowId, split)),
               }}
@@ -232,6 +311,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             onRedo={redo}
             onReset={() => setConfirmReset(true)}
             selection={selection}
+            textOps={textOps}
             onEdit={apply}
             onAddText={() => addNew('text')}
             onAddImage={() => addNew('image')}

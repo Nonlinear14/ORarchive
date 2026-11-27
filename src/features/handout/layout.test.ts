@@ -5,6 +5,8 @@ import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
 import { layoutOf, lineSegments, resolveLayout, type LayoutRow } from './layout'
 import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockValign, setBlockStyle, setBlockText, setRowSplit } from './layoutEdits'
 import { serializeHandout } from './model'
+import { applyToRange, normalizeRuns, rangeAllOn, rangeValue } from './richText'
+import { setBlockContent } from './layoutEdits'
 import { createHandoutContent } from './templates'
 
 /** 공백 줄을 뺀 내용 줄 */
@@ -165,5 +167,31 @@ describe('롤꾸 복사 (블록)', () => {
     const layout = resolveLayout(stored)
     expect(blockRoll20Html(layout)).toContain('&nbsp;&nbsp;&lt;제목&gt;<br>둘째 줄')
     expect(blockRoll20Text(layout)).toContain('  <제목>\n둘째 줄')
+  })
+})
+
+describe('일부 글자 꾸밈 (runs)', () => {
+  const style = { size: 14, color: '#333333', bold: true }
+  it('범위에만 적용 · 블록과 같은 값은 빼고 · 이웃 조각은 합친다 · 꾸밈이 없으면 runs 없음', () => {
+    const runs = normalizeRuns(applyToRange('가나다라마', undefined, 1, 3, { color: '#ff0000', italic: true }), style)
+    expect(runs).toEqual([{ t: '가' }, { t: '나다', s: { color: '#ff0000', italic: true } }, { t: '라마' }])
+    expect(rangeValue('가나다라마', runs, style, 1, 3, 'color')).toBe('#ff0000')
+    expect(rangeAllOn('가나다라마', runs, style, 0, 5, 'italic')).toBe(false)
+    expect(rangeAllOn('가나다라마', runs, style, 0, 5, 'bold')).toBe(true)
+    // 다시 블록 색으로 되돌리면 꾸밈이 사라진다
+    expect(normalizeRuns(applyToRange('가나다라마', runs, 0, 5, { color: '#333333', italic: false }), style)).toBeUndefined()
+  })
+
+  it('블록 전체 꾸밈은 조각의 같은 꾸밈을 지우고, 롤꾸 복사는 조각마다 span (밑줄 · 취소선 포함)', () => {
+    let stored = setBlockContent('f-title', 'AB', [{ t: 'A', s: { color: '#ff0000', underline: true } }, { t: 'B' }])(start('moonlit'))
+    let html = blockRoll20Html(resolveLayout(stored))
+    expect(html).toContain('<span style="color:#ff0000;text-decoration:underline;">A</span>B')
+    stored = setBlockStyle('f-title', { color: '#00ff00', strike: true })(stored)
+    const title = resolveLayout(stored).rows.flatMap((r) => r.blocks).find((b) => b.id === 'f-title')!
+    expect(title).toMatchObject({ runs: [{ t: 'A', s: { underline: true } }, { t: 'B' }] })
+    html = blockRoll20Html(resolveLayout(stored))
+    expect(html).toContain('<span style="text-decoration:underline line-through;">A</span><span style="text-decoration:line-through;">B</span>')
+    stored = setBlockStyle('f-title', { underline: true })(stored)
+    expect(resolveLayout(stored).rows.flatMap((r) => r.blocks).find((b) => b.id === 'f-title')).not.toHaveProperty('runs')
   })
 })

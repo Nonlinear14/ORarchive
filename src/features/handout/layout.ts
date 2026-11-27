@@ -16,6 +16,7 @@
 import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { normalizeHex, renderableImage, validateImageUrl, type HandoutContent } from './model'
+import { parseRuns, runsText, type Run } from './richText'
 import { resolveHandout, resolveLook, type HandoutLook } from './templates'
 import type { Block, TextStyle } from './templates/types'
 
@@ -40,6 +41,8 @@ export interface TextBlockStyle {
   color: string
   bold?: boolean
   italic?: boolean
+  underline?: boolean
+  strike?: boolean
   align?: Align
   letterSpacing?: number
   lineHeight?: number
@@ -62,6 +65,8 @@ export interface TextBlock {
   type: 'text'
   text: string
   style: TextBlockStyle
+  /** 일부 글자 꾸밈 (richText.ts). 있으면 text 는 runs 를 이은 값 */
+  runs?: Run[]
   valign?: VAlign
 }
 
@@ -359,6 +364,8 @@ function parseTextStyle(raw: Json | undefined, fallback: TextBlockStyle): TextBl
   }
   if (s.bold === true) style.bold = true
   if (s.italic === true) style.italic = true
+  if (s.underline === true) style.underline = true
+  if (s.strike === true) style.strike = true
   if (typeof s.align === 'string' && (ALIGNS as string[]).includes(s.align)) style.align = s.align as Align
   const ls = num(s.letterSpacing, -5, 40)
   if (ls) style.letterSpacing = ls
@@ -387,6 +394,11 @@ function parseBlock(raw: Json | undefined, fallback: TextBlockStyle): LayoutBloc
   }
   if (raw.type === 'text') {
     const block: TextBlock = { id: raw.id, type: 'text', text: typeof raw.text === 'string' ? raw.text : '', style: parseTextStyle(raw.style, fallback) }
+    const runs = parseRuns(raw.runs)
+    if (runs) {
+      block.runs = runs
+      block.text = runsText(runs)
+    }
     if (typeof raw.valign === 'string' && (VALIGNS as string[]).includes(raw.valign)) block.valign = raw.valign as VAlign
     return block
   }

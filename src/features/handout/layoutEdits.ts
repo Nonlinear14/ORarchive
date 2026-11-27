@@ -9,6 +9,7 @@ import type { Json } from '../../lib/database.types'
 import type { DocumentContent } from '../../lib/documents'
 import { HANDOUT_CONTENT_VERSION, isStructuredHandout, serializeHandout } from './model'
 import { MAX_SPLIT, MIN_SPLIT, resolveLayout, storedRows, type LayoutBlock, type RuleSpec, type VAlign, type TextBlockStyle } from './layout'
+import { clearKeys, RUN_KEYS, type Run, type RunKey, type RunStyle } from './richText'
 import { createHandoutContent, resolveHandout } from './templates'
 
 export type LayoutEdit = (stored: DocumentContent) => DocumentContent
@@ -79,10 +80,31 @@ function assign(target: JsonObject, patch: Record<string, unknown>): JsonObject 
 export const setBlockText = (id: string, text: string): LayoutEdit =>
   patchBlock(id, (block) => (block.text === text ? block : { ...block, text }))
 
+/** 글자 + 일부 꾸밈 조각 (runs 가 없으면 그 키를 뺀다 — 글자 전체가 블록 꾸밈) */
+export const setBlockContent = (id: string, text: string, runs: Run[] | undefined): LayoutEdit =>
+  patchBlock(id, (block) => {
+    const sameRuns = JSON.stringify(block.runs ?? null) === JSON.stringify(runs ?? null)
+    if (block.text === text && sameRuns) return block
+    const next: JsonObject = { ...block, text }
+    if (runs) next.runs = toJson(runs)
+    else delete next.runs
+    return next
+  })
+
 /** 글자 꾸밈: 색·굵게·기울임·크기 */
-export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'size' | 'align' | 'letterSpacing' | 'lineHeight'>>
+export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'underline' | 'strike' | 'size' | 'align' | 'letterSpacing' | 'lineHeight'>>
 export const setBlockStyle = (id: string, patch: TextStylePatch): LayoutEdit =>
-  patchBlock(id, (block) => ({ ...block, style: assign({ ...(isObject(block.style) ? block.style : {}) }, patch) }))
+  patchBlock(id, (block) => {
+    const next: JsonObject = { ...block, style: assign({ ...(isObject(block.style) ? block.style : {}) }, patch) }
+    // 글상자 전체에 적용: 일부 글자에 따로 준 같은 꾸밈은 지운다 (조각에 꾸밈이 하나도 남지 않으면 runs 도)
+    const keys = Object.keys(patch).filter((k) => (RUN_KEYS as string[]).includes(k)) as RunKey[]
+    if (keys.length && Array.isArray(block.runs)) {
+      const runs = clearKeys(block.runs.filter(isObject).map((r) => ({ t: String(r.t ?? ''), s: isObject(r.s) ? (r.s as RunStyle) : undefined })), keys)
+      if (runs.some((r) => r.s)) next.runs = toJson(runs)
+      else delete next.runs
+    }
+    return next
+  })
 
 /** 이미지 블록의 주소·대체 텍스트 (url 은 validateImageUrl 로 검사한 값, undefined 면 이미지 빼기) */
 export const setBlockImage = (id: string, patch: { url?: string; alt?: string; rule?: undefined }): LayoutEdit =>

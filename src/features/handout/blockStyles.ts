@@ -2,6 +2,7 @@
  * 블록 → CSS. 편집 화면(React style)과 Roll20 복사(인라인 style 문자열)가 같은 값을 쓰도록 한 곳에서 계산한다.
  */
 import { BLOCK_FONT_STACK, type Align, type FrameBox, type TextBlockStyle } from './layout'
+import type { RunStyle } from './richText'
 import type { Css } from './styles'
 
 const px = (n: number) => `${n}px`
@@ -32,6 +33,21 @@ export function textCss(style: TextBlockStyle): Css {
     color: style.color,
     wordBreak: 'keep-all',
   }
+}
+
+/** 조각(run) 꾸밈: 블록 꾸밈과 다른 값 + 밑줄 · 취소선(항상 조각에서 그린다 — 바깥 꾸밈은 안쪽에서 끌 수 없어서) */
+export function runCss(style: TextBlockStyle, s: RunStyle | undefined): Css {
+  const css: Css = {}
+  if (s?.color) css.color = s.color
+  if (s?.bold !== undefined) css.fontWeight = s.bold ? '700' : '400'
+  if (s?.italic !== undefined) css.fontStyle = s.italic ? 'italic' : 'normal'
+  if (s?.size !== undefined) css.fontSize = px(s.size)
+  if (s?.letterSpacing !== undefined) css.letterSpacing = px(s.letterSpacing)
+  if (s?.lineHeight !== undefined) css.lineHeight = String(s.lineHeight)
+  const underline = s?.underline ?? !!style.underline
+  const strike = s?.strike ?? !!style.strike
+  if (underline || strike) css.textDecoration = [underline && 'underline', strike && 'line-through'].filter(Boolean).join(' ')
+  return css
 }
 
 /** 도장 글자 (boxed) */

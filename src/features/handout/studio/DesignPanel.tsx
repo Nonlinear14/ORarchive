@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 import { Icon } from '../../../components/Icon'
 import {
   blockKind,
-  DEFAULT_LINE_HEIGHT,
   LINE_STYLES,
   MAX_LETTER_SPACING,
   MAX_LINE_HEIGHT,
@@ -25,6 +24,7 @@ import {
   type VAlign,
   VALIGNS,
 } from '../layout'
+import type { RunKey, RunStyle, ToggleKey } from '../richText'
 import { removeBlock, setBackground, setBlockValign, setSpaceHeight, setBlockImage, setBlockRule, setBlockStyle, type LayoutEdit } from '../layoutEdits'
 import { normalizeHex, validateImageUrl, type HandoutImage } from '../model'
 
@@ -37,6 +37,8 @@ interface ImagePatch {
 interface PanelProps {
   /** 보기 (검사·정규화한 값) */
   layout: HandoutLayout
+  /** 글상자 꾸밈: 드래그한 범위가 있으면 그 글자에만, 없으면 고른 글상자 전체에 (HandoutStudioPage) */
+  textOps: TextOps
   /** 고른 블록들 (같은 종류, 하나 이상이면 편집 옵션) */
   selection: LayoutBlock[]
   /** 저장된 content 에 적용할 편집 — 고친 경로만 바뀐다 (layoutEdits.ts). group 이 같으면 되돌리기 한 번으로 묶인다 */
@@ -223,7 +225,7 @@ function NumberStepper({
   }
   return (
     <div className="size-stepper">
-      <button type="button" className="btn small icon-only" aria-label={less} disabled={value <= min} onClick={() => set(value - step)}>
+      <button type="button" className="btn small icon-only" aria-label={less} disabled={value <= min} onMouseDown={keepFocus} onClick={() => set(value - step)}>
         −
       </button>
       <label className="sr-only" htmlFor={id}>
@@ -244,7 +246,7 @@ function NumberStepper({
         }}
       />
       <span className="size-unit">{unit}</span>
-      <button type="button" className="btn small icon-only" aria-label={more} disabled={value >= max} onClick={() => set(value + step)}>
+      <button type="button" className="btn small icon-only" aria-label={more} disabled={value >= max} onMouseDown={keepFocus} onClick={() => set(value + step)}>
         +
       </button>
     </div>
@@ -310,66 +312,77 @@ function VAlignTools({ block, editAll }: { block: TextBlock | Extract<LayoutBloc
   )
 }
 
-function TextSection({ block, all, editAll }: { block: TextBlock; all: LayoutBlock[]; editAll: EditAll }) {
-  const style = block.style
-  // 여러 개를 고르면: 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다
-  const allBold = all.every((b) => b.type === 'text' && b.style.bold)
-  const allItalic = all.every((b) => b.type === 'text' && b.style.italic)
+const TOGGLES: [ToggleKey, string, string, ReactNode][] = [
+  ['bold', '굵게', 'Ctrl+B', <b key="b">B</b>],
+  ['italic', '기울임', 'Ctrl+I', <i key="i" style={{ fontFamily: 'Georgia, serif' }}>I</i>],
+  ['underline', '밑줄', 'Ctrl+U', <u key="u">U</u>],
+  ['strike', '취소선', 'Ctrl+D', <s key="s">S</s>],
+]
+/** 패널 버튼을 눌러도 글상자 안 선택(드래그한 범위)이 풀리지 않게 */
+const keepFocus = (event: { preventDefault(): void }) => event.preventDefault()
+
+function TextSection({ block, ops, editAll }: { block: TextBlock; ops: TextOps; editAll: EditAll }) {
+  const color = ops.value('color') as string
+  const size = ops.value('size') as number
+  const letterSpacing = ops.value('letterSpacing') as number
+  const lineHeight = ops.value('lineHeight') as number
+  const k = `${block.id}:${ops.ranged ? 'r' : 'b'}`
   return (
     <div className="panel-section">
       <span className="field-label">글상자 편집</span>
+      {ops.ranged && <p className="range-note">드래그한 글자에만 적용돼요 (정렬은 글상자 전체)</p>}
       <span className="field-label sub">글자 색</span>
-      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => editAll((id) => setBlockStyle(id, { color }))} />
-      <span className="field-label sub">꾸밈 · 크기</span>
-      <div className="text-tools">
-        <button
-          type="button"
-          className={allBold ? 'btn small icon-only active' : 'btn small icon-only'}
-          aria-pressed={allBold}
-          aria-label="굵게"
-          title="굵게"
-          onClick={() => editAll((id) => setBlockStyle(id, { bold: allBold ? undefined : true }))}
-        >
-          <b>B</b>
-        </button>
-        <button
-          type="button"
-          className={allItalic ? 'btn small icon-only active' : 'btn small icon-only'}
-          aria-pressed={allItalic}
-          aria-label="기울임"
-          title="기울임"
-          onClick={() => editAll((id) => setBlockStyle(id, { italic: allItalic ? undefined : true }))}
-        >
-          <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
-        </button>
+      <ColorField key={`${k}:${color}`} label="글자 색" value={color} onChange={(c) => ops.set({ color: c })} />
+      <div className="deco-row">
+        <span className="field-label sub">꾸밈</span>
+        <div className="text-tools">
+          {TOGGLES.map(([key, label, shortcut, icon]) => {
+            const on = ops.allOn(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'btn small icon-only active' : 'btn small icon-only'}
+                aria-pressed={on}
+                aria-label={label}
+                title={`${label} (${shortcut})`}
+                onMouseDown={keepFocus}
+                onClick={() => ops.toggle(key)}
+              >
+                {icon}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div className="rule-tools">
+        <span className="rule-tool-label">크기</span>
         <NumberStepper
-          key={`${block.id}:${style.size}`}
-          value={style.size}
+          key={`${k}:sz:${size}`}
+          value={size}
           min={MIN_FONT_SIZE}
           max={MAX_FONT_SIZE}
           label="글자 크기 (px)"
           less="글자 작게"
           more="글자 크게"
-          onChange={(size) => editAll((id) => setBlockStyle(id, { size }))}
+          onChange={(v) => ops.set({ size: v })}
         />
-      </div>
-      <div className="rule-tools">
         <span className="rule-tool-label">자간</span>
         <NumberStepper
-          key={`${block.id}:ls:${style.letterSpacing ?? 0}`}
-          value={style.letterSpacing ?? 0}
+          key={`${k}:ls:${letterSpacing}`}
+          value={letterSpacing}
           min={MIN_LETTER_SPACING}
           max={MAX_LETTER_SPACING}
           step={0.5}
           label="자간 (px)"
           less="자간 좁게"
           more="자간 넓게"
-          onChange={(letterSpacing) => editAll((id) => setBlockStyle(id, { letterSpacing }))}
+          onChange={(v) => ops.set({ letterSpacing: v })}
         />
         <span className="rule-tool-label">행간</span>
         <NumberStepper
-          key={`${block.id}:lh:${style.lineHeight ?? 1.5}`}
-          value={style.lineHeight ?? DEFAULT_LINE_HEIGHT}
+          key={`${k}:lh:${lineHeight}`}
+          value={lineHeight}
           min={MIN_LINE_HEIGHT}
           max={MAX_LINE_HEIGHT}
           step={0.1}
@@ -377,7 +390,7 @@ function TextSection({ block, all, editAll }: { block: TextBlock; all: LayoutBlo
           label="행간 (글자 크기의 배수)"
           less="행간 좁게"
           more="행간 넓게"
-          onChange={(lineHeight) => editAll((id) => setBlockStyle(id, { lineHeight }))}
+          onChange={(v) => ops.set({ lineHeight: v })}
         />
       </div>
       <span className="field-label sub" id={`align-${block.id}`}>
@@ -385,7 +398,7 @@ function TextSection({ block, all, editAll }: { block: TextBlock; all: LayoutBlo
       </span>
       <div className="align-tools" role="group" aria-labelledby={`align-${block.id}`}>
         {ALIGNS.map(([value, label]) => {
-          const active = (style.align ?? 'center') === value
+          const active = (block.style.align ?? 'center') === value
           return (
             <button
               key={value}
@@ -601,7 +614,8 @@ function RuleSection({ block, contentWidth, editAll }: { block: Extract<LayoutBl
 const KIND_LABELS = { text: '글상자', image: '이미지', rule: '구분선', space: '공백' } as const
 
 /** 고른 블록에 맞는 편집 옵션: 글상자 · 이미지 · 구분선 · 공백. 여러 개를 고르면 바꾼 값을 모두에 (되돌리기 한 번) */
-function EditSection({ selection, layout, onEdit }: PanelProps) {
+function EditSection(props: PanelProps) {
+  const { selection, layout, onEdit } = props
   const first = selection[0]
   if (!first)
     return (
@@ -621,7 +635,7 @@ function EditSection({ selection, layout, onEdit }: PanelProps) {
       </p>
     ) : null
   let body: ReactNode
-  if (first.type === 'text') body = <TextSection block={first} all={selection} editAll={editAll} />
+  if (first.type === 'text') body = <TextSection block={first} ops={props.textOps} editAll={editAll} />
   else if (first.type === 'space')
     body = (
       <div className="panel-section">
@@ -652,6 +666,15 @@ function EditSection({ selection, layout, onEdit }: PanelProps) {
 }
 
 type EditAll = (make: (id: string) => LayoutEdit) => void
+
+/** 글상자 꾸밈 연산 (범위 · 전체) */
+export interface TextOps {
+  ranged: boolean
+  value(key: RunKey): RunStyle[RunKey]
+  allOn(key: ToggleKey): boolean
+  set(patch: RunStyle): void
+  toggle(key: ToggleKey): void
+}
 
 /** 오른쪽 디자인 설정: 되돌리기 · 다시 실행 · 배경색 · 블록 추가·삭제 · 고른 블록의 편집 옵션 */
 export function DesignPanel(props: PanelProps) {

@@ -4,7 +4,7 @@
  * 사용자 글자는 이스케이프 · 의미 있는 공백은 &nbsp; · 줄바꿈은 <br>.
  * 2열 행은 칸 두 개짜리 표로 그린다.
  */
-import { blockBoxCss, boxedCss, frameCss, imageCss, sealCss, textCss } from './blockStyles'
+import { blockBoxCss, boxedCss, frameCss, imageCss, runCss, sealCss, textCss } from './blockStyles'
 import { blockImage, BLOCK_FONT_STACK, lineSegments, ruleLength, layoutText, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type LayoutBlock, type TextBlock } from './layout'
 import { escapeHtml, normalizeText, whitespaceHtml } from './roll20'
 import { inline } from './styles'
@@ -17,7 +17,16 @@ const fullTable = (inner: string, extra = '') =>
 
 function textHtml(block: TextBlock, align: Align): string {
   const style = block.style
-  const html = block.text ? whitespaceHtml(block.text) : '&nbsp;'
+  // 조각마다 <span style> (밑줄 · 취소선 · 일부 글자 꾸밈). 꾸밈이 없는 조각은 글자만
+  const html = block.text
+    ? (block.runs ?? [{ t: block.text }])
+        .map((run) => {
+          const css = inline(runCss(style, run.s))
+          const body = whitespaceHtml(run.t)
+          return css ? `<span style="${css}">${body}</span>` : body
+        })
+        .join('')
+    : '&nbsp;'
   const text = inline(textCss(style))
   const box = blockBoxCss(style, style.align ?? align)
   if (style.seal) {

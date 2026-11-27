@@ -540,3 +540,30 @@
   background: #f1e5cc80;
   border-bottom: 1px solid #e6dfd2;
 }
+
+.range-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #7a5f2e;
+}
+
+.deco-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.deco-row .field-label.sub {
+  margin: 0;
+}
+
+.deco-row .text-tools {
+  margin-top: 0;
+}
+
+.rule-tools + .rule-tools,
+.deco-row + .rule-tools {
+  margin-top: 8px;
+}

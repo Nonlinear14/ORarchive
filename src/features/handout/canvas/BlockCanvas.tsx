@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { ensureViewerFonts } from '../../../lib/pretendard'
-import { blockBoxCss, boxedCss, frameCss, imageCss, ruleBoxCss, sealCss, textCss } from '../blockStyles'
+import { blockBoxCss, boxedCss, frameCss, imageCss, ruleBoxCss, runCss, sealCss, textCss } from '../blockStyles'
 import { blockImage, BLOCK_FONT_STACK, isLineBlock, lineSegments, ruleLength, type RuleSpec, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type SpaceBlock, type TextBlock } from '../layout'
 import type { DropTarget } from '../layoutEdits'
+import type { Run } from '../richText'
 import type { Css } from '../styles'
 import type { FieldDef } from '../templates'
-import { EditableField } from './EditableField'
+import { RichField } from './RichField'
 import { displayText } from './editableText'
 import './HandoutCanvas.css'
 
@@ -18,7 +19,8 @@ export interface BlockEditing {
   selectedIds: string[]
   /** additive: Ctrl(Mac 은 Cmd)+누르기 — 같은 종류면 선택에 더하거나 빼기 */
   onSelect(id: string | null, additive?: boolean): void
-  onText(id: string, text: string): void
+  /** 글자 입력: 글자와 일부 꾸밈 조각 (꾸밈이 없으면 runs 는 undefined) */
+  onText(id: string, text: string, runs: Run[] | undefined): void
   onMove(id: string, target: DropTarget): void
   /** 2열 줄의 왼쪽 너비 % */
   onSplit(rowId: string, split: number): void
@@ -29,10 +31,22 @@ function TextBody({ block, editing }: { block: TextBlock; editing?: BlockEditing
   let css = textCss(style)
   if (style.boxed) css = { ...css, ...boxedCss(style) }
   const body = editing ? (
-    <EditableField def={TEXT_DEF} value={block.text} style={rs(css)} onChange={(text) => editing.onText(block.id, text)} />
+    <RichField
+      block={block}
+      style={rs(css)}
+      label={TEXT_DEF.label}
+      placeholder={TEXT_DEF.placeholder}
+      onChange={(text, runs) => editing.onText(block.id, text, runs)}
+    />
   ) : (
     <div className="hc-field" style={rs(css)}>
-      {block.text ? displayText(block.text) : ' '}
+      {block.text
+        ? (block.runs ?? [{ t: block.text }]).map((run, i, all) => (
+            <span key={i} style={rs(runCss(block.style, run.s))}>
+              {i === all.length - 1 ? displayText(run.t) : run.t}
+            </span>
+          ))
+        : ' '}
     </div>
   )
   if (style.seal)
