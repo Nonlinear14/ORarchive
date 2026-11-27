@@ -60,7 +60,13 @@ describe('사이드바 접고 펴기 버튼', () => {
     renderApp('/', { client: createFakeSupabase().client })
     const sidebar = await screen.findByRole('navigation', { name: '주 메뉴' })
     expect(within(sidebar).getByRole('link', { name: '템플릿 목록' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '사이드바 접기' }))
+    // 사이드바 버튼은 상단바 왼쪽 주사위 아이콘 · 홈 링크는 사이트 이름과 부제
+    const toggle = screen.getByRole('button', { name: '사이드바 접기' })
+    expect(toggle.closest('.top-brand')).not.toBeNull()
+    expect(toggle.querySelector('.brandmark')).not.toBeNull()
+    expect(screen.getByRole('link', { name: 'ORarchive 홈으로 이동' })).toHaveTextContent('ORarchiveORPG를 위한 툴 아카이브')
+    expect(screen.getByRole('link', { name: 'ORarchive 홈으로 이동' }).querySelector('.brandmark')).toBeNull()
+    fireEvent.click(toggle)
     try {
       expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
       expect(nav()).not.toBeInTheDocument()

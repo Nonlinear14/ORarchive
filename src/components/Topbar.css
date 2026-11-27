@@ -26,6 +26,46 @@
   height: 36px;
 }
 
+/* 주사위 = 사이드바 접기 · 펴기 버튼 */
+.brand-toggle {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  margin: -2px;
+  border: 0;
+  background: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.brand-toggle .brandmark {
+  transition: transform 0.15s ease;
+}
+
+.brand-toggle:hover .brandmark,
+.brand-toggle:focus-visible .brandmark {
+  transform: scale(1.12);
+}
+
+.brand-toggle:focus-visible {
+  outline: 2px solid #ccb18b;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-toggle .brandmark {
+    transition: none;
+  }
+}
+
+/* 이름 · 부제 = 홈 링크 */
+.top-home {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
 .top-brand .brandname {
   font: 700 21px/1 var(--font, sans-serif);
   letter-spacing: 0.2px;
