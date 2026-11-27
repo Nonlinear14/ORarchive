@@ -31,7 +31,8 @@ describe('템플릿 → 블록', () => {
     expect(seq).toEqual(['f-cap', '[44]', 'f-title', '[22]', 'r-0', '[24]', 'f-body', '[26]', 'f-signature', '[40]', 's-1', '[18]', 's-2'])
     for (const r of rows) for (const b of r.blocks) if (b.type === 'text') expect([b.style.marginTop ?? 0, b.style.marginBottom ?? 0]).toEqual([0, 0])
     const html = blockRoll20Html(layoutOf(createHandoutContent('moonlit')))
-    expect(html).toContain('<td height="44" style=')
+    // 공백은 표 없이 높이만 가진 div (Roll20 표 칸 테두리 · 여백이 생기지 않게)
+    expect(html).toContain('<div style="border:0 none;margin:0;padding:0;height:44px;')
   })
 
   it('공백은 2열에 놓을 수 없다', () => {
@@ -150,8 +151,9 @@ describe('구분선 모양', () => {
 describe('롤꾸 복사 (블록)', () => {
   const html = blockRoll20Html(layoutOf(createHandoutContent('casefile')))
 
-  it('표 기반 · 인라인 스타일만 · class/style/script 없음 · Pretendard', () => {
-    expect(html.startsWith('<table ')).toBe(true)
+  it('틀은 div · 표는 2열 · 구분선 등만(테두리 · 여백은 !important 로 지움) · 인라인 스타일만 · Pretendard', () => {
+    expect(html.startsWith('<div ')).toBe(true)
+    expect(html).not.toMatch(/<table[^>]*bgcolor/)
     expect(html).not.toMatch(/\sclass=|<style|<script/)
     expect(html).toContain('font-family:Pretendard')
   })

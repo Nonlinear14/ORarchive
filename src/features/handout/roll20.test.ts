@@ -15,7 +15,7 @@ function withFields(content: HandoutContent, fields: Record<string, string>): Ha
   return { ...content, fields: { ...content.fields, ...fields } }
 }
 
-/** Roll20 은 <style>·<script>·class 를 버린다 — 인라인 스타일 표만 남아야 한다 */
+/** Roll20 은 <style>·<script>·class 를 버린다 — 인라인 스타일만. 틀은 <div>, 표는 테두리 · 여백을 !important 로 지운다 */
 function expectRoll20Safe(html: string) {
   const low = html.toLowerCase()
   expect(low).not.toContain('<style')
@@ -23,7 +23,11 @@ function expectRoll20Safe(html: string) {
   expect(low).not.toMatch(/\sclass\s*=/)
   expect(low).not.toMatch(/\son[a-z]+\s*=/)
   expect(low).not.toContain('pre-wrap')
-  expect(low.startsWith('<table')).toBe(true)
+  expect(low.startsWith('<div')).toBe(true)
+  // Roll20 이 표 칸에 입히는 테두리 · 여백을 이긴다
+  // (원형 인장 칸만 테두리가 있다 — 그것도 !important)
+  for (const [t] of html.matchAll(/<(table|td)\s[^>]*>/g)) expect(t).toMatch(/border:[^;]+ !important;/)
+  for (const [t] of html.matchAll(/<td\s[^>]*>/g)) expect(t).toMatch(/padding:[^;]+ !important;/)
   // 모든 여는 태그(tbody/tr/br 제외)에 인라인 style 이 있다
   const tags = [...html.matchAll(/<([a-z]+)(\s[^>]*)?>/g)].filter(([, name]) => !['tbody', 'tr', 'br'].includes(name))
   for (const [tag] of tags) expect(tag).toMatch(/\sstyle="[^"]+"/)
