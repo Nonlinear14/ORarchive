@@ -8,7 +8,7 @@ export const moonlit: HandoutTemplate = {
   categories: ['고딕'],
   description: '이중 테두리 안에 가운데 정렬한 고전 편지. 초대장·유서·비밀 서신에 어울려요.',
   layoutNotes: ['클래식 편지 · 중앙 정렬', '이중 테두리와 구분선', '맺음말과 꽃 장식'],
-  width: 430,
+  width: 450,
   defaultFont: 'serif',
   fields: [
     { key: 'cap', label: '머리 문구', placeholder: '영문 장식 문구', optional: true, defaultText: 'A PRIVATE INVITATION' },

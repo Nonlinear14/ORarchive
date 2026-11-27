@@ -8,7 +8,7 @@ export const casefile: HandoutTemplate = {
   categories: ['미스터리'],
   description: '사건 번호·일자·담당자 칸이 있는 1920년대 조사 보고서. 단서와 증언 정리에 좋아요.',
   layoutNotes: ['사건 파일 · 왼쪽 정렬', '서류 머리칸 (번호·일자·담당)', '기밀 도장'],
-  width: 430,
+  width: 450,
   defaultFont: 'serif',
   fields: [
     { key: 'cap', label: '분류', placeholder: '분류 (예: CASE FILE)', optional: true, defaultText: 'CASE FILE / 1927' },

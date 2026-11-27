@@ -506,21 +506,21 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     const rule = document.querySelector<HTMLElement>('.hb-canvas.editable [data-block-type="image"]')!
     const id = rule.dataset.blockId!
     fireEvent.pointerDown(rule)
-    // 달빛의 초대: 폭 430 − 틀 여백·테두리 = 내용 칸 350px (430 − 16·2 − 24·2, 테두리 없음), 템플릿 구분선은 70% → 245px
-    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('245')
+    // 달빛의 초대: 폭 450 − 틀 여백 = 내용 칸 370px (450 − 16·2 − 24·2, 2026-11-27 430→450), 템플릿 구분선은 70% → 259px
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('259')
     expect(screen.getByLabelText('구분선 굵기 (px)')).toHaveValue('1')
     expect(screen.getByRole('button', { name: /^실선/ })).toHaveAttribute('aria-pressed', 'true')
     vi.useFakeTimers()
     const len = screen.getByLabelText('구분선 길이 (px)')
     fireEvent.change(len, { target: { value: '999' } })
     fireEvent.blur(len)
-    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('350')
+    expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('370')
     fireEvent.click(screen.getByRole('button', { name: '구분선 굵게' }))
     fireEvent.click(screen.getByRole('button', { name: /1점 쇄선/ }))
     await act(() => vi.advanceTimersByTimeAsync(800))
-    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 350, thickness: 2, style: 'dashdot' } })
+    expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 370, thickness: 2, style: 'dashdot' } })
     const line = rule.querySelector<HTMLElement>('.hc-rule')!
-    expect(line.style.width).toBe('350px')
+    expect(line.style.width).toBe('370px')
     expect(line.style.height).toBe('2px')
     expect(line.children.length).toBeGreaterThan(10)
     // 고르기 쉽게 편집 화면에서만 위아래 영역을 넓힌다 (보이는 자리는 그대로)

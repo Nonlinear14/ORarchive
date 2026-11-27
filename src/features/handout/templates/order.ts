@@ -8,7 +8,7 @@ export const order: HandoutTemplate = {
   categories: ['고딕', '판타지'],
   description: '맨 위에 원형 인장을 찍은 어두운 결사 문서. 서약서·명령서·금서의 한 장에 어울려요.',
   layoutNotes: ['결사 문서 · 중앙 정렬', '원형 인장 엠블럼', '이중선 테두리와 표어'],
-  width: 430,
+  width: 450,
   defaultFont: 'serif',
   fields: [
     { key: 'seal', label: '인장 문양', placeholder: '✠', defaultText: '✠' },

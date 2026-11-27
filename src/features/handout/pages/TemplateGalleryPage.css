@@ -44,7 +44,7 @@
   position: absolute;
   top: 18px;
   left: 50%;
-  width: 430px;
+  width: 450px;
   transform: translateX(-50%) scale(var(--tp-scale));
   transform-origin: top center;
   pointer-events: none;

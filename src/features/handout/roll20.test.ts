@@ -249,6 +249,6 @@ describe('파일 이름', () => {
   it('파일 이름', () => {
     expect(handoutFileName('달빛: 초대/장?')).toBe('달빛 초대장.html')
     expect(handoutFileName('  ')).toBe('orarchive-handout.html')
-    expect(getTemplate('moonlit').width).toBe(430)
+    expect(getTemplate('moonlit').width).toBe(450)
   })
 })

@@ -8,7 +8,7 @@ export const forest: HandoutTemplate = {
   categories: ['판타지'],
   description: '덩굴 장식과 날짜 줄, 세로 막대가 있는 여행 일지. 탐험 기록·전승·식물 도감에 어울려요.',
   layoutNotes: ['자연 연대기 · 일지 본문', '덩굴 장식과 날짜 줄', '왼쪽 세로 막대'],
-  width: 430,
+  width: 450,
   defaultFont: 'serif',
   fields: [
     { key: 'cap', label: '머리 문구', placeholder: '머리 문구', optional: true, defaultText: 'THE FOREST CHRONICLE' },
