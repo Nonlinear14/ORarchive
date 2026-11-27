@@ -585,19 +585,77 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(img).not.toHaveProperty('rule')
   })
 
-  it('블록 옮기기: 고른 블록의 손잡이에서 ↑ ↓ 키로 (끌기와 같은 연산)', async () => {
-    const { saved } = await openStudio()
+  it('블록 옮기기 손잡이: ↑ ↓ 키로는 옮기지 않는다 (끌어서만)', async () => {
+    const { control } = await openStudio()
+    const updates = () => control.calls.filter((c) => c.op === 'update').length
     select('f-signature')
     const handle = screen.getByRole('button', { name: '블록 옮기기' })
+    expect(handle).toHaveAttribute('title', '끌어서 옮기기')
     vi.useFakeTimers()
-    // 위 줄이 공백이면 한 번에 공백 위로, 두 번이면 본문 위로
     fireEvent.keyDown(handle, { key: 'ArrowUp' })
-    fireEvent.keyDown(screen.getByRole('button', { name: '블록 옮기기' }), { key: 'ArrowUp' })
+    fireEvent.keyDown(handle, { key: 'ArrowDown' })
     await act(() => vi.advanceTimersByTimeAsync(800))
-    const order = rowsOf(saved().content)!.map((r) => r.blocks.map((b) => b.id).join('+')).filter((id) => !id.startsWith('sp-'))
-    expect(order.indexOf('f-signature')).toBe(order.indexOf('f-body') - 1)
-    // 블록 이동은 글자를 바꾸지 않는다
-    expect(textOf(saved().content, 'signature')).toBe('— 블랙우드 저택의 주인')
+    expect(updates()).toBe(0)
+  })
+
+  it('Ctrl(Cmd)+누르기: 같은 종류만 여러 개 고르고, 바꾼 값은 모두에 (되돌리기 한 번) · 다른 종류는 무시', async () => {
+    const { saved } = await openStudio()
+    select('f-title')
+    fireEvent.pointerDown(block('f-body'), { ctrlKey: true })
+    fireEvent.pointerDown(block('f-signature'), { metaKey: true })
+    // 다른 종류(구분선)는 고르지 않고 지금 선택을 그대로 둔다
+    const rule = document.querySelector<HTMLElement>('.hb-canvas.editable [data-block-type="image"]')!
+    fireEvent.pointerDown(rule, { ctrlKey: true })
+    const picked = () => [...document.querySelectorAll<HTMLElement>('.hb-canvas.editable .is-selected')].map((el) => el.dataset.blockId)
+    expect(picked()).toEqual(['f-title', 'f-body', 'f-signature'])
+    expect(document.querySelector('.multi-count')).toHaveTextContent('글상자 3개 선택됨')
+    // 여러 개를 고르면 옮기기 손잡이는 없다
+    expect(screen.queryByRole('button', { name: '블록 옮기기' })).not.toBeInTheDocument()
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: '글자 크게' }))
+    fireEvent.click(screen.getByRole('button', { name: '굵게' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    // 처음 고른 블록 값(제목 30px)에 맞춰 모두 31px · 굵게
+    for (const id of ['f-title', 'f-body', 'f-signature']) expect(blockOf(saved().content, id)?.style).toMatchObject({ size: 31, bold: true })
+    // Ctrl+누르기로 빼기
+    fireEvent.pointerDown(block('f-body'), { ctrlKey: true })
+    expect(picked()).toEqual(['f-title', 'f-signature'])
+    // 되돌리기 한 번에 크기 · 굵게가 각각 한 단계 (블록 수와 상관없이)
+    fireEvent.click(screen.getByRole('button', { name: /되돌리기/ }))
+    expect(field('body').style.fontWeight).toBe('400')
+    expect(field('body').style.fontSize).toBe('31px')
+    // 고른 블록 모두 삭제
+    fireEvent.click(screen.getByRole('button', { name: /선택한 블록 삭제/ }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-title')).toBeUndefined()
+    expect(blockOf(saved().content, 'f-signature')).toBeUndefined()
+    expect(blockOf(saved().content, 'f-body')).toBeDefined()
+  })
+
+  it('글상자 자간(px, 0.5 단위, −5–20) · 행간(배수, 0.1 단위, 0.8–3) — 가로 정렬 위', async () => {
+    const { saved } = await openStudio()
+    select('f-body')
+    const labels = [...document.querySelectorAll('.rule-tool-label, .field-label.sub')].map((el) => el.textContent)
+    expect(labels.indexOf('자간')).toBeLessThan(labels.indexOf('가로 정렬'))
+    expect(screen.getByLabelText('자간 (px)')).toHaveValue('0')
+    expect(screen.getByLabelText('행간 (글자 크기의 배수)')).toHaveValue('2.2')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: '자간 넓게' }))
+    fireEvent.click(screen.getByRole('button', { name: '행간 넓게' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ letterSpacing: 0.5, lineHeight: 2.3 })
+    expect(field('body').style.letterSpacing).toBe('0.5px')
+    expect(field('body').style.lineHeight).toBe('2.3')
+    const ls = screen.getByLabelText('자간 (px)')
+    fireEvent.change(ls, { target: { value: '-9' } })
+    fireEvent.blur(ls)
+    expect(screen.getByLabelText('자간 (px)')).toHaveValue('-5')
+    const lh = screen.getByLabelText('행간 (글자 크기의 배수)')
+    fireEvent.change(lh, { target: { value: '1.26' } })
+    fireEvent.blur(lh)
+    expect(screen.getByLabelText('행간 (글자 크기의 배수)')).toHaveValue('1.3')
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ letterSpacing: -5, lineHeight: 1.3 })
   })
 
   it('되돌리기 · 다시 실행: 버튼과 Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y, 이어서 입력한 글은 한 번에', async () => {
@@ -677,7 +735,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(blockOf(saved().content, 'b')).not.toHaveProperty('valign')
   })
 
-  it('2열: 사이 손잡이에서 ← → 키로 좌우를 바꾸고, 두 블록은 같은 줄 높이 · 여백은 줄에 한 번', async () => {
+  it('2열: 두 블록은 같은 줄 높이 · 여백은 줄에 한 번 · 사이 손잡이의 ← → 키는 아무것도 하지 않는다', async () => {
     const two = {
       ...serializeHandout(createHandoutContent('moonlit')),
       layout: {
@@ -705,9 +763,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     vi.useFakeTimers()
     fireEvent.keyDown(divider, { key: 'ArrowRight' })
     await act(() => vi.advanceTimersByTimeAsync(800))
-    const saved2 = rowsOf(ctx.saved().content)![0] as unknown as { split: number; blocks: { id: string }[] }
-    expect(saved2.blocks.map((b) => b.id)).toEqual(['b', 'a'])
-    expect(saved2.split).toBe(30)
+    expect(rowsOf(ctx.saved().content)).toEqual(two.layout.rows)
   })
 
 })

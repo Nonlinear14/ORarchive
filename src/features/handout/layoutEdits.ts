@@ -80,7 +80,7 @@ export const setBlockText = (id: string, text: string): LayoutEdit =>
   patchBlock(id, (block) => (block.text === text ? block : { ...block, text }))
 
 /** 글자 꾸밈: 색·굵게·기울임·크기 */
-export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'size' | 'align'>>
+export type TextStylePatch = Partial<Pick<TextBlockStyle, 'color' | 'bold' | 'italic' | 'size' | 'align' | 'letterSpacing' | 'lineHeight'>>
 export const setBlockStyle = (id: string, patch: TextStylePatch): LayoutEdit =>
   patchBlock(id, (block) => ({ ...block, style: assign({ ...(isObject(block.style) ? block.style : {}) }, patch) }))
 
@@ -114,16 +114,6 @@ function patchRow(rowId: string, patch: (row: JsonObject) => JsonObject): Layout
 /** 2열 줄의 왼쪽 블록 너비 % (MIN_SPLIT–MAX_SPLIT 정수) */
 export const setRowSplit = (rowId: string, split: number): LayoutEdit =>
   patchRow(rowId, (row) => ({ ...row, split: Math.round(Math.min(MAX_SPLIT, Math.max(MIN_SPLIT, split))) }))
-
-/** 2열 줄의 왼쪽 · 오른쪽 바꾸기 (각 블록의 너비는 따라간다) */
-export const swapRow = (rowId: string): LayoutEdit =>
-  patchRow(rowId, (row) => {
-    const blocks = Array.isArray(row.blocks) ? row.blocks : []
-    if (blocks.length !== 2) return row
-    const next: JsonObject = { ...row, blocks: [blocks[1], blocks[0]] }
-    if (typeof row.split === 'number') next.split = 100 - row.split
-    return next
-  })
 
 /** 초기화: 템플릿 처음 모양(기본 문구 · 기본 블록)으로. 문서 제목은 그대로 */
 export function resetToTemplate(stored: DocumentContent): DocumentContent {

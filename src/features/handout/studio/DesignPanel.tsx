@@ -1,7 +1,13 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Icon } from '../../../components/Icon'
 import {
+  blockKind,
+  DEFAULT_LINE_HEIGHT,
   LINE_STYLES,
+  MAX_LETTER_SPACING,
+  MAX_LINE_HEIGHT,
+  MIN_LETTER_SPACING,
+  MIN_LINE_HEIGHT,
   lineSegments,
   MAX_FONT_SIZE,
   MAX_THICKNESS,
@@ -31,7 +37,8 @@ interface ImagePatch {
 interface PanelProps {
   /** 보기 (검사·정규화한 값) */
   layout: HandoutLayout
-  selected: LayoutBlock | null
+  /** 고른 블록들 (같은 종류, 하나 이상이면 편집 옵션) */
+  selection: LayoutBlock[]
   /** 저장된 content 에 적용할 편집 — 고친 경로만 바뀐다 (layoutEdits.ts). group 이 같으면 되돌리기 한 번으로 묶인다 */
   onEdit(edit: LayoutEdit, group?: string): void
   canUndo: boolean
@@ -184,6 +191,8 @@ function NumberStepper({
   value,
   min,
   max,
+  step = 1,
+  unit = 'px',
   label,
   less,
   more,
@@ -192,22 +201,29 @@ function NumberStepper({
   value: number
   min: number
   max: number
+  /** 1 · 0.5 · 0.1 */
+  step?: number
+  unit?: string
   label: string
   less: string
   more: string
   onChange(value: number): void
 }) {
   const id = useId()
-  const [draft, setDraft] = useState(String(value))
-  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n)))
+  const decimals = step < 1 ? String(step).split('.')[1].length : 0
+  const show = (n: number) => (decimals ? n.toFixed(decimals).replace(/\.?0+$/, '') : String(n))
+  const [draft, setDraft] = useState(show(value))
+  // step 단위로 맞추고 범위 안으로 (부동소수 오차 없이)
+  const clamp = (n: number) => Number(Math.min(max, Math.max(min, Math.round(n / step) * step)).toFixed(decimals))
   const set = (n: number) => {
+    if (!Number.isFinite(n)) return setDraft(show(value))
     const next = clamp(n)
-    setDraft(String(next))
+    setDraft(show(next))
     if (next !== value) onChange(next)
   }
   return (
     <div className="size-stepper">
-      <button type="button" className="btn small icon-only" aria-label={less} disabled={value <= min} onClick={() => set(value - 1)}>
+      <button type="button" className="btn small icon-only" aria-label={less} disabled={value <= min} onClick={() => set(value - step)}>
         −
       </button>
       <label className="sr-only" htmlFor={id}>
@@ -216,19 +232,19 @@ function NumberStepper({
       <input
         id={id}
         className="field-input size-input"
-        inputMode="numeric"
+        inputMode={decimals || min < 0 ? 'decimal' : 'numeric'}
         value={draft}
-        onChange={(event) => setDraft(event.target.value.replace(/[^0-9]/g, ''))}
-        onBlur={() => (draft ? set(Number(draft)) : setDraft(String(value)))}
+        onChange={(event) => setDraft(event.target.value.replace(decimals || min < 0 ? /[^0-9.-]/g : /[^0-9]/g, ''))}
+        onBlur={() => (draft && draft !== '-' ? set(Number(draft)) : setDraft(show(value)))}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
             event.preventDefault()
-            if (draft) set(Number(draft))
+            if (draft && draft !== '-') set(Number(draft))
           }
         }}
       />
-      <span className="size-unit">px</span>
-      <button type="button" className="btn small icon-only" aria-label={more} disabled={value >= max} onClick={() => set(value + 1)}>
+      <span className="size-unit">{unit}</span>
+      <button type="button" className="btn small icon-only" aria-label={more} disabled={value >= max} onClick={() => set(value + step)}>
         +
       </button>
     </div>
@@ -265,7 +281,7 @@ function VAlignIcon({ valign }: { valign: VAlign }) {
 }
 
 /** 세로 정렬: 2열 줄에서 더 낮은 블록이 놓이는 자리 */
-function VAlignTools({ block, onEdit }: { block: TextBlock | Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit): void }) {
+function VAlignTools({ block, editAll }: { block: TextBlock | Extract<LayoutBlock, { type: 'image' }>; editAll: EditAll }) {
   const current = block.valign ?? 'middle'
   return (
     <>
@@ -283,7 +299,7 @@ function VAlignTools({ block, onEdit }: { block: TextBlock | Extract<LayoutBlock
               aria-pressed={active}
               aria-label={`세로 ${VALIGN_LABELS[value]} 정렬`}
               title={`${VALIGN_LABELS[value]} 정렬 (2열 줄에서 보여요)`}
-              onClick={() => !active && onEdit(setBlockValign(block.id, value))}
+              onClick={() => !active && editAll((id) => setBlockValign(id, value))}
             >
               <VAlignIcon valign={value} /> {VALIGN_LABELS[value]}
             </button>
@@ -294,32 +310,35 @@ function VAlignTools({ block, onEdit }: { block: TextBlock | Extract<LayoutBlock
   )
 }
 
-function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutEdit, group?: string): void }) {
+function TextSection({ block, all, editAll }: { block: TextBlock; all: LayoutBlock[]; editAll: EditAll }) {
   const style = block.style
+  // 여러 개를 고르면: 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다
+  const allBold = all.every((b) => b.type === 'text' && b.style.bold)
+  const allItalic = all.every((b) => b.type === 'text' && b.style.italic)
   return (
     <div className="panel-section">
       <span className="field-label">글상자 편집</span>
       <span className="field-label sub">글자 색</span>
-      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => onEdit(setBlockStyle(block.id, { color }))} />
+      <ColorField key={`${block.id}:${style.color}`} label="글자 색" value={style.color} onChange={(color) => editAll((id) => setBlockStyle(id, { color }))} />
       <span className="field-label sub">꾸밈 · 크기</span>
       <div className="text-tools">
         <button
           type="button"
-          className={style.bold ? 'btn small icon-only active' : 'btn small icon-only'}
-          aria-pressed={!!style.bold}
+          className={allBold ? 'btn small icon-only active' : 'btn small icon-only'}
+          aria-pressed={allBold}
           aria-label="굵게"
           title="굵게"
-          onClick={() => onEdit(setBlockStyle(block.id, { bold: style.bold ? undefined : true }))}
+          onClick={() => editAll((id) => setBlockStyle(id, { bold: allBold ? undefined : true }))}
         >
           <b>B</b>
         </button>
         <button
           type="button"
-          className={style.italic ? 'btn small icon-only active' : 'btn small icon-only'}
-          aria-pressed={!!style.italic}
+          className={allItalic ? 'btn small icon-only active' : 'btn small icon-only'}
+          aria-pressed={allItalic}
           aria-label="기울임"
           title="기울임"
-          onClick={() => onEdit(setBlockStyle(block.id, { italic: style.italic ? undefined : true }))}
+          onClick={() => editAll((id) => setBlockStyle(id, { italic: allItalic ? undefined : true }))}
         >
           <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
         </button>
@@ -331,7 +350,34 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
           label="글자 크기 (px)"
           less="글자 작게"
           more="글자 크게"
-          onChange={(size) => onEdit(setBlockStyle(block.id, { size }))}
+          onChange={(size) => editAll((id) => setBlockStyle(id, { size }))}
+        />
+      </div>
+      <div className="rule-tools">
+        <span className="rule-tool-label">자간</span>
+        <NumberStepper
+          key={`${block.id}:ls:${style.letterSpacing ?? 0}`}
+          value={style.letterSpacing ?? 0}
+          min={MIN_LETTER_SPACING}
+          max={MAX_LETTER_SPACING}
+          step={0.5}
+          label="자간 (px)"
+          less="자간 좁게"
+          more="자간 넓게"
+          onChange={(letterSpacing) => editAll((id) => setBlockStyle(id, { letterSpacing }))}
+        />
+        <span className="rule-tool-label">행간</span>
+        <NumberStepper
+          key={`${block.id}:lh:${style.lineHeight ?? 1.5}`}
+          value={style.lineHeight ?? DEFAULT_LINE_HEIGHT}
+          min={MIN_LINE_HEIGHT}
+          max={MAX_LINE_HEIGHT}
+          step={0.1}
+          unit="배"
+          label="행간 (글자 크기의 배수)"
+          less="행간 좁게"
+          more="행간 넓게"
+          onChange={(lineHeight) => editAll((id) => setBlockStyle(id, { lineHeight }))}
         />
       </div>
       <span className="field-label sub" id={`align-${block.id}`}>
@@ -348,19 +394,19 @@ function TextSection({ block, onEdit }: { block: TextBlock; onEdit(edit: LayoutE
               aria-pressed={active}
               aria-label={`${label} 정렬`}
               title={`${label} 정렬`}
-              onClick={() => !active && onEdit(setBlockStyle(block.id, { align: value }))}
+              onClick={() => !active && editAll((id) => setBlockStyle(id, { align: value }))}
             >
               <AlignIcon align={value} /> {label}
             </button>
           )
         })}
       </div>
-      <VAlignTools block={block} onEdit={onEdit} />
+      <VAlignTools block={block} editAll={editAll} />
     </div>
   )
 }
 
-function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onAddSpace, onRemoved }: PanelProps) {
+function BlockSection({ selection, onEdit, onAddText, onAddImage, onAddRule, onAddSpace, onRemoved }: PanelProps) {
   return (
     <div className="panel-section">
       <span className="field-label">블록 추가</span>
@@ -381,10 +427,10 @@ function BlockSection({ selected, onEdit, onAddText, onAddImage, onAddRule, onAd
       <button
         type="button"
         className="btn small danger block"
-        disabled={!selected}
+        disabled={selection.length === 0}
         onClick={() => {
-          if (!selected) return
-          onEdit(removeBlock(selected.id))
+          if (selection.length === 0) return
+          onEdit((stored) => selection.reduce((acc, b) => removeBlock(b.id)(acc), stored))
           onRemoved()
         }}
       >
@@ -459,7 +505,7 @@ function ImageForm({ image, onApply, onRemove }: {
   )
 }
 
-function ImageSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: 'image' }>; onEdit(edit: LayoutEdit): void }) {
+function ImageSection({ block, editAll }: { block: Extract<LayoutBlock, { type: 'image' }>; editAll: EditAll }) {
   const image = block.url ? { url: block.url, alt: block.alt ?? '' } : null
   return (
     <div className="panel-section">
@@ -467,11 +513,11 @@ function ImageSection({ block, onEdit }: { block: Extract<LayoutBlock, { type: '
       <ImageForm
         key={`${block.id}\n${image ? image.url : 'none'}`}
         image={image}
-        onApply={(patch) => onEdit(setBlockImage(block.id, patch))}
+        onApply={(patch) => editAll((id) => setBlockImage(id, patch))}
         // 이미지를 빼면 빈 이미지 블록(이미지 고르기)으로 — 구분선으로 되돌아가지 않는다
-        onRemove={() => onEdit(setBlockImage(block.id, { url: undefined, alt: undefined, rule: undefined }))}
+        onRemove={() => editAll((id) => setBlockImage(id, { url: undefined, alt: undefined, rule: undefined }))}
       />
-      <VAlignTools block={block} onEdit={onEdit} />
+      <VAlignTools block={block} editAll={editAll} />
       <p className="field-help">
         Roll20 에는 공개된 https 이미지만 보여요. 이미지 올리기는 아직 지원하지 않으니, 공개 주소를 붙여 넣어 주세요.
       </p>
@@ -491,15 +537,7 @@ function LineIcon({ style }: { style: LineStyle }) {
   )
 }
 
-function RuleSection({
-  block,
-  contentWidth,
-  onEdit,
-}: {
-  block: Extract<LayoutBlock, { type: 'image' }>
-  contentWidth: number
-  onEdit(edit: LayoutEdit, group?: string): void
-}) {
+function RuleSection({ block, contentWidth, editAll }: { block: Extract<LayoutBlock, { type: 'image' }>; contentWidth: number; editAll: EditAll }) {
   const rule = block.rule!
   const current = rule.style ?? 'solid'
   const length = ruleLength(rule, contentWidth)
@@ -508,7 +546,7 @@ function RuleSection({
     <div className="panel-section">
       <span className="field-label">구분선 편집</span>
       <span className="field-label sub">선 색</span>
-      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => onEdit(setBlockRule(block.id, { color }))} />
+      <ColorField key={`${block.id}:${rule.color}`} label="구분선 색" value={rule.color} onChange={(color) => editAll((id) => setBlockRule(id, { color }))} />
       <span className="field-label sub">길이 · 굵기</span>
       <div className="rule-tools">
         <span className="rule-tool-label">길이</span>
@@ -520,7 +558,7 @@ function RuleSection({
           label="구분선 길이 (px)"
           less="구분선 짧게"
           more="구분선 길게"
-          onChange={(value) => onEdit(setBlockRule(block.id, { length: value }))}
+          onChange={(value) => editAll((id) => setBlockRule(id, { length: value }))}
         />
         <span className="rule-tool-label">굵기</span>
         <NumberStepper
@@ -531,7 +569,7 @@ function RuleSection({
           label="구분선 굵기 (px)"
           less="구분선 얇게"
           more="구분선 굵게"
-          onChange={(value) => onEdit(setBlockRule(block.id, { thickness: value }))}
+          onChange={(value) => editAll((id) => setBlockRule(id, { thickness: value }))}
         />
       </div>
       <span className="field-label sub" id={`line-${block.id}`}>
@@ -547,7 +585,7 @@ function RuleSection({
               className={active ? 'btn small active' : 'btn small'}
               aria-pressed={active}
               title={LINE_LABELS[style]}
-              onClick={() => !active && onEdit(setBlockRule(block.id, { style }))}
+              onClick={() => !active && editAll((id) => setBlockRule(id, { style }))}
             >
               <LineIcon style={style} />
               <span>{LINE_LABELS[style]}</span>
@@ -560,38 +598,60 @@ function RuleSection({
 }
 
 /** 고른 블록에 맞는 편집 옵션: 글상자 · 이미지 · 구분선 */
-function EditSection({ selected, layout, onEdit }: PanelProps) {
-  if (selected?.type === 'text') return <TextSection block={selected} onEdit={onEdit} />
-  if (selected?.type === 'space')
+const KIND_LABELS = { text: '글상자', image: '이미지', rule: '구분선', space: '공백' } as const
+
+/** 고른 블록에 맞는 편집 옵션: 글상자 · 이미지 · 구분선 · 공백. 여러 개를 고르면 바꾼 값을 모두에 (되돌리기 한 번) */
+function EditSection({ selection, layout, onEdit }: PanelProps) {
+  const first = selection[0]
+  if (!first)
     return (
+      <div className="panel-section">
+        <span className="field-label">편집</span>
+        <p className="field-help tight">
+          미리보기에서 블록을 고르면 여기에 편집 옵션이 나와요. Ctrl(Mac 은 Cmd)을 누른 채 누르면 같은 종류의 블록을 여러 개 고를 수 있어요.
+        </p>
+      </div>
+    )
+  const editAll: EditAll = (make) => onEdit((stored) => selection.reduce((acc, b) => make(b.id)(acc), stored))
+  const kind = blockKind(first)
+  const count =
+    selection.length > 1 ? (
+      <p className="multi-count" role="status">
+        {KIND_LABELS[kind]} {selection.length}개 선택됨 · 바꾼 값은 모두에 적용돼요
+      </p>
+    ) : null
+  let body: ReactNode
+  if (first.type === 'text') body = <TextSection block={first} all={selection} editAll={editAll} />
+  else if (first.type === 'space')
+    body = (
       <div className="panel-section">
         <span className="field-label">공백 편집</span>
         <div className="rule-tools">
           <span className="rule-tool-label">높이</span>
           <NumberStepper
-            key={`${selected.id}:${selected.height}`}
-            value={selected.height}
+            key={`${first.id}:${first.height}`}
+            value={first.height}
             min={MIN_SPACE}
             max={MAX_SPACE}
             label="공백 높이 (px)"
             less="공백 낮게"
             more="공백 높게"
-            onChange={(height) => onEdit(setSpaceHeight(selected.id, height))}
+            onChange={(height) => editAll((id) => setSpaceHeight(id, height))}
           />
         </div>
       </div>
     )
-  if (selected?.type === 'image') {
-    if (selected.rule && !selected.url) return <RuleSection block={selected} contentWidth={layout.contentWidth} onEdit={onEdit} />
-    return <ImageSection block={selected} onEdit={onEdit} />
-  }
+  else if (kind === 'rule') body = <RuleSection block={first} contentWidth={layout.contentWidth} editAll={editAll} />
+  else body = <ImageSection block={first} editAll={editAll} />
   return (
-    <div className="panel-section">
-      <span className="field-label">편집</span>
-      <p className="field-help tight">미리보기에서 블록을 고르면 여기에 편집 옵션이 나와요. 글상자는 글자 색 · 굵게 · 기울임 · 크기 · 정렬, 이미지는 주소, 구분선은 색 · 길이 · 굵기 · 스타일, 공백은 높이.</p>
-    </div>
+    <>
+      {count}
+      {body}
+    </>
   )
 }
+
+type EditAll = (make: (id: string) => LayoutEdit) => void
 
 /** 오른쪽 디자인 설정: 되돌리기 · 다시 실행 · 배경색 · 블록 추가·삭제 · 고른 블록의 편집 옵션 */
 export function DesignPanel(props: PanelProps) {

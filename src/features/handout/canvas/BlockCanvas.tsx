@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { ensureViewerFonts } from '../../../lib/pretendard'
 import { blockBoxCss, boxedCss, frameCss, imageCss, ruleBoxCss, sealCss, textCss } from '../blockStyles'
 import { blockImage, BLOCK_FONT_STACK, isLineBlock, lineSegments, ruleLength, type RuleSpec, MAX_SPLIT, MIN_SPLIT, rowMargins, splitOf, withoutMargins, type Align, type HandoutLayout, type ImageBlock, type LayoutBlock, type LayoutRow, type SpaceBlock, type TextBlock } from '../layout'
@@ -14,14 +14,14 @@ const rs = (css: Css) => css as CSSProperties
 const TEXT_DEF: FieldDef = { key: 'text', label: '텍스트 블록', placeholder: '글자를 입력하세요', multiline: true, defaultText: '' }
 
 export interface BlockEditing {
-  selectedId: string | null
-  onSelect(id: string | null): void
+  /** 고른 블록들 (같은 종류) */
+  selectedIds: string[]
+  /** additive: Ctrl(Mac 은 Cmd)+누르기 — 같은 종류면 선택에 더하거나 빼기 */
+  onSelect(id: string | null, additive?: boolean): void
   onText(id: string, text: string): void
   onMove(id: string, target: DropTarget): void
   /** 2열 줄의 왼쪽 너비 % */
   onSplit(rowId: string, split: number): void
-  /** 2열 줄의 왼쪽 · 오른쪽 바꾸기 */
-  onSwap(rowId: string): void
 }
 
 function TextBody({ block, editing }: { block: TextBlock; editing?: BlockEditing }) {
@@ -184,21 +184,6 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
     if (drag?.target && editing) editing.onMove(drag.id, drag.target)
     setDrag(null)
   }
-  /** 손잡이에서 ↑ ↓ 로도 옮긴다 (키보드) */
-  function keyMove(id: string, event: KeyboardEvent) {
-    if (!editing || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return
-    event.preventDefault()
-    const index = layout.rows.findIndex((r) => r.blocks.some((b) => b.id === id))
-    const row = layout.rows[index]
-    if (event.key === 'ArrowUp') {
-      const prev = row.blocks.length > 1 ? row : layout.rows[index - 1]
-      if (prev) editing.onMove(id, { kind: 'before', rowId: prev.id })
-    } else {
-      const next = row.blocks.length > 1 ? row : layout.rows[index + 1]
-      if (next) editing.onMove(id, { kind: 'after', rowId: next.id })
-    }
-  }
-
   // 2열 너비 조절: 끄는 동안은 화면에만, 놓을 때 한 번 저장
   const [resize, setResize] = useState<{ rowId: string; split: number } | null>(null)
   function resizeTo(row: LayoutRow, el: HTMLElement, clientX: number) {
@@ -213,12 +198,12 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         className={resize?.rowId === row.id ? 'hb-divider is-active' : 'hb-divider'}
         role="separator"
         aria-orientation="vertical"
-        aria-label="2열 너비 조절 (끌어서 조절 · ← → 키로 좌우 바꾸기)"
+        aria-label="2열 너비 조절 (끌어서 조절)"
         aria-valuenow={split}
         aria-valuemin={MIN_SPLIT}
         aria-valuemax={MAX_SPLIT}
         tabIndex={0}
-        title="끌어서 너비 조절 · ← → 키로 좌우 바꾸기"
+        title="끌어서 너비 조절"
         onPointerDown={(event) => {
           event.preventDefault()
           event.currentTarget.setPointerCapture?.(event.pointerId)
@@ -233,11 +218,6 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
           setResize(null)
         }}
         onPointerCancel={() => setResize(null)}
-        onKeyDown={(event) => {
-          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-          event.preventDefault()
-          editing.onSwap(row.id)
-        }}
       >
         <span aria-hidden="true" />
       </div>
@@ -261,7 +241,8 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
   }
 
   const renderBlock = (block: LayoutBlock): ReactNode => {
-    const selected = editing?.selectedId === block.id
+    const selected = editing?.selectedIds.includes(block.id) ?? false
+    const single = selected && editing?.selectedIds.length === 1
     const cls = ['hb-block', editing ? 'is-editable' : '', selected ? 'is-selected' : '', drag?.id === block.id ? 'is-dragging' : '']
       .filter(Boolean)
       .join(' ')
@@ -278,15 +259,22 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
           editing
             ? (event) => {
                 if ((event.target as Element).closest('.hb-bubble')) return
+                // Ctrl(Cmd)+누르기: 여러 개 고르기 (마우스 · PC 에서만). 글상자도 입력으로 들어가지 않는다
+                if ((event.ctrlKey || event.metaKey) && event.pointerType !== 'touch') {
+                  event.preventDefault()
+                  editing.onSelect(block.id, true)
+                  return
+                }
                 editing.onSelect(block.id)
                 // 이미지 · 구분선 · 공백 블록은 블록 자체를 끌어서 옮긴다 (글자 블록은 손잡이로 — 글자 선택과 겹치지 않게)
-                if (block.type !== 'text' && selected) pending.current = { id: block.id, x: event.clientX, y: event.clientY, pointer: event.pointerId }
+                if (block.type !== 'text' && single) pending.current = { id: block.id, x: event.clientX, y: event.clientY, pointer: event.pointerId }
               }
             : undefined
         }
         onPointerMove={editing ? moveDrag : undefined}
         onPointerUp={editing ? endDrag : undefined}
-        onFocus={editing ? () => editing.selectedId !== block.id && editing.onSelect(block.id) : undefined}
+        onMouseDown={editing ? (event) => (event.ctrlKey || event.metaKey) && event.preventDefault() : undefined}
+        onFocus={editing ? () => !editing.selectedIds.includes(block.id) && editing.onSelect(block.id) : undefined}
       >
         {block.type === 'text' ? (
           <TextBody block={block} editing={editing} />
@@ -295,18 +283,17 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
         ) : (
           <ImageBody block={block} editing={!!editing} contentWidth={layout.contentWidth} />
         )}
-        {selected && (
+        {single && (
           <div className="hb-bubble">
             <button
               type="button"
               className="hb-handle"
               aria-label="블록 옮기기"
-              title="끌어서 옮기기 (↑ ↓ 키로도 옮겨요)"
+              title="끌어서 옮기기"
               onPointerDown={(event) => startDrag(block.id, event)}
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
               onPointerCancel={() => setDrag(null)}
-              onKeyDown={(event) => keyMove(block.id, event)}
             >
               <svg viewBox="0 0 10 16" aria-hidden="true">
                 {[2, 8].flatMap((cx) => [3, 8, 13].map((cy) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.6" fill="currentColor" />))}

@@ -25,6 +25,11 @@ export type Align = 'left' | 'center' | 'right'
 export const BLOCK_FONT_STACK =
   "Pretendard, 'Pretendard Variable', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Helvetica Neue', Arial, sans-serif"
 
+export const MIN_LETTER_SPACING = -5
+export const MAX_LETTER_SPACING = 20
+export const MIN_LINE_HEIGHT = 0.8
+export const MAX_LINE_HEIGHT = 3
+export const DEFAULT_LINE_HEIGHT = 1.5
 export const MIN_FONT_SIZE = 8
 export const MAX_FONT_SIZE = 48
 
@@ -103,6 +108,10 @@ export const MAX_SPACE = 200
 export const DEFAULT_SPACE = 16
 
 export type LayoutBlock = TextBlock | ImageBlock | SpaceBlock
+
+/** 같은 종류 (여러 개 고르기 · 편집 옵션): 글상자 · 이미지 · 구분선 · 공백 */
+export const blockKind = (block: LayoutBlock): 'text' | 'image' | 'rule' | 'space' =>
+  block.type === 'image' && block.rule && !block.url ? 'rule' : block.type
 
 /** 2열에 놓을 수 없는 블록: 구분선 · 공백 */
 export const isLineBlock = (block: LayoutBlock) => block.type === 'space' || (block.type === 'image' && !!block.rule && !block.url)
