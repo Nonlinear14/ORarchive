@@ -117,15 +117,6 @@ export const navRoutes: NavRoute[] = [
   ...navSections.flatMap((section) => (section.route ? [section.route] : (section.children ?? []))),
 ]
 
-/** 모바일 하단 내비게이션 */
-export const mobileNav: { path: string; label: string; icon: IconName }[] = [
-  { path: '/', label: '홈', icon: 'home' },
-  { path: '/templates', label: '템플릿', icon: 'templates' },
-  { path: '/logs', label: '로그', icon: 'logs' },
-  { path: '/characters', label: '캐릭터', icon: 'characters' },
-  { path: '/settings', label: '설정', icon: 'settings' },
-]
-
 const extraTitles: Record<string, string> = {
   '/login': '로그인',
 }

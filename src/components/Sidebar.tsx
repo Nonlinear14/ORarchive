@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSidebarCollapsed } from '../lib/sidebar'
+import { closeMobileSidebar, useSidebarCollapsed } from '../lib/sidebar'
 import { NavLink, useLocation } from 'react-router'
 import { toggleTheme, useTheme } from '../lib/theme'
 import { navSections, type NavSection } from '../routes'
@@ -11,14 +11,7 @@ function ThemeToggle() {
   const theme = useTheme()
   const dark = theme === 'dark'
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={dark}
-      className="nav-sub theme-toggle"
-      onClick={toggleTheme}
-      title="화면 전환 (라이트모드/다크모드)"
-    >
+    <button type="button" role="switch" aria-checked={dark} className="nav-sub theme-toggle" onClick={toggleTheme} title="화면 전환 (라이트모드/다크모드)">
       <span>화면 전환</span>
       <span className="switch" aria-hidden="true">
         <span className="switch-knob" />
@@ -144,28 +137,43 @@ function SectionNav({ section, collapsed }: { section: NavSection; collapsed: bo
   )
 }
 
+/** 휴대폰 서랍: 화면을 옮기거나 Esc 를 누르면 닫는다 */
+function useCloseDrawerOnNavigate() {
+  const { pathname } = useLocation()
+  useEffect(() => closeMobileSidebar(), [pathname])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeMobileSidebar()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+}
+
 export function Sidebar() {
   const collapsed = useSidebarCollapsed()
+  useCloseDrawerOnNavigate()
   return (
-    <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'}>
-      <SidebarBrand />
-      <nav className="side-content" aria-label="주 메뉴">
-        {navSections.map((section) => (
-          <SectionNav key={section.label} section={section} collapsed={collapsed} />
-        ))}
-      </nav>
-      <div className="side-footer">
-        <div className="quota">
-          <div className="quota-title">
-            <span>내 클라우드 공간</span>
-            <small>준비 중</small>
+    <>
+      {!collapsed && <button type="button" className="side-backdrop" aria-label="메뉴 닫기" tabIndex={-1} onClick={closeMobileSidebar} />}
+      <aside className={collapsed ? 'sidebar is-collapsed' : 'sidebar'} id="main-sidebar">
+        <SidebarBrand />
+        <nav className="side-content" aria-label="주 메뉴">
+          {navSections.map((section) => (
+            <SectionNav key={section.label} section={section} collapsed={collapsed} />
+          ))}
+        </nav>
+        <div className="side-footer">
+          <div className="quota">
+            <div className="quota-title">
+              <span>내 클라우드 공간</span>
+              <small>준비 중</small>
+            </div>
+            <div className="progress" aria-hidden="true">
+              <div />
+            </div>
+            <div className="quota-foot">사용량 표시는 준비 중입니다</div>
           </div>
-          <div className="progress" aria-hidden="true">
-            <div />
-          </div>
-          <div className="quota-foot">사용량 표시는 준비 중입니다</div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }

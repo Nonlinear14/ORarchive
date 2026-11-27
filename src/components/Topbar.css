@@ -105,9 +105,4 @@
     border: 0;
     background: transparent;
   }
-
-  /* 휴대폰은 사이드바 대신 하단 메뉴 */
-  .side-toggle {
-    display: none;
-  }
 }

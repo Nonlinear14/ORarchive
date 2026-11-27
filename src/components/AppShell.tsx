@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router'
-import { MobileNav } from './MobileNav'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import './AppShell.css'
@@ -14,7 +13,6 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-      <MobileNav />
     </div>
   )
 }

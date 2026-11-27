@@ -296,10 +296,45 @@
   height: 21px;
 }
 
-/* ≤750px: 사이드바 숨김 (하단 모바일 내비 사용) */
+/* ≤750px: 사이드바는 왼쪽에서 나오는 서랍 (상단바 버튼으로 연다, 하단 메뉴 없음) */
+.side-backdrop {
+  display: none;
+}
+
 @media (max-width: 750px) {
-  .sidebar {
-    display: none;
+  .sidebar,
+  .sidebar.is-collapsed {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: min(290px, 84vw);
+    height: 100dvh;
+    z-index: 60;
+    transform: translateX(-102%);
+    transition: transform 0.22s ease;
+    box-shadow: none;
+  }
+
+  .sidebar:not(.is-collapsed) {
+    transform: none;
+    box-shadow: 0 0 40px rgba(10, 20, 24, 0.35);
+  }
+
+  .side-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(14, 24, 28, 0.42);
+    border: 0;
+    padding: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .sidebar.is-collapsed {
+      transition: none;
+    }
   }
 }
 

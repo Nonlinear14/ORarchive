@@ -36,21 +36,13 @@ describe('앱 셸', () => {
     expect(within(sidebar).queryByRole('link', { name: '로그 아카이브' })).not.toBeInTheDocument()
     // 예전 메뉴 이름은 없다
     for (const removed of ['템플릿 에디터', '로그 에디터', 'Roll20 코드']) expect(within(sidebar).queryByText(removed)).not.toBeInTheDocument()
-    // 모바일 하단 메뉴: 홈 · 템플릿(템플릿 목록) · 로그(로그 목록) · 캐릭터 · 설정
-    const mobile = screen.getByRole('navigation', { name: '모바일 메뉴' })
-    expect([...mobile.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
-      ['홈', '/'],
-      ['템플릿', '/templates'],
-      ['로그', '/logs'],
-      ['캐릭터', '/characters'],
-      ['설정', '/settings'],
-    ])
+    // 휴대폰 하단 메뉴는 없다 (사이드바 서랍)
+    expect(screen.queryByRole('navigation', { name: '모바일 메뉴' })).not.toBeInTheDocument()
     expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
     // 상단 검색 · 알림 버튼은 없고, 그 자리에 사이드바 접고 펴기
     expect(screen.queryByRole('button', { name: '검색' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '알림' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '사이드바 접기' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('navigation', { name: '모바일 메뉴' }).querySelectorAll('a')).toHaveLength(5)
 
     // Google 이름(프로필 행이 없으면 자동 생성) + 이니셜 아바타
     expect(await screen.findByRole('button', { name: '달빛 기록자 계정 메뉴' })).toBeInTheDocument()
@@ -74,6 +66,34 @@ describe('사이드바 접고 펴기 버튼', () => {
     fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
     expect(document.querySelector('.sidebar')).not.toHaveClass('is-collapsed')
     expect(localStorage.getItem('folio-sidebar-collapsed')).toBe('0')
+  })
+})
+
+describe('휴대폰 (≤750px): 사이드바 서랍', () => {
+  it('상단바 버튼으로 열고, 메뉴를 고르거나 바깥을 누르면 닫힌다', async () => {
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('1050') || query.includes('750'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    try {
+      renderApp('/', { client: createFakeSupabase().client })
+      await screen.findByRole('navigation', { name: '주 메뉴' })
+      expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
+      fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
+      expect(document.querySelector('.sidebar')).not.toHaveClass('is-collapsed')
+      // 펼친 서랍은 하위 메뉴를 그대로 보여 준다
+      fireEvent.click(within(screen.getByRole('navigation', { name: '주 메뉴' })).getByRole('link', { name: '로그 목록' }))
+      expect(await screen.findByRole('heading', { level: 1, name: '로그 목록' })).toBeInTheDocument()
+      expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
+      fireEvent.click(screen.getByRole('button', { name: '사이드바 펼치기' }))
+      fireEvent.click(screen.getByRole('button', { name: '메뉴 닫기' }))
+      expect(document.querySelector('.sidebar')).toHaveClass('is-collapsed')
+    } finally {
+      window.matchMedia = original
+    }
   })
 })
 

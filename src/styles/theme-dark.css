@@ -179,19 +179,6 @@
   background: var(--d-hover);
 }
 
-:root[data-theme='dark'] .mobile-nav {
-  background: #0f181cef;
-  border-top-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .mobile-nav a {
-  color: #8f9c98;
-}
-
-:root[data-theme='dark'] .mobile-nav a.active {
-  color: #d8b783;
-}
-
 /* 카드형 표면 */
 :root[data-theme='dark'] .library-list,
 :root[data-theme='dark'] .settings-card,
