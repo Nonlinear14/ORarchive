@@ -295,6 +295,8 @@
   background-color: #8a8a8a;
 }
 
-:root[data-theme='dark'] ::highlight(hb-range) {
-  color: #fafafa;
+/* 문서 안 글자는 고를 때도 설정한 색 그대로 (다크 모드의 #FAFAFA 는 사이트 글자에만) */
+.hc-canvas ::selection,
+.hc-canvas::selection {
+  color: currentColor;
 }
