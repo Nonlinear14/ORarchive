@@ -62,6 +62,8 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
   const { apply, undo, redo, canUndo, canRedo } = useEditHistory(draft.content, edit)
   const code = content.code
   // 질문 예시 답: 미리보기 · 롤꾸 복사에만 쓰고 저장하지 않는다
+  // 코드 직접 고치기: 넓은 화면에서는 처음부터 펼침, 휴대폰은 접어 둠
+  const [rawOpen, setRawOpen] = useState(() => typeof window.matchMedia !== 'function' || window.matchMedia('(min-width: 1051px)').matches)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const slots = useMemo(() => textSlots(code), [code])
   const colors = useMemo(() => colorGroups(code), [code])
@@ -126,8 +128,10 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
 
       {children}
 
-      <div className="studio-shell">
-        <section className="preview-workspace" aria-label="미리보기">
+      {/* PC: 왼쪽 = 미리보기 · 꾸미기 카드 · 복사 / 오른쪽 = 되돌리기 · 코드
+          휴대폰(1050px 이하): 미리보기 · 복사 → 되돌리기 · 코드 → 옵션 · 내용 · 질문 예시 · 색 (CSS order) */}
+      <div className="studio-shell r20-shell">
+        <section className="preview-workspace r20-workspace" aria-label="미리보기">
           <div className="canvas-tools">
             <span className="edit-hint">
               <Icon name="edit" /> 편집 패널에서 글자와 색을 고치면 바로 보여요
@@ -137,37 +141,127 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
           <div className="canvas-stage r20-stage">
             <ChatPreview code={code} answers={answers} />
           </div>
-          {queries.length > 0 && (
-            <div className="r20-queries" role="group" aria-label="질문 예시">
-              <span className="field-label">질문 예시</span>
-              <p className="field-help">Roll20 이 매크로를 실행할 때 묻는 질문이에요. 여기 넣은 답으로 미리보기 · 롤꾸 복사를 만들어요 (저장되지 않아요).</p>
-              {queries.map((q) => {
-                const id = `q-${q.label}`
-                return (
-                  <div className="r20-query" key={q.label}>
-                    <label htmlFor={id}>{q.label || '(이름 없는 질문)'}</label>
-                    {q.options.length > 1 ? (
-                      <select id={id} className="field-input" value={answers[q.label] ?? defaultAnswer(q)} onChange={(e) => setAnswers({ ...answers, [q.label]: e.target.value })}>
-                        {q.options.map((o, i) => (
-                          <option key={`${o.value}-${i}`} value={o.value}>
-                            {o.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        id={id}
-                        className="field-input"
-                        value={answers[q.label] ?? ''}
-                        placeholder={defaultAnswer(q)}
-                        onChange={(e) => setAnswers({ ...answers, [q.label]: e.target.value })}
-                      />
-                    )}
-                  </div>
-                )
-              })}
+          <section className="r20-edit" aria-label="꾸미기">
+            <div className="r20-col r20-options">
+              <span className="field-label">옵션</span>
+              <label className="mini-toggle">
+                <input type="checkbox" role="switch" className="opt-switch" checked={desc} onChange={(e) => apply(withCode(setDesc(code, e.target.checked)))} />
+                <span>/desc 서술로 보내기</span>
+              </label>
+              <label className="mini-toggle">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  className="opt-switch"
+                  checked={noItalic}
+                  disabled={slots.every((s) => s.style === undefined)}
+                  onChange={(e) => apply(withCode(setItalicRemoved(code, e.target.checked)))}
+                />
+                <span>기울임 없애기</span>
+              </label>
             </div>
-          )}
+            <div className="r20-col r20-col-content">
+              <span className="field-label">내용</span>
+              {slots.length === 0 ? (
+                <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. 아래 코드에서 직접 넣을 수 있어요.</p>
+              ) : (
+                slots.map((slot, i) => {
+                  const id = `slot-${i}`
+                  const asked = /\?\{[^{}]*\}/.test(slot.text)
+                  return (
+                    <div className="r20-slot" key={`${i}-${slot.textSpan.start}`}>
+                      <label className="field-label sub" htmlFor={id}>
+                        글자 {i + 1}
+                      </label>
+                      <div className="r20-slot-row">
+                        <input
+                          id={id}
+                          className="field-input"
+                          value={slot.text}
+                          onChange={(e) => apply(withCode(setSlotText(code, slot, e.target.value)), `slot:${i}`)}
+                        />
+                        {!asked && (
+                          <button
+                            type="button"
+                            className="btn small"
+                            title="Roll20 매크로를 실행할 때 이 글자를 물어보게 해요"
+                            onClick={() => apply(withCode(setSlotText(code, slot, slotAsQuery(slot.text, i))))}
+                          >
+                            질문으로
+                          </button>
+                        )}
+                      </div>
+                      {asked && <small className="r20-slot-note">?{'{…}'} 질문은 매크로를 실행할 때 물어봐요. 미리보기는 아래 "질문 예시"로 채워요.</small>}
+                    </div>
+                  )
+                })
+              )}
+              {queries.length > 0 && (
+                <div className="r20-queries" role="group" aria-label="질문 예시">
+                  <span className="field-label">질문 예시</span>
+                  <p className="field-help">
+                    Roll20 이 매크로를 실행할 때 묻는 질문이에요. 여기 넣은 답으로 미리보기 · 롤꾸 복사를 만들어요 (저장되지 않아요).
+                  </p>
+                  {queries.map((q) => {
+                    const id = `q-${q.label}`
+                    return (
+                      <div className="r20-query" key={q.label}>
+                        <label htmlFor={id}>{q.label || '(이름 없는 질문)'}</label>
+                        {q.options.length > 1 ? (
+                          <select
+                            id={id}
+                            className="field-input"
+                            value={answers[q.label] ?? defaultAnswer(q)}
+                            onChange={(e) =>
+                              setAnswers({
+                                ...answers,
+                                [q.label]: e.target.value,
+                              })
+                            }
+                          >
+                            {q.options.map((o, i) => (
+                              <option key={`${o.value}-${i}`} value={o.value}>
+                                {o.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            id={id}
+                            className="field-input"
+                            value={answers[q.label] ?? ''}
+                            placeholder={defaultAnswer(q)}
+                            onChange={(e) =>
+                              setAnswers({
+                                ...answers,
+                                [q.label]: e.target.value,
+                              })
+                            }
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="r20-col r20-col-colors">
+              <span className="field-label">색</span>
+              {colors.length === 0 ? (
+                <p className="field-help">코드에서 바꿀 수 있는 색을 찾지 못했어요.</p>
+              ) : (
+                colors.map((group, i) => (
+                  <div className="r20-color" key={`${group.hex}-${i}`}>
+                    <span className="field-label sub">
+                      색 {i + 1} · {colorUsageLabel(group)}
+                      {group.uses.length > 1 && <em className="opt-count"> {group.uses.length}곳</em>}
+                    </span>
+                    <ColorField label={`색 ${i + 1}`} value={group.hex} onChange={(hex) => apply(withCode(setColor(code, group, hex)))} />
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
           <div className="export-bar" role="group" aria-label="내보내기">
             <button
               type="button"
@@ -188,7 +282,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
           </div>
         </section>
 
-        <aside className="panel right-panel" aria-label="롤꾸 편집">
+        <aside className="panel right-panel r20-side" aria-label="롤꾸 편집">
           <div className="panel-top">
             <h2>롤꾸 편집</h2>
             <Icon name="code" />
@@ -202,81 +296,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             </button>
           </div>
 
-          <div className="panel-section">
-            <span className="field-label">내용</span>
-            {slots.length === 0 ? (
-              <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. 아래 코드에서 직접 넣을 수 있어요.</p>
-            ) : (
-              slots.map((slot, i) => {
-                const id = `slot-${i}`
-                const asked = /\?\{[^{}]*\}/.test(slot.text)
-                return (
-                  <div className="r20-slot" key={`${i}-${slot.textSpan.start}`}>
-                    <label className="field-label sub" htmlFor={id}>
-                      글자 {i + 1}
-                    </label>
-                    <div className="r20-slot-row">
-                      <input
-                        id={id}
-                        className="field-input"
-                        value={slot.text}
-                        onChange={(e) => apply(withCode(setSlotText(code, slot, e.target.value)), `slot:${i}`)}
-                      />
-                      {!asked && (
-                        <button
-                          type="button"
-                          className="btn small"
-                          title="Roll20 매크로를 실행할 때 이 글자를 물어보게 해요"
-                          onClick={() => apply(withCode(setSlotText(code, slot, slotAsQuery(slot.text, i))))}
-                        >
-                          질문으로
-                        </button>
-                      )}
-                    </div>
-                    {asked && <small className="r20-slot-note">?{'{…}'} 질문은 매크로를 실행할 때 물어봐요. 미리보기는 왼쪽 "질문 예시"로 채워요.</small>}
-                  </div>
-                )
-              })
-            )}
-          </div>
-
-          <div className="panel-section">
-            <span className="field-label">색</span>
-            {colors.length === 0 ? (
-              <p className="field-help">코드에서 바꿀 수 있는 색을 찾지 못했어요.</p>
-            ) : (
-              colors.map((group, i) => (
-                <div className="r20-color" key={`${group.hex}-${i}`}>
-                  <span className="field-label sub">
-                    색 {i + 1} · {colorUsageLabel(group)}
-                    {group.uses.length > 1 && <em className="opt-count"> {group.uses.length}곳</em>}
-                  </span>
-                  <ColorField label={`색 ${i + 1}`} value={group.hex} onChange={(hex) => apply(withCode(setColor(code, group, hex)))} />
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="panel-section r20-options">
-            <span className="field-label">옵션</span>
-            <label className="mini-toggle">
-              <input type="checkbox" role="switch" className="opt-switch" checked={desc} onChange={(e) => apply(withCode(setDesc(code, e.target.checked)))} />
-              <span>/desc 서술로 보내기</span>
-            </label>
-            <label className="mini-toggle">
-              <input
-                type="checkbox"
-                role="switch"
-                className="opt-switch"
-                checked={noItalic}
-                disabled={slots.every((s) => s.style === undefined)}
-                onChange={(e) => apply(withCode(setItalicRemoved(code, e.target.checked)))}
-              />
-              <span>기울임 없애기</span>
-            </label>
-          </div>
-
-          <details className="panel-section r20-raw">
+          <details className="panel-section r20-raw" open={rawOpen} onToggle={(e) => setRawOpen(e.currentTarget.open)}>
             <summary className="field-label">코드 직접 고치기</summary>
             <label className="sr-only" htmlFor="r20-code">
               롤꾸 코드

@@ -34,7 +34,11 @@ describe('롤꾸코드 편집', () => {
     const fake = createFakeSupabase()
     const row = fake.control.insertDocument({ type: 'roll20code', title: '챕터', content: roll20CodeContent(chapter.code) })
     renderApp(`/studio/roll20code/${row.id}`, { client: fake.client })
-    const panel = await screen.findByRole('complementary', { name: '롤꾸 편집' })
+    await screen.findByRole('complementary', { name: '롤꾸 편집' })
+    const panel = screen.getByRole('region', { name: '꾸미기' })
+    // 질문 예시는 꾸미기 카드 안, 코드 직접 고치기는 오른쪽 패널 (넓은 화면에서 펼침)
+    expect(within(panel).getByRole('group', { name: '질문 예시' })).toBeInTheDocument()
+    expect(within(screen.getByRole('complementary', { name: '롤꾸 편집' })).getByLabelText('롤꾸 코드')).toBeVisible()
     const saved = () => docsOf(fake).find((d) => d.id === row.id)!.content.code!
 
     // 질문 예시 → 미리보기에만 (저장하지 않음)
@@ -50,7 +54,7 @@ describe('롤꾸코드 편집', () => {
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(saved().startsWith('/desc ')).toBe(false)
 
-    fireEvent.click(within(panel).getByRole('button', { name: /되돌리기/ }))
+    fireEvent.click(screen.getByRole('button', { name: /되돌리기/ }))
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(saved().startsWith('/desc ')).toBe(true)
     vi.useRealTimers()

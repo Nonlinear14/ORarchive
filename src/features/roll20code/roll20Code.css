@@ -16,11 +16,9 @@
 }
 
 .r20-queries {
-  margin: 6px 0 14px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fffdf9;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
 }
 
 .r20-queries .field-help {
@@ -81,6 +79,149 @@
 .r20-options {
   display: grid;
   gap: 10px;
+  align-content: start;
+}
+
+/* ── 배치 (2026-11-28) ──
+   PC: 왼쪽 회색 칸 = 미리보기 · 꾸미기 카드(옵션 | 내용+질문 예시 | 색) · 복사, 오른쪽 = 되돌리기 · 코드 직접 고치기(길게)
+   1050px 이하: 미리보기 · 복사 → 되돌리기 · 코드 → 꾸미기(옵션 · 내용 · 질문 예시 · 색) 한 줄 */
+.studio-shell.r20-shell {
+  align-items: stretch;
+}
+
+.r20-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 22px;
+  margin-top: 4px;
+  padding: 16px 18px;
+  border: 1px solid #e6e4dd;
+  border-radius: 12px;
+  background: #fffdfa;
+}
+
+.r20-col {
+  min-width: 0;
+}
+
+.r20-edit .r20-options {
+  flex: 0 1 150px;
+}
+
+.r20-col-content {
+  flex: 2 1 260px;
+}
+
+.r20-col-colors {
+  flex: 1 1 210px;
+}
+
+.r20-edit .r20-col > .field-label:first-child {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.r20-side {
+  /* .panel 의 overflow:hidden 은 sticky 를 막으므로 clip 으로 (둥근 모서리는 그대로) */
+  overflow: clip;
+}
+
+/* 오른쪽 패널은 왼쪽 칸 높이만큼 늘고, 코드 칸은 화면 높이에 맞춰 길게 (스크롤해도 따라옴) */
+.r20-side .r20-raw {
+  position: sticky;
+  top: 12px;
+}
+
+.r20-side .r20-raw[open] .r20-code {
+  height: max(260px, calc(100vh - 420px));
+}
+
+@media (max-width: 1050px) {
+  .studio-shell.r20-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* 회색 칸을 풀어 그 안의 조각들을 순서대로 다시 놓는다 */
+  .r20-workspace {
+    display: contents;
+  }
+
+  .r20-workspace > .canvas-tools,
+  .r20-workspace > .r20-stage,
+  .r20-workspace > .export-bar {
+    background: #eae8e2;
+    border: 1px solid #e0ddd5;
+    margin: 0;
+  }
+
+  .r20-workspace > .canvas-tools {
+    order: 1;
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 12px 12px 0;
+  }
+
+  .r20-workspace > .r20-stage {
+    order: 2;
+    border-top: 0;
+    border-bottom: 0;
+    padding: 14px 12px 6px;
+  }
+
+  .r20-workspace > .export-bar {
+    order: 3;
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+
+  .r20-side .r20-raw {
+    position: static;
+  }
+
+  .r20-side .r20-raw[open] .r20-code {
+    height: auto;
+  }
+
+  .r20-shell .r20-side {
+    order: 4;
+    display: block;
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .r20-shell .r20-edit {
+    order: 5;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+    background: #fffdfa;
+    border-color: #e6e4dd;
+    box-shadow: var(--shadow);
+  }
+
+  .r20-edit .r20-col {
+    flex: none;
+    padding: 16px 18px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 1050px) {
+  :root[data-theme='dark'] .r20-workspace > .canvas-tools,
+  :root[data-theme='dark'] .r20-workspace > .r20-stage,
+  :root[data-theme='dark'] .r20-workspace > .export-bar {
+    background: #141f24;
+    border-color: var(--d-border);
+  }
 }
 
 /* 스위치 (로그 편집기와 같은 모양 — 그 CSS 를 이 화면에서는 불러오지 않으므로 여기 둔다) */
@@ -184,4 +325,13 @@
 
 :root[data-theme='dark'] .r20-queries {
   background: var(--d-surface, #1f2a2e);
+}
+
+:root[data-theme='dark'] .r20-edit {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .r20-query label {
+  color: var(--d-text);
 }
