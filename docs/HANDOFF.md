@@ -160,7 +160,7 @@
 - 그림자 · 그라데이션 · 세리프 없음, 모서리 4px(`--radius`).
 - 선택 표시(사이드바 메뉴 · 분할 버튼 `.segmented`)는 강조 상자(`--select-bg`) + 굵게만, 포인트색 없음.
 - `.press-accent`(홈 편집 바로가기 · 편집기 저장): 평소 무채색, 마우스 올림 때만 포인트색. 휴대폰(hover: none)은 `usePressAccent`로 0.16초 강조 후 이동(저장은 곧바로).
-- 다크 모드 버튼은 오른쪽 아래(`ThemeButton`). 처음엔 기기 설정, 누르면 기억(`folio-theme`).
+- 라이트/다크 전환은 사이드바 설정 > 계정 설정 아래 "화면 전환" 스위치(`Sidebar.tsx`의 `ThemeToggle`, `routes.ts`의 `themeToggle`). 처음엔 기기 설정, 누르면 기억(`folio-theme`).
 - `theme-dark.css` 아래쪽 "편집 화면" 묶음은 2단계(편집기 · 설정 개편) 전까지의 임시 규칙.
 
 ## 6. 참고 자료

@@ -132,6 +132,40 @@
 
 
 
+/* 라이트/다크 전환 스위치 (편집기 스위치와 같은 모양: 꺼짐 무채색 · 켜짐 포인트색) */
+.theme-toggle {
+  justify-content: space-between;
+}
+
+.switch {
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.17s;
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.17s;
+}
+
+.theme-toggle[aria-checked='true'] .switch {
+  background: var(--point);
+}
+
+.theme-toggle[aria-checked='true'] .switch-knob {
+  transform: translateX(15px);
+}
+
 .side-footer {
   padding: 14px;
   border-top: 1px solid var(--side-line);
