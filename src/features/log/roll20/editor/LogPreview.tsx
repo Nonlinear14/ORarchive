@@ -21,7 +21,7 @@ export type SpeakerTarget = string | null
 
 const OVERLAY_CSS = `
 :host{display:block}
-::selection{background:#8a8a8a}
+::selection{background:#8a8a8a;color:var(--selection-text,currentColor)}
 .log-msg{position:relative;outline:none}
 .log-msg>.message{transition:box-shadow .12s}
 .log-msg.is-active>.message{box-shadow:inset 0 0 0 2px var(--point)}

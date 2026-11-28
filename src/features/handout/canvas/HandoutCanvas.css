@@ -294,3 +294,7 @@
 ::highlight(hb-range) {
   background-color: #8a8a8a;
 }
+
+:root[data-theme='dark'] ::highlight(hb-range) {
+  color: #fafafa;
+}

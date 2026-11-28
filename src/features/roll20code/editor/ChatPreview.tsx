@@ -4,7 +4,7 @@ import { renderChatHtml, ROLL20_LINK_CSS } from '../parse'
 
 /** 메시지를 고를 수 있을 때의 모양 (그림자 DOM 안) */
 const PICK_CSS = `
-::selection{background:#8a8a8a}
+::selection{background:#8a8a8a;color:var(--selection-text,currentColor)}
 .picking .message{cursor:pointer;border-radius:4px;transition:box-shadow .12s}
 .picking .message:hover{box-shadow:0 0 0 2px color-mix(in srgb, var(--point) 40%, transparent)}
 .picking .message.is-picked{box-shadow:0 0 0 2px var(--point);background-color:color-mix(in srgb, var(--point) 7%, #ffffff)}

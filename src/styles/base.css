@@ -34,6 +34,7 @@ a {
 
 ::selection {
   background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 input:focus,
