@@ -150,6 +150,11 @@
 - 여러 메시지(2026-11-28): `parse.ts`의 `messageSpans`(질문 안 줄바꿈은 이어 붙임) · `messageSlots` · `imageMessages` · `fontProps`/`setFontValue` · `colorGroups(code, message)`. 미리보기(`ChatPreview`)는 메시지마다 `data-msg`를 달고 누르면 고른다. 테스트용 여러 줄 샘플 3종도 `testSamples.ts`.
 - 다음: 스타일 프리셋은 나중에.
 
+## 5-2. 수동 저장 (2026-11-28 배포)
+- 동기화 계층(`documentSync.ts`)에 `manual` 옵션: 입력은 그대로 IndexedDB 기록, `saveNow()`를 부를 때만 전송(누른 한 번만, 저장 중 입력은 '저장하지 않음'으로 남음), 실패 시 자동 재시도 없음, `discardChanges()`로 버리기. 기록에 `manual: true` → `backgroundSync.ts`가 보내지 않고 상단 목록에 "저장하지 않음 · 열어서 저장"으로 표시. 회귀 테스트는 `documentSync.test.ts`의 '수동 저장' 묶음.
+- 화면 부품: `components/document/ManualSave.tsx`(저장 버튼 · 남은 변경 안내), `useManualSave.tsx`(Ctrl+S · useBlocker 나가기 창 · beforeunload · 새 문서 저장 중 입력 넘겨받기 `pendingDraft`).
+- 라우터를 `createBrowserRouter`(테스트는 `createMemoryRouter`)로 바꿈 — App 의 `<Routes>`는 그대로.
+
 ## 6. 참고 자료
 - 데이터베이스 설정 절차: `supabase/README.md`
 - 화면 기록: `docs/screens/`
