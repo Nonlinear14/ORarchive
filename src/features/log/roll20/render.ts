@@ -28,6 +28,7 @@ export const ROLL20_CHAT_CSS = `
 .textchatcontainer .avatar{position:absolute;top:4px;left:5px;width:28px}
 .textchatcontainer .avatar img{max-width:28px;max-height:28px;display:block}
 .textchatcontainer.avatar-circle .avatar img{width:28px;height:28px;object-fit:cover;border-radius:50%}
+.textchatcontainer.avatar-circle .avatar img.user-avatar{object-fit:contain}
 .textchatcontainer.withoutavatars .avatar{display:none}
 .textchatcontainer.withoutavatars .message{padding-left:15px}
 .textchatcontainer.withoutavatars .message .spacer{margin-left:-15px}
@@ -139,13 +140,15 @@ export function messageInnerHtml(content: Roll20LogContent, m: LogMessage, showH
   if (showHeader && m.speaker) {
     const setting = content.characters[m.speaker] ?? {}
     const nameColor = effectiveSetting(content, m).color
-    const avatar = setting.avatar?.trim() || m.avatar
+    const userAvatar = setting.avatar?.trim()
+    const avatar = userAvatar || m.avatar
     const name = displayName(content, m.speaker)
     const label = m.whisper === 'from' ? `(From ${name})` : m.whisper === 'to' ? `(To ${name})` : name
     const color = nameColor ? ` style="color:${nameColor} !important"` : ''
     head =
       '<div class="spacer"></div>' +
-      (avatar ? `<div class="avatar"><img src="${escapeHtml(avatar)}" alt=""></div>` : '') +
+      // 사용자가 넣은 저널은 원형에서도 자르지 않고 긴 쪽 맞춤 (2026-11-29). 로그에 원래 있던 저널은 그대로
+      (avatar ? `<div class="avatar"><img${userAvatar ? ' class="user-avatar"' : ''} src="${escapeHtml(avatar)}" alt=""></div>` : '') +
       (m.ts ? `<span class="tstamp">${escapeHtml(m.ts)}</span>` : '') +
       `<span class="by"${color}>${escapeHtml(label)}:</span> `
   } else if (m.kind === 'desc' || m.kind === 'emote') head = '<div class="spacer"></div>'

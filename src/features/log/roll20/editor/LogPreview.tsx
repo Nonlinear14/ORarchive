@@ -60,7 +60,7 @@ export const OVERLAY_CSS = `
 .speaker-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:7px 8px;border-radius:var(--radius);color:var(--text);font:inherit;cursor:pointer;text-align:left}
 .speaker-menu button:hover,.speaker-menu button:focus-visible{background:var(--surface-3);outline:none}
 .speaker-menu button[aria-current="true"]{color:var(--point)}
-.speaker-menu img,.speaker-menu .sp-av{width:20px;height:20px;border-radius:4px;object-fit:cover;flex:none;background:var(--surface-3);display:grid;place-items:center;font-size:9px;color:var(--text-muted)}
+.speaker-menu img,.speaker-menu .sp-av{width:20px;height:20px;border-radius:4px;object-fit:contain;flex:none;background:var(--surface-3);display:grid;place-items:center;font-size:9px;color:var(--text-muted)}
 .msg-flag{position:absolute;right:10px;top:9px;font:600 10px var(--font, sans-serif);color:var(--danger);background:var(--danger-weak);border:1px solid var(--danger-weak);border-radius:var(--radius);padding:3px 7px;font-style:normal}
 .log-msg.is-hidden-kind>.message{opacity:.6}
 .log-msg .message img{cursor:pointer}

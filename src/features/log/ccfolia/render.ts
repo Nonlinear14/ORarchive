@@ -29,7 +29,7 @@ export const CCF_LOG_CSS = `
 .ccf-msg.ccf-divider.ccf-first{border-top:0}
 .ccf-av{flex:none;width:36px;height:36px;margin-top:2px}
 .ccf-av:empty{height:0;margin-top:0}
-.ccf-av img{width:36px;height:36px;object-fit:cover;display:block;border-radius:4px}
+.ccf-av img{width:36px;height:36px;object-fit:contain;display:block;border-radius:4px}
 .ccf-round .ccf-av img{border-radius:50%}
 .ccf-body{flex:1;min-width:0}
 .ccf-name{font-weight:700}

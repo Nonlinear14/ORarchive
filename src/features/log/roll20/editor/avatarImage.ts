@@ -19,7 +19,19 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-/** 이미지 파일 → 가운데를 정사각형으로 잘라 96×96 으로 줄인 data URL */
+/** 정사각형 칸에 긴 쪽을 맞춘 그림 자리 (잘리지 않게, 가운데) */
+export function containRect(width: number, height: number, size = SIZE) {
+  const scale = size / Math.max(width, height, 1)
+  const w = Math.max(1, Math.round(width * scale))
+  const h = Math.max(1, Math.round(height * scale))
+  return { x: Math.round((size - w) / 2), y: Math.round((size - h) / 2), w, h }
+}
+
+/**
+ * 이미지 파일 → 96×96 저널 data URL.
+ * 정사각형이 아니면 긴 쪽을 96px 에 맞추고 가운데에 놓는다 (2026-11-29: 자르지 않음). 남는 칸은 투명,
+ * PNG 가 너무 커서 JPG 로 저장할 때만 흰색으로 채운다.
+ */
 export async function imageFileToAvatar(file: File): Promise<string> {
   if (!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)) throw new Error('PNG·JPG·GIF·WEBP 이미지만 쓸 수 있어요.')
   const img = await loadImage(file)
@@ -28,14 +40,17 @@ export async function imageFileToAvatar(file: File): Promise<string> {
   canvas.height = SIZE
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('이 브라우저에서는 이미지를 줄일 수 없어요. 링크 주소를 써 주세요.')
-  const side = Math.min(img.naturalWidth, img.naturalHeight)
-  const sx = (img.naturalWidth - side) / 2
-  const sy = (img.naturalHeight - side) / 2
+  const { x, y, w, h } = containRect(img.naturalWidth, img.naturalHeight)
   ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE)
-  // 투명 배경을 살리려고 PNG 를 먼저 쓰고, 너무 크면 JPG 로
+  ctx.drawImage(img, x, y, w, h)
+  // 투명 배경을 살리려고 PNG 를 먼저 쓰고, 너무 크면 JPG 로 (JPG 는 투명이 없어 흰 바탕 위에 다시 그린다)
   let data = canvas.toDataURL('image/png')
-  if (data.length > MAX_DATA_URL) data = canvas.toDataURL('image/jpeg', 0.85)
+  if (data.length > MAX_DATA_URL) {
+    ctx.globalCompositeOperation = 'destination-over'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, SIZE, SIZE)
+    data = canvas.toDataURL('image/jpeg', 0.85)
+  }
   if (data.length > MAX_DATA_URL) throw new Error('이미지를 충분히 줄이지 못했어요. 다른 이미지를 써 주세요.')
   return data
 }
