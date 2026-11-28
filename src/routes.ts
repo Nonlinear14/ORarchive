@@ -26,36 +26,21 @@ const homeRoute: NavRoute = {
   label: '홈',
   icon: 'home',
   eyebrow: 'ORARCHIVE / CREATIVE WORKSPACE',
-  description: '최근 작업한 템플릿과 캐릭터를 이어서 열어 보세요.',
+  description: '최근 작업한 캐릭터 · 로그 · 템플릿을 이어서 열어 보세요.',
 }
 
+/** 사이드바 순서 (2026-11-28): 캐릭터 → 로그 → 템플릿 → 설정 (내 클라우드 공간은 맨 아래) */
 export const navSections: NavSection[] = [
   {
-    label: '템플릿 아카이브',
-    icon: 'templates',
-    children: [
-      {
-        path: '/templates',
-        label: '템플릿 목록',
-        icon: 'templates',
-        eyebrow: 'TEMPLATE ARCHIVE / LIST',
-        description: '내 핸드아웃과 롤꾸코드를 모아 보고, 골라서 바로 편집하세요.',
-      },
-      {
-        path: '/studio/handout',
-        label: '핸드아웃 편집',
-        icon: 'handout',
-        eyebrow: 'TEMPLATE ARCHIVE / HANDOUT EDITOR',
-        description: '캔버스의 글자를 직접 클릭해 수정하고, 완성된 디자인을 Roll20 핸드아웃에 바로 붙여넣어 보세요.',
-      },
-      {
-        path: '/studio/roll20code',
-        label: '롤꾸코드 편집',
-        icon: 'code',
-        eyebrow: 'TEMPLATE ARCHIVE / ROLL20 CODE EDITOR',
-        description: '템플릿 목록의 롤꾸코드를 고치고 Roll20에 바로 붙여 넣으세요.',
-      },
-    ],
+    label: '캐릭터 아카이브',
+    icon: 'characters',
+    route: {
+      path: '/characters',
+      label: '캐릭터 아카이브',
+      icon: 'characters',
+      eyebrow: 'CHARACTER ARCHIVE',
+      description: '룰별 캐릭터 자료를 기록하고 안전하게 보관하세요.',
+    },
   },
   {
     label: '로그 아카이브',
@@ -85,15 +70,31 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    label: '캐릭터 아카이브',
-    icon: 'characters',
-    route: {
-      path: '/characters',
-      label: '캐릭터 아카이브',
-      icon: 'characters',
-      eyebrow: 'CHARACTER ARCHIVE',
-      description: '룰별 캐릭터 자료를 기록하고 안전하게 보관하세요.',
-    },
+    label: '템플릿 아카이브',
+    icon: 'templates',
+    children: [
+      {
+        path: '/templates',
+        label: '템플릿 목록',
+        icon: 'templates',
+        eyebrow: 'TEMPLATE ARCHIVE / LIST',
+        description: '내 핸드아웃과 롤꾸코드를 모아 보고, 골라서 바로 편집하세요.',
+      },
+      {
+        path: '/studio/handout',
+        label: '핸드아웃 편집',
+        icon: 'handout',
+        eyebrow: 'TEMPLATE ARCHIVE / HANDOUT EDITOR',
+        description: '캔버스의 글자를 직접 클릭해 수정하고, 완성된 디자인을 Roll20 핸드아웃에 바로 붙여넣어 보세요.',
+      },
+      {
+        path: '/studio/roll20code',
+        label: '롤꾸코드 편집',
+        icon: 'code',
+        eyebrow: 'TEMPLATE ARCHIVE / ROLL20 CODE EDITOR',
+        description: '템플릿 목록의 롤꾸코드를 고치고 Roll20에 바로 붙여 넣으세요.',
+      },
+    ],
   },
   {
     label: '설정',

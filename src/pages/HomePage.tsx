@@ -1,6 +1,8 @@
 import { lazy, Suspense, useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { DocumentList } from '../components/DocumentList'
 import { Icon } from '../components/Icon'
+import { logPlatformChip } from '../lib/kindChips'
 import { PageHeading } from '../components/PageHeading'
 import { useAuth } from '../lib/auth/context'
 import { displayName } from '../lib/auth/helpers'
@@ -104,6 +106,7 @@ function RecentSection({
   loading,
   more,
   empty,
+  actions,
 }: {
   id: string
   title: string
@@ -112,6 +115,8 @@ function RecentSection({
   loading: boolean
   more: { to: string; label: string }
   empty: ReactNode
+  /** 섹션 아래 바로가기 버튼 */
+  actions?: ReactNode
 }) {
   return (
     <section className="home-section" aria-labelledby={id}>
@@ -139,35 +144,69 @@ function RecentSection({
       ) : (
         <div className="recent-empty">{empty}</div>
       )}
+      {actions}
     </section>
   )
 }
 
-/** 템플릿 목록 / 로그 목록 2분할 바로가기 */
-function EditorLaunch() {
+/** 섹션 아래 편집 메뉴 바로가기 (설명 없이 이름만). 준비 중인 메뉴는 누를 수 없게 */
+function HomeActions({ items }: { items: { to: string; label: string; ready?: boolean }[] }) {
   return (
-    <section className="editor-launch" aria-label="바로가기">
-      <Link to="/templates" className="launch-tile launch-template">
-        <span className="launch-kicker">TEMPLATE ARCHIVE</span>
-        <strong>템플릿 목록</strong>
-        <span className="launch-desc">만들어 둔 핸드아웃을 보고, 골라서 이어서 편집하거나 새로 시작해요.</span>
-        <span className="launch-go">
-          열기 <Icon name="arrow" />
-        </span>
-      </Link>
-      <Link to="/logs" className="launch-tile launch-log">
-        <span className="launch-kicker">LOG ARCHIVE</span>
-        <strong>로그 목록</strong>
-        <span className="launch-desc">불러온 Roll20·코코포리아 세션 기록을 열어 정리하고 HTML로 내보내요.</span>
-        <span className="launch-go">
-          열기 <Icon name="arrow" />
-        </span>
-      </Link>
+    <div className="home-actions">
+      {items.map((item) =>
+        item.ready === false ? (
+          <button key={item.to} type="button" className="btn small" disabled title="준비 중이에요">
+            {item.label} <span className="tag">준비 중</span>
+          </button>
+        ) : (
+          <Link key={item.to} to={item.to} className="btn small">
+            {item.label}
+          </Link>
+        ),
+      )}
+    </div>
+  )
+}
+
+const RECENT_LOGS = 4
+
+/** 로그 아카이브: 최근 수정한 로그 4건 (목록 보기) */
+function LogSection({ docs, loading }: { docs: DocumentSummary[]; loading: boolean }) {
+  const logs = docs
+    .filter((doc) => doc.type === 'log')
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .slice(0, RECENT_LOGS)
+  return (
+    <section className="home-section" aria-labelledby="home-logs">
+      <div className="section-top">
+        <div>
+          <h2 id="home-logs">로그 아카이브</h2>
+          <p>최근 수정한 로그</p>
+        </div>
+        <Link to="/logs" className="text-link">
+          로그 보기 <Icon name="arrow" />
+        </Link>
+      </div>
+      {loading ? (
+        <div className="recent-empty" aria-busy="true">
+          불러오는 중…
+        </div>
+      ) : logs.length > 0 ? (
+        <DocumentList docs={logs} showVisibility={false} kindColumn={{ label: '플랫폼', chip: logPlatformChip }} />
+      ) : (
+        <div className="recent-empty">아직 로그가 없어요.</div>
+      )}
+      <HomeActions
+        items={[
+          { to: '/studio/log/roll20', label: 'Roll20 로그 편집' },
+          { to: '/studio/log/ccfolia', label: '코코포리아 로그 편집', ready: false },
+        ]}
+      />
     </section>
   )
 }
 
-/** / — 첫 화면: 목록 바로가기 · 최근 템플릿 · 최근 캐릭터 */
+/** / — 첫 화면 (2026-11-28): 캐릭터 아카이브 → 로그 아카이브(최근 수정 4건) → 템플릿 아카이브(최근 연 4개) */
 export function HomePage() {
   const { user, profile } = useAuth()
   const { status, docs, error, reload } = useMyDocuments()
@@ -188,7 +227,22 @@ export function HomePage() {
           </span>
         </div>
       )}
-      <EditorLaunch />
+      <RecentSection
+        id="home-characters"
+        title="캐릭터 아카이브"
+        description="최근에 연 캐릭터"
+        items={characters}
+        loading={loading}
+        more={{ to: '/characters', label: '캐릭터 보기' }}
+        empty={
+          <>
+            아직 캐릭터가 없어요.
+            <br />
+            <small>캐릭터 시트는 준비 중이에요.</small>
+          </>
+        }
+      />
+      <LogSection docs={docs} loading={loading} />
       <RecentSection
         id="home-templates"
         title="템플릿 아카이브"
@@ -205,20 +259,13 @@ export function HomePage() {
             </Link>
           </>
         }
-      />
-      <RecentSection
-        id="home-characters"
-        title="캐릭터 아카이브"
-        description="최근에 연 캐릭터"
-        items={characters}
-        loading={loading}
-        more={{ to: '/characters', label: '캐릭터 보기' }}
-        empty={
-          <>
-            아직 캐릭터가 없어요.
-            <br />
-            <small>캐릭터 시트는 준비 중이에요.</small>
-          </>
+        actions={
+          <HomeActions
+            items={[
+              { to: '/studio/handout', label: '핸드아웃 편집' },
+              { to: '/studio/roll20code', label: '롤꾸코드 편집' },
+            ]}
+          />
         }
       />
     </>

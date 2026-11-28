@@ -41,18 +41,48 @@ describe('홈', () => {
     await waitFor(() => expect(link.querySelector('[data-testid="roll20-chat"]')).not.toBeNull())
   })
 
-  it('바로가기 2분할(템플릿 목록 · 로그 목록)과 빈 상태를 보여준다', async () => {
+  it('홈 순서: 캐릭터 → 로그 → 템플릿 아카이브, 섹션 아래 편집 바로가기 (코코포리아는 준비 중)', async () => {
     renderApp('/', { client: createFakeSupabase().client })
 
     expect(await screen.findByText('아직 열어 본 템플릿이 없어요.')).toBeInTheDocument()
     expect(screen.getByText('아직 캐릭터가 없어요.')).toBeInTheDocument()
-    const launch = screen.getByRole('region', { name: '바로가기' })
-    expect(within(launch).getByRole('link', { name: /템플릿 목록/ })).toHaveAttribute('href', '/templates')
-    expect(within(launch).getByRole('link', { name: /로그 목록/ })).toHaveAttribute('href', '/logs')
-    // 순서: 바로가기 → 템플릿 아카이브 → 캐릭터 아카이브
-    const order = [launch, screen.getByRole('heading', { name: '템플릿 아카이브', level: 2 }), screen.getByRole('heading', { name: '캐릭터 아카이브', level: 2 })]
+    expect(screen.getByText('아직 로그가 없어요.')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: '바로가기' })).not.toBeInTheDocument()
+    const order = ['캐릭터 아카이브', '로그 아카이브', '템플릿 아카이브'].map((name) => screen.getByRole('heading', { name, level: 2 }))
     expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    const templates = screen.getByRole('region', { name: '템플릿 아카이브' })
+    expect(within(templates).getByRole('link', { name: '핸드아웃 편집' })).toHaveAttribute('href', '/studio/handout')
+    expect(within(templates).getByRole('link', { name: '롤꾸코드 편집' })).toHaveAttribute('href', '/studio/roll20code')
+    const logs = screen.getByRole('region', { name: '로그 아카이브' })
+    expect(within(logs).getByRole('link', { name: 'Roll20 로그 편집' })).toHaveAttribute('href', '/studio/log/roll20')
+    expect(within(logs).getByRole('button', { name: /코코포리아 로그 편집/ })).toBeDisabled()
+    expect(within(logs).getByRole('link', { name: /로그 보기/ })).toHaveAttribute('href', '/logs')
+
+    // 사이드바 순서: 캐릭터 → 로그 → 템플릿 → 설정
+    const sidebar = screen.getByRole('navigation', { name: '주 메뉴' })
+    const titles = ['캐릭터 아카이브', '로그 아카이브', '템플릿 아카이브', '설정'].map((t) => within(sidebar).getAllByText(t)[0])
+    for (let i = 1; i < titles.length; i++) expect(titles[i - 1].compareDocumentPosition(titles[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('로그 아카이브: 최근 수정한 로그 4건을 목록으로', async () => {
+    const fake = createFakeSupabase()
+    ;['하나', '둘', '셋', '넷', '다섯'].forEach((title, i) =>
+      fake.control.insertDocument({ type: 'log', title, updated_at: `2026-11-2${i}T00:00:00Z`, content: { format: i === 4 ? 'ccfolia-log' : 'roll20-log' } }),
+    )
+    fake.control.insertDocument({ type: 'handout', title: '핸드아웃', updated_at: '2026-11-29T00:00:00Z' })
+    renderApp('/', { client: fake.client })
+    const logs = await screen.findByRole('region', { name: '로그 아카이브' })
+    const table = await within(logs).findByRole('table')
+    const names = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.querySelector('strong, .doc-title, a')?.textContent?.trim())
+    expect(names).toHaveLength(4)
+    expect(within(table).getByText('다섯')).toBeInTheDocument()
+    expect(within(table).queryByText('하나')).not.toBeInTheDocument()
+    expect(within(table).queryByText('핸드아웃')).not.toBeInTheDocument()
   })
 
   it('핸드아웃을 열면 최근 조회에 기록된다', async () => {
