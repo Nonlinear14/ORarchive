@@ -588,3 +588,10 @@
 .panel.is-locked {
   opacity: 0.5;
 }
+
+/* 업데이트 버튼: 중대 경고색으로 채움 */
+.legacy-notice .btn.legacy-update {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--danger-ink);
+}

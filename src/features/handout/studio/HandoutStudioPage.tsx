@@ -273,7 +273,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
           <Icon name="alert" />
           <div className="legacy-body">
             <span>예전 형식으로 저장된 핸드아웃입니다. 현재 편집기에 맞추어 업데이트해야 합니다.</span>
-            <button type="button" className="btn primary small" disabled={busy} onClick={() => void upgrade()}>
+            <button type="button" className="btn small legacy-update" disabled={busy} onClick={() => void upgrade()}>
               {busy ? '업데이트 중…' : '업데이트'}
             </button>
           </div>
