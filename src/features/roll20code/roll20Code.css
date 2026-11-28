@@ -238,7 +238,7 @@
   width: 34px;
   height: 19px;
   border-radius: 999px;
-  background: #d6d4cc;
+  background: var(--line-strong);
   position: relative;
   flex: none;
   cursor: pointer;
@@ -259,7 +259,7 @@
 }
 
 .r20-options .opt-switch:checked {
-  background: #427a67;
+  background: var(--point);
 }
 
 .r20-options .opt-switch:checked::after {
@@ -272,12 +272,8 @@
 }
 
 .r20-options .opt-switch:focus-visible {
-  outline: 2px solid #d9ac72;
+  outline: 2px solid var(--point);
   outline-offset: 2px;
-}
-
-:root[data-theme='dark'] .r20-options .opt-switch:not(:checked) {
-  background: #2e3f45;
 }
 
 .r20-raw summary {

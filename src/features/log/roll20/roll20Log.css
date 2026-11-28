@@ -178,7 +178,7 @@
   width: 34px;
   height: 19px;
   border-radius: 999px;
-  background: #d6d4cc;
+  background: var(--line-strong);
   position: relative;
   flex: none;
   cursor: pointer;
@@ -199,7 +199,7 @@
 }
 
 .opt-switch:checked {
-  background: #427a67;
+  background: var(--point);
 }
 
 .opt-switch:checked::after {
@@ -207,7 +207,7 @@
 }
 
 .opt-switch:focus-visible {
-  outline: 2px solid #d9ac72;
+  outline: 2px solid var(--point);
   outline-offset: 2px;
 }
 
@@ -450,10 +450,6 @@
 :root[data-theme='dark'] .opt-count {
   background: #33291c;
   color: #d8b783;
-}
-
-:root[data-theme='dark'] .opt-switch {
-  background: #2e3f45;
 }
 
 :root[data-theme='dark'] .good-callout {
