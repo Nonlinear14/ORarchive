@@ -125,6 +125,7 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
     expect(canvas).toHaveTextContent('달빛 아래의 초대장')
     expect(screen.getByRole('complementary', { name: '디자인 설정', hidden: true })).toHaveAttribute('inert')
     expect(screen.getByLabelText('문서 제목')).toHaveAttribute('readonly')
+    expect(screen.queryByText(/글자를 클릭해서 바로 수정하고/)).not.toBeInTheDocument()
     // 아직 서버 값은 그대로
     expect(control.tables.documents.find((d) => d.id === row.id)?.content).toEqual({ text: '예전 본문' })
 
@@ -138,6 +139,7 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
     expect(screen.queryByText(/예전 형식으로 저장된 핸드아웃입니다/)).not.toBeInTheDocument()
     expect(field('body')).toHaveTextContent('예전 본문')
     expect(screen.getByLabelText('문서 제목')).not.toHaveAttribute('readonly')
+    expect(screen.getByText(/글자를 클릭해서 바로 수정하고/)).toBeInTheDocument()
     // 업데이트는 되돌리기 기록에 남지 않는다 (예전 형식으로 되돌아가지 않게)
     expect(screen.getByRole('button', { name: /되돌리기/ })).toBeDisabled()
   })

@@ -33,7 +33,6 @@ npm run dev            # http://localhost:5173/ORarchive/
 | `npm test -- --run` | Vitest 1회 실행 (`npm test` 는 watch 모드) |
 | `npm run build` | 프로덕션 빌드 + `dist/404.html`, `dist/.nojekyll` 생성 |
 | `npm run preview` | 빌드 결과 미리보기 (http://localhost:4173/ORarchive/) |
-| `python scripts/check_phase2.py` | (preview 실행 중) 가짜 세션으로 갤러리 → 스튜디오 → Roll20 복사를 브라우저에서 확인, `docs/screens/phase2-*.png` 저장. Python Playwright 필요 |
 
 ## 환경 변수
 

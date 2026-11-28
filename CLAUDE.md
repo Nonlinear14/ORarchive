@@ -63,4 +63,4 @@ TRPG(Roll20·코코포리아) 핸드아웃·세션 로그·캐릭터 시트를 �
 0 뼈대·배포 ✅ → 1 Google 로그인·동기화 ✅ → 2 핸드아웃 스튜디오 ✅(롤꾸코드 편집 포함) → 3 로그 스튜디오(Roll20 ✅, 코코포리아 남음) → 4 캐릭터 시트 → 5 공개 베타 → 6 확장(EPUB, 룰 팩, 이미지 업로드 등)
 
 ## 자주 쓰는 명령
-`npm run dev` · `npm run typecheck` · `npm run lint` · `npm test -- --run` · `npm run build` · `npm run preview` · `python scripts/check_phase2.py`(preview 실행 중일 때)
+`npm run dev` · `npm run typecheck` · `npm run lint` · `npm test -- --run` · `npm run build` · `npm run preview`

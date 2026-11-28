@@ -595,3 +595,8 @@
   border-color: var(--danger);
   color: var(--danger-ink);
 }
+
+/* 편집 안내가 숨겨져도 템플릿 이름은 오른쪽에 */
+.canvas-tools .canvas-meta {
+  margin-left: auto;
+}

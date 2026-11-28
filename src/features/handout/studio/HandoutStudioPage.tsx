@@ -287,9 +287,12 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             <Icon name="lock" /> <span>문서는 기본적으로 비공개로 내 계정에만 저장돼요.</span>
           </div>
           <div className="canvas-tools">
-            <span className="edit-hint">
-              <Icon name="edit" /> 글자를 클릭해서 바로 수정하고, 블록을 골라 손잡이로 옮기세요
-            </span>
+            {/* 예전 형식은 업데이트 전까지 편집이 막혀 있으므로 편집 안내를 숨긴다 */}
+            {!legacy && (
+              <span className="edit-hint">
+                <Icon name="edit" /> 글자를 클릭해서 바로 수정하고, 블록을 골라 손잡이로 옮기세요
+              </span>
+            )}
             <span className="canvas-meta">{look.template.name}</span>
           </div>
           <div
