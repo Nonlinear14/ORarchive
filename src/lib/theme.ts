@@ -10,9 +10,16 @@ export const THEME_STORAGE_KEY = 'folio-theme'
 
 const listeners = new Set<() => void>()
 
+/** 고른 적이 있으면 그 값, 없으면 기기 설정(prefers-color-scheme)을 따른다 (2026-11-28) */
 function readStored(): Theme {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
+    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    if (stored === 'dark' || stored === 'light') return stored
+  } catch {
+    // 읽지 못하면 기기 설정
+  }
+  try {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   } catch {
     return 'light'
   }
@@ -23,7 +30,7 @@ let current: Theme = typeof window === 'undefined' ? 'light' : readStored()
 function apply(theme: Theme) {
   if (typeof document === 'undefined') return
   document.documentElement.dataset.theme = theme
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0f181c' : '#142128')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#1a1a1a' : '#fafafa')
 }
 
 apply(current)

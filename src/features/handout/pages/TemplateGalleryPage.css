@@ -5,9 +5,9 @@
 }
 
 .template-card {
-  border: 1px solid #e9e4da;
-  background: #fffdfa;
-  border-radius: 13px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: var(--radius);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -16,7 +16,7 @@
 
 .template-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 25px #242e2e18;
+  box-shadow: none;
 }
 
 /* 실제 캔버스를 줄여 그린 미리보기 */
@@ -25,19 +25,19 @@
   height: 250px;
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 0%, #c2b29b, #73675f);
+  background: var(--surface-3);
 }
 
 .template-preview.tp-casefile {
-  background: linear-gradient(135deg, #c5b398, #8a775f);
+  background: var(--surface-3);
 }
 
 .template-preview.tp-order {
-  background: linear-gradient(145deg, #243842, #49555c);
+  background: var(--surface-2);
 }
 
 .template-preview.tp-forest {
-  background: linear-gradient(135deg, #a5b9ad, #5d7971);
+  background: var(--surface-3);
 }
 
 .template-preview-scale {
@@ -60,19 +60,19 @@
 
 .template-info strong {
   display: block;
-  color: #35433d;
+  color: var(--text);
   font-size: 13px;
 }
 
 .template-info small {
   display: block;
-  color: #a1a29c;
+  color: var(--text-muted);
   margin-top: 5px;
   font-size: 10px;
 }
 
 .template-info p {
-  color: #727c78;
+  color: var(--text-muted);
   font-size: 11px;
   line-height: 1.7;
   margin: 9px 0 10px;
@@ -126,7 +126,7 @@
 /* 핸드아웃 미리보기 창 */
 .handout-preview-stage {
   margin: 16px 0 4px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -204,14 +204,14 @@
 .handout-card {
   border: 1px solid var(--line);
   background: var(--card);
-  border-radius: 13px;
+  border-radius: var(--radius);
   overflow: hidden;
   transition: 0.16s;
 }
 
 .handout-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 25px #242e2e18;
+  box-shadow: none;
 }
 
 .handout-card .template-preview,

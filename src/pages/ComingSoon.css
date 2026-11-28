@@ -1,7 +1,7 @@
 .coming-soon {
-  border: 1px dashed #d8cfbe;
-  border-radius: 14px;
-  background: #f8f4eb;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
   padding: 56px 24px;
   display: flex;
   flex-direction: column;
@@ -16,22 +16,22 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #fffdfa;
-  border: 1px solid #e8d8c0;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
   color: var(--gold);
-  font: 22px Georgia, serif;
+  font: 22px var(--font);
   box-shadow: var(--shadow);
 }
 
 .coming-soon strong {
-  font: normal 22px var(--font-serif);
-  color: #2a3935;
+  font: 700 22px var(--font);
+  color: var(--text);
   margin-top: 6px;
 }
 
 .coming-soon p {
   margin: 0 0 6px;
   font-size: 12px;
-  color: #849088;
+  color: var(--text-muted);
   line-height: 1.8;
 }

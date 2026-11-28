@@ -38,7 +38,7 @@ describe('앱 셸', () => {
     for (const removed of ['템플릿 에디터', '로그 에디터', 'Roll20 코드']) expect(within(sidebar).queryByText(removed)).not.toBeInTheDocument()
     // 휴대폰 하단 메뉴는 없다 (사이드바 서랍)
     expect(screen.queryByRole('navigation', { name: '모바일 메뉴' })).not.toBeInTheDocument()
-    expect(within(sidebar).getByRole('switch', { name: /화면 전환/ })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: '다크 모드' })).toBeInTheDocument()
     // 상단 검색 · 알림 버튼은 없고, 그 자리에 사이드바 접고 펴기
     expect(screen.queryByRole('button', { name: '검색' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '알림' })).not.toBeInTheDocument()

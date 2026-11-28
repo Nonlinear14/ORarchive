@@ -97,10 +97,11 @@ describe('홈', () => {
 })
 
 describe('화면 모드', () => {
-  it('사이드바 토글로 다크모드를 켜고 끈다 (이 기기에 기억)', async () => {
+  it('오른쪽 아래 버튼으로 다크모드를 켜고 끈다 (이 기기에 기억) · 사이드바 스위치는 없다', async () => {
     renderApp('/settings', { client: createFakeSupabase().client })
 
-    const toggle = await screen.findByRole('switch', { name: /화면 전환/ })
+    const toggle = await screen.findByRole('switch', { name: '다크 모드' })
+    expect(within(screen.getByRole('navigation', { name: '주 메뉴' })).queryByRole('switch')).not.toBeInTheDocument()
     expect(toggle).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-checked', 'true')

@@ -5,9 +5,9 @@
 }
 
 .settings-card {
-  background: #fffdfa;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: var(--radius);
   padding: 22px;
   min-width: 0;
 }
@@ -19,7 +19,7 @@
 
 .settings-card p {
   font-size: 11px;
-  color: #89938a;
+  color: var(--text-muted);
   line-height: 1.8;
 }
 
@@ -40,7 +40,7 @@
 .connected small {
   display: block;
   font-size: 11px;
-  color: #8d9690;
+  color: var(--text-muted);
   margin-top: 3px;
   overflow-wrap: anywhere;
 }

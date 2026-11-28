@@ -3,7 +3,7 @@
   position: sticky;
   top: 0;
   z-index: 70;
-  background: rgba(250, 249, 245, 0.93);
+  background: transparent;
   backdrop-filter: blur(15px);
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -18,7 +18,7 @@
   align-items: center;
   gap: 11px;
   min-width: 0;
-  color: var(--heading-ink, #273b35);
+  color: var(--heading-ink, var(--text));
 }
 
 .top-brand .brandmark {
@@ -34,7 +34,7 @@
   margin: -2px;
   border: 0;
   background: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -48,7 +48,7 @@
 }
 
 .brand-toggle:focus-visible {
-  outline: 2px solid #ccb18b;
+  outline: 2px solid var(--point-line);
   outline-offset: 2px;
 }
 
@@ -69,13 +69,13 @@
 .top-brand .brandname {
   font: 700 21px/1 var(--font, sans-serif);
   letter-spacing: 0.2px;
-  color: #273b35;
+  color: var(--text);
 }
 
 .top-brand .brandsub {
   font-size: 12px;
   font-weight: 700;
-  color: #8a918c;
+  color: var(--text-muted);
   white-space: nowrap;
   padding-left: 11px;
   border-left: 1px solid var(--line);
@@ -91,26 +91,27 @@
   width: 35px;
   height: 35px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fffefa;
-  color: #55625d;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
   display: grid;
   place-items: center;
 }
 
 .iconbtn:hover {
-  background: #f0ede6;
+  background: var(--surface-2);
 }
 
 .mini-avatar {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #d8bea1;
-  color: #503c27;
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--line);
   display: grid;
   place-items: center;
-  font: 700 16px Georgia, serif;
+  font: 700 16px var(--font);
 }
 
 @media (max-width: 1050px) {

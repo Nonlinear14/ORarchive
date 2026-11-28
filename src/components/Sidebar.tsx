@@ -1,24 +1,9 @@
 import { useEffect } from 'react'
 import { closeMobileSidebar, useSidebarCollapsed } from '../lib/sidebar'
 import { NavLink, useLocation } from 'react-router'
-import { toggleTheme, useTheme } from '../lib/theme'
 import { navSections, type NavSection } from '../routes'
 import { Icon } from './Icon'
 import './Sidebar.css'
-
-function ThemeToggle() {
-  const theme = useTheme()
-  const dark = theme === 'dark'
-  return (
-    <button type="button" role="switch" aria-checked={dark} className="nav-sub theme-toggle" onClick={toggleTheme} title="화면 전환 (라이트모드/다크모드)">
-      <span>화면 전환</span>
-      <span className="switch" aria-hidden="true">
-        <span className="switch-knob" />
-      </span>
-      <span className="sr-only">{dark ? '지금은 다크모드' : '지금은 라이트모드'}</span>
-    </button>
-  )
-}
 
 function SubLinks({ section }: { section: NavSection }) {
   return (
@@ -28,7 +13,6 @@ function SubLinks({ section }: { section: NavSection }) {
           <span>{route.label}</span>
         </NavLink>
       ))}
-      {section.themeToggle && <ThemeToggle />}
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router'
 import { Sidebar } from './Sidebar'
+import { ThemeButton } from './ThemeButton'
 import { Topbar } from './Topbar'
 import './AppShell.css'
 
@@ -15,6 +16,7 @@ export function AppShell() {
           </main>
         </div>
       </div>
+      <ThemeButton />
     </div>
   )
 }

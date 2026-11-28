@@ -17,8 +17,6 @@ export interface NavSection {
   /** 하위 메뉴가 없을 때 제목이 여는 화면 */
   route?: NavRoute
   children?: NavRoute[]
-  /** 하위 메뉴에 라이트/다크 모드 토글을 붙인다 */
-  themeToggle?: boolean
 }
 
 const homeRoute: NavRoute = {
@@ -99,7 +97,6 @@ export const navSections: NavSection[] = [
   {
     label: '설정',
     icon: 'settings',
-    themeToggle: true,
     children: [
       {
         path: '/settings',

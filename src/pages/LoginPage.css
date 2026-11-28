@@ -5,32 +5,32 @@
 }
 
 .login-card {
-  background: #fffdf8;
+  background: var(--surface);
   width: min(450px, 100%);
-  border-radius: 18px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   padding: 29px;
-  box-shadow: 0 30px 90px #0b11151f;
+  box-shadow: none;
 }
 
 .login-card h1 {
-  font: normal 28px var(--font-serif);
+  font: 700 28px var(--font);
   margin: 8px 0 10px;
-  color: #283d34;
+  color: var(--text);
 }
 
 .login-card p {
-  color: #808d84;
+  color: var(--text-muted);
   line-height: 1.7;
   font-size: 12px;
 }
 
 .social-button {
-  border: 1px solid #e9e3d7;
-  background: #fff;
-  color: #263534;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
   width: 100%;
-  border-radius: 9px;
+  border-radius: var(--radius);
   padding: 14px;
   display: flex;
   align-items: center;
@@ -46,7 +46,7 @@
 
 .social-button.google i {
   font-weight: 900;
-  color: #4285f4;
+  color: var(--text-muted);
   font-style: normal;
   font-size: 19px;
 }
@@ -56,12 +56,12 @@
   margin-top: 22px;
   padding-top: 17px;
   font-size: 11px;
-  color: #929b92;
+  color: var(--text-muted);
   line-height: 1.7;
 }
 
 .social-button:not(:disabled):hover {
-  background: #fbf9f4;
+  background: var(--surface);
 }
 
 .login-alert {

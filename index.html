@@ -4,11 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#142128" />
+    <meta name="theme-color" content="#fafafa" />
     <meta name="description" content="ORarchive — ORPG를 위한 툴 아카이브. TRPG 핸드아웃·세션 로그·캐릭터 시트" />
     <script>
       try {
-        if (localStorage.getItem('folio-theme') === 'dark') document.documentElement.dataset.theme = 'dark'
+        var t = localStorage.getItem('folio-theme')
+        if (t === 'dark' || (t !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.dataset.theme = 'dark'
       } catch (e) {}
     </script>
     <title>ORarchive — ORPG를 위한 툴 아카이브</title>

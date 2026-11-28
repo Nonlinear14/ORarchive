@@ -1,295 +1,93 @@
 /*
  * 다크 모드. <html data-theme="dark"> 일 때만 적용된다 (src/lib/theme.ts).
- * 1) 토큰을 어둡게 바꾸고, 2) 색을 직접 적어 둔 화면 요소를 여기서 덮어쓴다.
+ * 2026-11-28 개편: 화면 코드는 의미 토큰(--bg · --surface · --text · --point …)을 쓰므로 여기서는 토큰 값만 바꾼다.
+ * 아래 "편집 화면" 묶음은 2단계(편집 화면 개편) 전까지 편집기 둘레를 어둡게 유지하려는 임시 규칙이다.
  * 핸드아웃 캔버스(문서 자체)는 실제 출력과 같아야 하므로 건드리지 않는다.
  */
 :root[data-theme='dark'] {
-  /* 색은 검토용 목업 페이지의 어두운 색 세트를 따른다:
-     배경 #0f181c · 카드 #172429 · 글자 #e9e3d6 · 보조 글자 #9aa7a3 · 선 #2a3a40 · 금색 #b48c5a · 사이드바 #142128 */
   color-scheme: dark;
-  --ink: #e9e3d6;
-  --ink2: #d3ccbd;
-  --paper: #0f181c;
-  --canvas: #142128;
-  --card: #172429;
-  --line: #2a3a40;
-  --line-strong: #3a4c52;
-  --slate: #9aa7a3;
-  --muted: #9aa7a3;
-  --gold: #b48c5a;
-  --shadow: 0 12px 30px rgba(0, 0, 0, 0.28), 0 2px 5px rgba(0, 0, 0, 0.2);
-  --heading-ink: #e9e3d6;
-  --eyebrow: #c4a276;
+  --bg: #1a1a1a;
+  --surface: #232323;
+  --surface-2: #202020;
+  --surface-3: #2c2c2c;
+  --line-soft: #2a2a2a;
+  --text: #fafafa;
+  --text-muted: #a3a3a3;
+  --text-faint: #767676;
+  --point: #3b82f6;
+  --point-ink: #ffffff;
+  --point-weak: #1c2a44;
+  --point-line: #2f5ea8;
+  --warn: #f6e199;
+  --warn-ink: #1a1a1a;
+  --warn-weak: #3a3422;
+  --danger: #e34234;
+  --danger-ink: #ffffff;
+  --danger-weak: #3d211e;
 
-  --d-surface: #172429;
-  --d-surface2: #1d2c32;
-  --d-hover: #22343b;
-  --d-border: #2a3a40;
-  --d-text: #e9e3d6;
-  --d-text-strong: #f3eee4;
-  --d-text-muted: #9aa7a3;
+  --ink2: #e6e6e6;
+  --line: #333333;
+  --line-strong: #444444;
+
+  /* 예전 다크 전용 이름 → 새 값 */
+  --d-surface: var(--surface);
+  --d-surface2: var(--surface-2);
+  --d-hover: var(--surface-3);
+  --d-border: var(--line);
+  --d-text: var(--text);
+  --d-text-strong: var(--text);
+  --d-text-muted: var(--text-muted);
 }
 
 :root[data-theme='dark'] body {
-  color: var(--d-text);
+  color: var(--text);
 }
 
-/* 공통 컴포넌트 */
-:root[data-theme='dark'] .muted,
-:root[data-theme='dark'] .heading p,
-:root[data-theme='dark'] .section-top p,
-:root[data-theme='dark'] .field-help,
-:root[data-theme='dark'] .empty,
-:root[data-theme='dark'] .loading-state,
-:root[data-theme='dark'] .top-brand .brandsub {
-  color: var(--d-text-muted);
-}
-
-:root[data-theme='dark'] .section-top h2,
-:root[data-theme='dark'] .top-brand .brandname {
-  color: var(--d-text-strong);
-}
-
-:root[data-theme='dark'] .field-label {
-  color: #a9b4b0;
-}
-
-:root[data-theme='dark'] .text-link {
-  color: #d0b083;
-}
-
-:root[data-theme='dark'] .btn {
-  background: var(--d-surface2);
-  border-color: var(--d-border);
-  color: var(--d-text);
-}
-
-:root[data-theme='dark'] .btn.primary {
-  background: #b48c5a;
-  border-color: #b48c5a;
-  color: #0f181c;
-}
-
-:root[data-theme='dark'] .btn.danger {
-  background: #3a2422;
-  border-color: #5a3330;
-  color: #e3a39d;
-}
-
-:root[data-theme='dark'] .btn.danger.solid {
-  background: #b0625c;
-  border-color: #b0625c;
-  color: #fff9f6;
-}
-
-:root[data-theme='dark'] .tag {
-  background: var(--d-surface2);
-  border-color: var(--d-border);
-  color: #a9b4b0;
-}
-
-:root[data-theme='dark'] .tag.gold,
-:root[data-theme='dark'] .pending-trigger {
-  background: #33291c;
-  border-color: #4f3f29;
-  color: #d8b783;
-}
-
-:root[data-theme='dark'] .tag.good {
-  background: #1c3229;
-  border-color: #2a4a3c;
-  color: #86c2a4;
-}
-
-:root[data-theme='dark'] .tag.red,
-:root[data-theme='dark'] .pending-trigger.danger {
-  background: #3a2422;
-  border-color: #5a3330;
-  color: #e3a39d;
-}
-
-:root[data-theme='dark'] .field-input,
-:root[data-theme='dark'] .field-textarea,
-:root[data-theme='dark'] .searchbar {
-  background: #142128;
-  border-color: var(--d-border);
-  color: var(--d-text);
-}
-
-:root[data-theme='dark'] .callout {
-  background: #2a241a;
-  border-color: #453a28;
-  color: #d4bd98;
-}
-
-:root[data-theme='dark'] .callout.danger {
-  background: #3a2422;
-  border-color: #5a3330;
-  color: #e8aaa3;
-}
-
-:root[data-theme='dark'] .filter {
-  background: var(--d-surface);
-  border-color: var(--d-border);
-  color: #a9b4b0;
-}
-
-:root[data-theme='dark'] .filter.active,
-:root[data-theme='dark'] .type-option.active {
-  background: #b48c5a;
-  border-color: #b48c5a;
-  color: #0f181c;
-}
-
-:root[data-theme='dark'] .segmented {
-  background: #142128;
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .segmented button {
-  color: #93a09c;
-}
-
-:root[data-theme='dark'] .segmented button.active {
-  background: var(--d-hover);
-  color: var(--d-text-strong);
-}
-
-:root[data-theme='dark'] ::selection {
-  background: #5b4a30;
-}
-
-/* 상단 바 · 모바일 내비 */
-:root[data-theme='dark'] .topbar {
-  background: rgba(15, 24, 28, 0.93);
-}
-
-:root[data-theme='dark'] .key {
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .iconbtn {
-  background: var(--d-surface);
-  color: #b3bfbb;
-}
-
-:root[data-theme='dark'] .iconbtn:hover,
-:root[data-theme='dark'] .row-icon:hover {
-  background: var(--d-hover);
-}
-
-/* 카드형 표면 */
-:root[data-theme='dark'] .library-list,
-:root[data-theme='dark'] .settings-card,
-:root[data-theme='dark'] .template-card,
+/* ── 편집 화면 (2단계에서 각 화면 CSS 로 옮긴다) ── */
 :root[data-theme='dark'] .panel,
 :root[data-theme='dark'] .doc-body,
-:root[data-theme='dark'] .doc-title:focus,
-:root[data-theme='dark'] .profile-pop,
-:root[data-theme='dark'] .pending-pop,
-:root[data-theme='dark'] .modal-card,
-:root[data-theme='dark'] .coming-soon-mark {
-  background: var(--d-surface);
-  border-color: var(--d-border);
+:root[data-theme='dark'] .doc-title:focus {
+  background: var(--surface);
+  border-color: var(--line);
 }
 
-:root[data-theme='dark'] .list-head {
-  background: var(--d-surface2);
-  color: var(--d-text-muted);
+:root[data-theme='dark'] .panel-top h2 {
+  color: var(--text);
 }
 
-:root[data-theme='dark'] .list-row {
-  color: #9aa6a2;
-  border-bottom-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .list-row:hover,
-:root[data-theme='dark'] .profile-pop-item:hover,
-:root[data-theme='dark'] .pending-row:hover {
-  background: var(--d-hover);
-}
-
-:root[data-theme='dark'] .item-title,
-:root[data-theme='dark'] .template-info strong,
-:root[data-theme='dark'] .profile-pop-head strong,
-:root[data-theme='dark'] .pending-link strong,
-:root[data-theme='dark'] .coming-soon strong,
-:root[data-theme='dark'] .modal-card h2,
-:root[data-theme='dark'] .panel-top h2,
-:root[data-theme='dark'] .profile-pop-item {
-  color: var(--d-text-strong);
-}
-
-:root[data-theme='dark'] .item-square {
-  background: #33291c;
-  color: #d8b783;
-}
-
-:root[data-theme='dark'] .item-square.log {
-  background: #1d3135;
-  color: #8fb8b3;
-}
-
-:root[data-theme='dark'] .item-square.char {
-  background: #2c2533;
-  color: #b9a8cc;
-}
-
-:root[data-theme='dark'] .row-icon,
-:root[data-theme='dark'] .template-info small,
-:root[data-theme='dark'] .template-info p,
-:root[data-theme='dark'] .settings-card p,
-:root[data-theme='dark'] .connected small,
-:root[data-theme='dark'] .profile-pop-head small,
-:root[data-theme='dark'] .pending-link small,
-:root[data-theme='dark'] .pending-pop-head,
-:root[data-theme='dark'] .coming-soon p,
-:root[data-theme='dark'] .modal-card p,
-:root[data-theme='dark'] .confirm-message,
 :root[data-theme='dark'] .editor-header p,
 :root[data-theme='dark'] .canvas-tools,
 :root[data-theme='dark'] .canvas-footer,
 :root[data-theme='dark'] .panel-top {
-  color: var(--d-text-muted);
-}
-
-:root[data-theme='dark'] .coming-soon {
-  background: #152126;
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .modal-x {
-  background: var(--d-surface2);
-  color: #b3bfbb;
+  color: var(--text-muted);
 }
 
 :root[data-theme='dark'] .type-option,
 :root[data-theme='dark'] .template-option {
-  background: #142128;
-  border-color: var(--d-border);
-  color: var(--d-text);
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text);
 }
 
 :root[data-theme='dark'] .template-option.active {
-  background: #2a241a;
-  border-color: #a78960;
+  background: var(--point-weak);
+  border-color: var(--point);
 }
 
 :root[data-theme='dark'] .swatch-default {
-  background: var(--d-surface2);
-  color: #d4bd98;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
-/* 핸드아웃 편집 작업대 (캔버스 둘레만 어둡게) */
 :root[data-theme='dark'] .preview-workspace {
-  background: #141f24;
-  border-color: var(--d-border);
+  background: var(--surface-2);
+  border-color: var(--line);
 }
 
 :root[data-theme='dark'] .edit-hint {
-  color: #d4bd98;
+  color: var(--point);
 }
 
 :root[data-theme='dark'] .doc-recover .doc-text[readonly] {
-  background: #142128;
+  background: var(--surface-2);
 }

@@ -7,7 +7,7 @@ body {
   margin: 0;
   min-height: 100%;
   background: var(--paper);
-  color: #263534;
+  color: var(--text);
   font-family: var(--font);
   font-size: 14px;
 }
@@ -33,19 +33,19 @@ a {
 }
 
 ::selection {
-  background: #e5d3ae;
+  background: var(--point);
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid #ccb18b;
+  outline: 2px solid var(--point-line);
   outline-offset: 1px;
 }
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid #d9ac72;
+  outline: 2px solid var(--point-line);
   outline-offset: 3px;
 }
 
@@ -61,15 +61,15 @@ a:focus-visible {
 }
 
 .muted {
-  color: #89958e;
+  color: var(--text-muted);
 }
 
 /* 버튼 */
 .btn {
-  border: 1px solid #dad9d1;
-  background: #fffdfa;
-  color: #33433e;
-  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
   padding: 10px 14px;
   font-size: 12px;
   font-weight: 700;
@@ -83,13 +83,13 @@ a:focus-visible {
 
 .btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 12px #17242a12;
+  box-shadow: none;
 }
 
 .btn.primary {
-  background: #203b38;
-  color: #fff9ee;
-  border-color: #203b38;
+  background: var(--point);
+  color: var(--point-ink);
+  border-color: var(--point);
 }
 
 .btn.small {
@@ -108,11 +108,11 @@ a:focus-visible {
   align-items: center;
   gap: 5px;
   font-size: 10px;
-  color: #6f746d;
-  background: #f1eee7;
-  border: 1px solid #e7e3d8;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 
 .tag .ico {
@@ -121,33 +121,33 @@ a:focus-visible {
 }
 
 .tag.gold {
-  color: #917047;
-  background: #f6eee2;
-  border-color: #e8d8c0;
+  color: var(--point);
+  background: var(--surface-2);
+  border-color: var(--line-strong);
 }
 
 .tag.good {
-  color: #40755d;
-  background: #e9f3ec;
-  border-color: #d9e8dd;
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--line-strong);
 }
 
 .tag.red {
-  color: #a25d58;
-  background: #f8e9e7;
-  border-color: #f0d6d2;
+  color: var(--text-muted);
+  background: var(--danger-weak);
+  border-color: var(--danger-weak);
 }
 
 .btn.danger {
-  background: #fdf6f4;
-  color: #a25d58;
-  border-color: #ecd3ce;
+  background: var(--danger-weak);
+  color: var(--text-muted);
+  border-color: var(--danger-weak);
 }
 
 .btn.danger.solid {
-  background: #a25d58;
-  color: #fff9f6;
-  border-color: #a25d58;
+  background: var(--surface-3);
+  color: var(--point-ink);
+  border-color: var(--line-strong);
 }
 
 .btn:disabled,
@@ -170,19 +170,19 @@ a:focus-visible {
   font-size: 17px;
   margin: 0;
   font-weight: 750;
-  color: #2a3935;
+  color: var(--text);
 }
 
 .section-top p {
   font-size: 11px;
-  color: #9b9e98;
+  color: var(--text-muted);
   margin: 5px 0 0;
 }
 
 .text-link {
   border: 0;
   background: none;
-  color: #8d7657;
+  color: var(--point);
   font-weight: 700;
   font-size: 11px;
   display: inline-flex;
@@ -199,7 +199,7 @@ a:focus-visible {
 /* 폼 */
 .field-label {
   display: block;
-  color: #6d7872;
+  color: var(--text-muted);
   font-weight: 700;
   font-size: 11px;
   margin-bottom: 9px;
@@ -208,11 +208,11 @@ a:focus-visible {
 .field-input,
 .field-textarea {
   width: 100%;
-  border: 1px solid #e3e0d6;
-  background: #fcfbf8;
-  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: var(--radius);
   padding: 10px 11px;
-  color: #33423d;
+  color: var(--text);
   font-size: 12px;
 }
 
@@ -224,7 +224,7 @@ a:focus-visible {
 
 .field-help {
   font-size: 10px;
-  color: #a3a59e;
+  color: var(--text-muted);
   line-height: 1.6;
   margin-top: 8px;
 }
@@ -239,19 +239,19 @@ a:focus-visible {
   display: flex;
   align-items: flex-start;
   gap: 11px;
-  background: #f4efe4;
-  border: 1px solid #e7dcc9;
-  color: #827158;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
   font-size: 11px;
   line-height: 1.8;
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 13px;
 }
 
 .callout.danger {
-  background: #f8ecea;
-  border-color: #efd5d0;
-  color: #93524d;
+  background: var(--danger-weak);
+  border-color: var(--danger-weak);
+  color: var(--danger);
 }
 
 .callout .ico {
@@ -262,7 +262,7 @@ a:focus-visible {
 
 .empty {
   padding: 35px;
-  color: #849088;
+  color: var(--text-muted);
   text-align: center;
   font-size: 12px;
   line-height: 1.8;
@@ -303,25 +303,25 @@ a:focus-visible {
 
 .filter {
   font-size: 11px;
-  border: 1px solid #e1ded6;
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
   padding: 9px 13px;
-  background: #fffefa;
-  color: #818c86;
+  background: var(--surface);
+  color: var(--text-muted);
 }
 
 .filter.active {
-  background: #263d39;
+  background: var(--point);
   color: white;
-  border-color: #263d39;
+  border-color: var(--point);
 }
 
 /* 분할 선택 버튼 (목업 .segmented) */
 .segmented {
   display: flex;
-  border: 1px solid #dedad0;
-  border-radius: 8px;
-  background: #f6f5f0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
   padding: 3px;
   gap: 2px;
 }
@@ -331,15 +331,15 @@ a:focus-visible {
   border: 0;
   background: transparent;
   padding: 7px 6px;
-  border-radius: 6px;
-  color: #848c86;
+  border-radius: var(--radius);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .segmented button.active {
-  background: white;
-  color: #384a42;
-  box-shadow: 0 1px 3px #0001;
+  background: var(--surface);
+  color: var(--point);
+  box-shadow: none;
 }
 
 /* 카드 미리보기 자리표시 (홈 · 템플릿 아카이브) */
@@ -358,10 +358,10 @@ a:focus-visible {
   align-items: center;
   gap: 9px;
   padding: 10px 14px;
-  border: 1px solid #dedbd1;
-  background: #fffdfa;
-  border-radius: 10px;
-  color: #8a918c;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: var(--radius);
+  color: var(--text-muted);
 }
 
 .searchbar input {
@@ -374,14 +374,14 @@ a:focus-visible {
 }
 
 .searchbar:focus-within {
-  outline: 2px solid #ccb18b;
+  outline: 2px solid var(--point-line);
   outline-offset: 1px;
 }
 
 .picker-empty,
 .list-search-empty {
   border: 1px dashed var(--line-strong);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 34px 16px;
   text-align: center;
   color: var(--muted);

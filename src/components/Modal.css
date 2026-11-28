@@ -1,7 +1,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 20, 22, 0.64);
+  background: transparent;
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
@@ -11,11 +11,11 @@
 }
 
 .modal-card {
-  background: #fffdf8;
+  background: var(--surface);
   width: min(450px, 100%);
-  border-radius: 18px;
+  border-radius: var(--radius);
   padding: 29px;
-  box-shadow: 0 30px 90px #0b11155e;
+  box-shadow: none;
   position: relative;
   max-height: calc(100vh - 36px);
   overflow: auto;
@@ -26,24 +26,24 @@
   right: 17px;
   top: 16px;
   border: 0;
-  background: #f4f0e8;
-  border-radius: 7px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
   width: 28px;
   height: 28px;
-  color: #62706a;
+  color: var(--text-muted);
   font-size: 16px;
   line-height: 1;
 }
 
 .modal-card h2 {
-  font: normal 24px var(--font-serif);
+  font: 700 24px var(--font);
   margin: 8px 0 10px;
-  color: #283d34;
+  color: var(--text);
 }
 
 .modal-card p,
 .confirm-message {
-  color: #808d84;
+  color: var(--text-muted);
   line-height: 1.7;
   font-size: 12px;
 }

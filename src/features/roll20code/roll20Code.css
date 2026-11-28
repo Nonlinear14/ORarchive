@@ -306,7 +306,7 @@
   display: grid;
   place-items: center;
   padding: 10px;
-  background: linear-gradient(135deg, #ece6dc, #d9d0c2);
+  background: var(--surface-2);
   overflow: hidden;
   position: relative;
 }
@@ -321,7 +321,7 @@
   position: absolute;
   inset: auto 0 0;
   height: 34px;
-  background: linear-gradient(transparent, #d9d0c2);
+  background: linear-gradient(transparent, var(--surface-2));
   pointer-events: none;
 }
 

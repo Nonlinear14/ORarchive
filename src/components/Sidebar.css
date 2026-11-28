@@ -15,7 +15,7 @@
   top: var(--topbar-h, 76px);
   height: calc(100vh - var(--topbar-h, 76px));
   flex-shrink: 0;
-  border-right: 1px solid #283941;
+  border-right: 1px solid var(--line);
   z-index: 30;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .brandmark .die-pip {
-  fill: var(--side-bg, #142128);
+  fill: var(--side-bg, var(--point));
 }
 
 
@@ -67,7 +67,7 @@
   font-weight: 700;
   letter-spacing: -0.2px;
   color: var(--side-title);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: none;
   border: 0;
   font-family: inherit;
@@ -77,7 +77,7 @@
 .nav-title .ico {
   width: 19px;
   height: 19px;
-  color: #d8b989;
+  color: var(--point);
   opacity: 0.95;
 }
 
@@ -102,7 +102,7 @@
   color: var(--side-item);
   font-size: 13.5px;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: var(--radius);
   padding: 8px 12px;
   margin: 2px 0;
   transition: 0.17s;
@@ -117,7 +117,7 @@
 .nav-title-button:hover,
 .nav-sub:hover {
   background: var(--side-hover);
-  color: #f0f0e9;
+  color: var(--point-ink);
 }
 
 .nav-title-link.active,
@@ -141,7 +141,7 @@
   width: 34px;
   height: 19px;
   border-radius: 999px;
-  background: #3c4d53;
+  background: var(--point);
   position: relative;
   flex-shrink: 0;
   transition: background 0.17s;
@@ -154,7 +154,7 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #e9e2d4;
+  background: var(--surface-3);
   transition: transform 0.17s;
 }
 
@@ -172,7 +172,7 @@
 }
 
 .quota {
-  border-radius: 13px;
+  border-radius: var(--radius);
   padding: 14px 13px;
   background: var(--side-card);
 }
@@ -181,30 +181,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #dfe8e3;
+  color: var(--text-faint);
   font-size: 11px;
 }
 
 .quota-title small {
-  color: #a3b5b3;
+  color: var(--text-muted);
 }
 
 .progress {
   height: 5px;
-  border-radius: 7px;
+  border-radius: var(--radius);
   overflow: hidden;
-  background: #445257;
+  background: var(--surface-3);
   margin: 11px 0 9px;
 }
 
 .progress div {
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, #b08b5d, #e5c998);
+  background: var(--point);
 }
 
 .quota-foot {
-  color: #94a6a7;
+  color: var(--text-muted);
   font-size: 10px;
 }
 
@@ -215,9 +215,9 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #d9c4aa;
-  color: #4d3a2e;
-  font-family: Georgia, serif;
+  background: var(--point);
+  color: var(--text);
+  font-family: var(--font);
   font-size: 18px;
   font-weight: bold;
   flex-shrink: 0;
@@ -281,7 +281,7 @@
     width: var(--side-w);
     height: calc(100dvh - var(--topbar-h, 76px));
     z-index: 60;
-    border-right-color: #283941;
+    border-right-color: var(--line);
     transform: translateX(-102%);
     /* 닫힐 때: 끝까지 미끄러져 들어간 뒤에 감춘다 */
     transition:
@@ -299,7 +299,7 @@
   .sidebar:not(.is-collapsed) {
     transform: none;
     visibility: visible;
-    box-shadow: 0 0 40px rgba(10, 20, 24, 0.35);
+    box-shadow: none;
     transition:
       transform var(--side-dur) var(--side-ease),
       box-shadow var(--side-dur) var(--side-ease),
@@ -311,7 +311,7 @@
     position: fixed;
     inset: var(--topbar-h, 76px) 0 0 0;
     z-index: 55;
-    background: rgba(14, 24, 28, 0.42);
+    background: transparent;
     border: 0;
     padding: 0;
     opacity: 0;

@@ -1,41 +1,70 @@
-/* 디자인 토큰 — mockup/trpg_folio_mockup_v3.html 의 :root 를 이식 */
+/*
+ * 디자인 토큰 (2026-11-28 개편). 사용자 지정 색:
+ *   라이트 — 배경 #FAFAFA · 글자 #1A1A1A · 포인트 #0000FF · 안내 경고 #F6E199 · 중대 경고 #EE2323
+ *   다크   — 배경 #1A1A1A · 글자 #FAFAFA · 포인트 #3B82F6 · 안내 경고 #F6E199 · 중대 경고 #E34234
+ * 그 사이 회색(면 · 선 · 옅은 글자)은 배경과 글자 사이 단계로 만든다. 그림자 · 그라데이션 없음, 모서리 4px.
+ * 다크 값은 theme-dark.css 맨 위에서 같은 이름으로 바꾼다.
+ */
 :root {
-  --ink: #17242a;
-  --ink2: #2b3e43;
-  --paper: #f7f5f0;
-  --canvas: #eeece7;
-  --card: #fffefa;
-  --gold: #ae895b;
-  --gold2: #dcc8a7;
-  --line: #e6e3db;
-  --line-strong: #d8cfbe;
-  --slate: #7d8987;
-  --muted: #727c78;
-  --green: #427a67;
-  --rose: #ad665f;
-  --shadow: 0 9px 25px rgba(35, 36, 31, 0.045), 0 2px 5px rgba(35, 36, 31, 0.028);
-  --rad: 16px;
+  /* 새 이름 (의미) */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f0f0f0;
+  --surface-3: #e8e8e8;
+  --line-soft: #ececec;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-faint: #9a9a9a;
+  --point: #0000ff;
+  --point-ink: #ffffff;
+  --point-weak: #ebebff;
+  --point-line: #b8b8ff;
+  --warn: #f6e199;
+  --warn-ink: #1a1a1a;
+  --warn-weak: #fcf4d6;
+  --danger: #ee2323;
+  --danger-ink: #ffffff;
+  --danger-weak: #fde8e8;
+  --radius: 4px;
+
+  /* 예전 이름 → 새 값 (화면 코드가 쓰는 이름은 그대로 두고 값만 바꾼다) */
+  --ink: var(--text);
+  --ink2: #2e2e2e;
+  --paper: var(--bg);
+  --canvas: var(--surface-2);
+  --card: var(--surface);
+  --gold: var(--point);
+  --gold2: var(--point-line);
+  --line: #e2e2e2;
+  --line-strong: #d0d0d0;
+  --slate: var(--text-muted);
+  --muted: var(--text-muted);
+  --green: var(--point);
+  --rose: var(--danger);
+  --shadow: none;
+  --rad: var(--radius);
 
   --font: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
-  --font-serif: Georgia, 'Malgun Gothic', serif;
+  /* 세리프는 쓰지 않는다 (예전 이름만 남김) */
+  --font-serif: var(--font);
 
-  /* 사이드바 */
-  --side-bg: #142128;
-  --side-line: #29383e;
-  --side-text: #d7e0dd;
-  --side-item: #b3c0be;
-  --side-hover: #21353b;
-  --side-active: #2b4146;
-  --side-active-text: #fff2da;
-  --side-accent: #caa574;
-  --side-heading: #788f91;
-  --side-title: #f3eee4;
-  --side-card: #213039;
+  /* 사이드바 (배경보다 한 단계 짙은 무채색 면) */
+  --side-bg: var(--surface-2);
+  --side-line: var(--line);
+  --side-text: var(--text);
+  --side-item: var(--text-muted);
+  --side-hover: var(--surface-3);
+  --side-active: var(--surface);
+  --side-active-text: var(--point);
+  --side-accent: var(--point);
+  --side-heading: var(--text-faint);
+  --side-title: var(--text);
+  --side-card: var(--surface);
 
   /* 브랜드 / 타이포 */
-  --brand-gold: #c4a276;
-  --heading-ink: #223530;
-  --eyebrow: #9c7c53;
+  --brand-gold: var(--point);
+  --heading-ink: var(--text);
+  --eyebrow: var(--text-muted);
 
   /* 반응형 기준 (미디어쿼리는 리터럴 사용): ≤1050px 접힌 사이드바 / ≤750px 모바일 */
 }
