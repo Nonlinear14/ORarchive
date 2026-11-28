@@ -50,7 +50,7 @@ describe('롤꾸코드 편집', () => {
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(saved()).toBe(chapter.code.replace('?{챕터명|}', '깊은 밤'))
 
-    fireEvent.click(within(panel).getByRole('switch', { name: '/desc 서술로 보내기' }))
+    fireEvent.click(screen.getByRole('switch', { name: '/desc 서술로 보내기' }))
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(saved().startsWith('/desc ')).toBe(false)
 

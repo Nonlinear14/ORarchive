@@ -128,8 +128,8 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
 
       {children}
 
-      {/* PC: 왼쪽 = 미리보기 · 꾸미기 카드 · 복사 / 오른쪽 = 되돌리기 · 코드
-          휴대폰(1050px 이하): 미리보기 · 복사 → 되돌리기 · 코드 → 옵션 · 내용 · 질문 예시 · 색 (CSS order) */}
+      {/* PC: 왼쪽 = 미리보기 · 꾸미기 카드(내용 + 질문 예시 | 색) · 복사 / 오른쪽 = 되돌리기 · 옵션 · 코드
+          휴대폰(1050px 이하): 미리보기 · 복사 → 되돌리기 · 옵션 · 코드 → 내용 · 질문 예시 · 색 (CSS order) */}
       <div className="studio-shell r20-shell">
         <section className="preview-workspace r20-workspace" aria-label="미리보기">
           <div className="canvas-tools">
@@ -142,24 +142,6 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             <ChatPreview code={code} answers={answers} />
           </div>
           <section className="r20-edit" aria-label="꾸미기">
-            <div className="r20-col r20-options">
-              <span className="field-label">옵션</span>
-              <label className="mini-toggle">
-                <input type="checkbox" role="switch" className="opt-switch" checked={desc} onChange={(e) => apply(withCode(setDesc(code, e.target.checked)))} />
-                <span>/desc 서술로 보내기</span>
-              </label>
-              <label className="mini-toggle">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="opt-switch"
-                  checked={noItalic}
-                  disabled={slots.every((s) => s.style === undefined)}
-                  onChange={(e) => apply(withCode(setItalicRemoved(code, e.target.checked)))}
-                />
-                <span>기울임 없애기</span>
-              </label>
-            </div>
             <div className="r20-col r20-col-content">
               <span className="field-label">내용</span>
               {slots.length === 0 ? (
@@ -296,6 +278,24 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             </button>
           </div>
 
+          <div className="panel-section r20-options">
+            <span className="field-label">옵션</span>
+            <label className="mini-toggle">
+              <input type="checkbox" role="switch" className="opt-switch" checked={desc} onChange={(e) => apply(withCode(setDesc(code, e.target.checked)))} />
+              <span>/desc 서술로 보내기</span>
+            </label>
+            <label className="mini-toggle">
+              <input
+                type="checkbox"
+                role="switch"
+                className="opt-switch"
+                checked={noItalic}
+                disabled={slots.every((s) => s.style === undefined)}
+                onChange={(e) => apply(withCode(setItalicRemoved(code, e.target.checked)))}
+              />
+              <span>기울임 없애기</span>
+            </label>
+          </div>
           <details className="panel-section r20-raw" open={rawOpen} onToggle={(e) => setRawOpen(e.currentTarget.open)}>
             <summary className="field-label">코드 직접 고치기</summary>
             <label className="sr-only" htmlFor="r20-code">
