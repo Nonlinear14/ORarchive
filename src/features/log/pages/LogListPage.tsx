@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList } from '../../../components/DocumentList'
+import { ListFilter } from '../../../components/ListFilter'
 import { ListSearch } from '../../../components/ListSearch'
 import { matchesTitle } from '../../../lib/listSearch'
 import { Icon } from '../../../components/Icon'
@@ -14,6 +15,8 @@ import '../roll20/roll20Log.css'
 import { ImportLogDialog } from '../roll20/pages/ImportLogDialog'
 
 /** /logs — 로그 아카이브 › 로그 목록: 내 로그 목록 + 새 로그 불러오기 (코코포리아 로그도 생기면 여기에 함께) */
+type Platform = 'all' | 'Roll20' | '코코포리아'
+
 export default function LogListPage() {
   const repo = useRepository()
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
@@ -21,7 +24,9 @@ export default function LogListPage() {
   const [deleting, setDeleting] = useState<DocumentSummary | null>(null)
   const logs = docs.filter((doc) => doc.type === 'log')
   const [query, setQuery] = useState('')
-  const shown = logs.filter((doc) => matchesTitle(doc.title, query))
+  const [platform, setPlatform] = useState<Platform>('all')
+  const shown = logs.filter((doc) => (platform === 'all' || logPlatformChip(doc).label === platform) && matchesTitle(doc.title, query))
+  const filtering = query.trim() !== '' || platform !== 'all'
 
   return (
     <>
@@ -41,7 +46,7 @@ export default function LogListPage() {
             <h2 id="logs-mine">내 로그</h2>
             <p>
               {status === 'ready'
-                ? `로그 ${query.trim() ? `${logs.length}개 중 ${shown.length}개` : `${logs.length}개`} · 열면 로그 편집기에서 이어서 편집해요`
+                ? `로그 ${filtering ? `${logs.length}개 중 ${shown.length}개` : `${logs.length}개`} · 열면 로그 편집기에서 이어서 편집해요`
                 : ' '}
             </p>
           </div>
@@ -69,10 +74,22 @@ export default function LogListPage() {
             </div>
           ) : (
             <>
-              <ListSearch label="로그 목록 검색" value={query} onChange={setQuery} />
+              <div className="list-tools">
+                <ListSearch label="로그 목록 검색" value={query} onChange={setQuery} />
+                <ListFilter<Platform>
+                  label="플랫폼"
+                  value={platform}
+                  onChange={setPlatform}
+                  options={[
+                    ['all', '전체'],
+                    ['Roll20', 'Roll20'],
+                    ['코코포리아', '코코포리아'],
+                  ]}
+                />
+              </div>
               {shown.length === 0 ? (
                 <div className="list-search-empty" role="status">
-                  이름이 맞는 로그가 없어요. 다른 검색어로 찾아보세요.
+                  {query.trim() ? '이름이 맞는 로그가 없어요. 다른 검색어로 찾아보세요.' : '이 플랫폼의 로그가 아직 없어요.'}
                 </div>
               ) : (
                 <DocumentList docs={shown} onDelete={setDeleting} showVisibility={false} kindColumn={{ label: '플랫폼', chip: logPlatformChip }} />

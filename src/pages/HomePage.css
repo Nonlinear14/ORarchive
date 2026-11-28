@@ -167,3 +167,9 @@
     min-height: 140px;
   }
 }
+
+/* 롤꾸코드 미리보기도 핸드아웃 카드와 같은 높이 */
+.recent-card .r20-thumb {
+  height: 190px;
+  box-sizing: border-box;
+}

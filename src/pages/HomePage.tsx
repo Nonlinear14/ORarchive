@@ -13,6 +13,7 @@ import './HomePage.css'
 
 // 핸드아웃 캔버스·템플릿은 미리보기를 그릴 때만 불러온다 (첫 화면 번들을 가볍게)
 const HandoutThumbnail = lazy(() => import('../features/handout/HandoutThumbnail'))
+const Roll20CodePreview = lazy(() => import('../features/roll20code/Roll20CodePreview').then((m) => ({ default: m.Roll20CodePreview })))
 
 const RECENT_LIMIT = 4
 
@@ -22,10 +23,10 @@ const kindLabel: Record<RecentView['kind'], string> = {
   character: '캐릭터',
 }
 
-/** 기록된 종류와 실제 문서 종류가 맞는지 (롤꾸코드 문서 종류는 아직 없다) */
+/** 기록된 종류와 실제 문서 종류가 맞는지 */
 const kindDocType: Record<RecentView['kind'], DocumentSummary['type'] | null> = {
   handout: 'handout',
-  roll20code: null,
+  roll20code: 'roll20code',
   character: 'character',
 }
 
@@ -76,7 +77,15 @@ function RecentCard({ item }: { item: RecentItem }) {
   const title = doc.title.trim() || '제목 없음'
   return (
     <Link to={documentPath(doc.type, doc.id)} className="recent-card" aria-label={`${title} 열기`}>
-      {view.kind === 'handout' ? <HandoutPreview id={doc.id} /> : <PreviewFallback label={kindLabel[view.kind]} />}
+      {view.kind === 'handout' ? (
+        <HandoutPreview id={doc.id} />
+      ) : view.kind === 'roll20code' ? (
+        <Suspense fallback={<PreviewFallback label="불러오는 중…" />}>
+          <Roll20CodePreview id={doc.id} />
+        </Suspense>
+      ) : (
+        <PreviewFallback label={kindLabel[view.kind]} />
+      )}
       <div className="recent-info">
         <strong>{title}</strong>
         <small>

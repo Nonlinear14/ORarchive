@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList, KindChip } from '../../../components/DocumentList'
+import { ListFilter } from '../../../components/ListFilter'
 import { ListSearch } from '../../../components/ListSearch'
 import { matchesTitle } from '../../../lib/listSearch'
 import { Icon } from '../../../components/Icon'
@@ -28,6 +29,8 @@ function readView(): ArchiveView {
     return 'grid'
   }
 }
+
+type TemplateKind = 'all' | 'handout' | 'roll20code'
 
 /** 오른쪽 위 보기 방식 토글 (이 기기에 기억) */
 function ViewToggle({ view, onChange }: { view: ArchiveView; onChange(view: ArchiveView): void }) {
@@ -86,7 +89,9 @@ export default function HandoutArchivePage() {
   const templates = docs.filter((doc) => doc.type === 'handout' || doc.type === 'roll20code')
   const codeCount = templates.length - handouts.length
   const [query, setQuery] = useState('')
-  const shown = templates.filter((doc) => matchesTitle(doc.title, query))
+  const [kind, setKind] = useState<TemplateKind>('all')
+  const shown = templates.filter((doc) => (kind === 'all' || doc.type === kind) && matchesTitle(doc.title, query))
+  const filtering = query.trim() !== '' || kind !== 'all'
   useSeedSampleHandout(status === 'ready', handouts.length, reload)
   // 고르면 바로 그 템플릿(원본)의 편집기 (2026-11-28 — 미리보기 창 없음, 사본은 편집기의 "사본으로 저장")
   const open = (doc: DocumentSummary) => navigate(documentPath(doc.type, doc.id))
@@ -125,7 +130,7 @@ export default function HandoutArchivePage() {
             <h2 id="archive-mine">내 템플릿</h2>
             <p>
               {status === 'ready'
-                ? `${query.trim() ? `템플릿 ${templates.length}개 중 ${shown.length}개` : `핸드아웃 ${handouts.length}개 · 롤꾸코드 ${codeCount}개`} · 고르면 편집기가 열려요`
+                ? `${filtering ? `템플릿 ${templates.length}개 중 ${shown.length}개` : `핸드아웃 ${handouts.length}개 · 롤꾸코드 ${codeCount}개`} · 고르면 편집기가 열려요`
                 : ' '}
             </p>
           </div>
@@ -153,10 +158,22 @@ export default function HandoutArchivePage() {
             </div>
           ) : (
             <>
-              <ListSearch label="템플릿 목록 검색" value={query} onChange={setQuery} />
+              <div className="list-tools">
+                <ListSearch label="템플릿 목록 검색" value={query} onChange={setQuery} />
+                <ListFilter<TemplateKind>
+                  label="유형"
+                  value={kind}
+                  onChange={setKind}
+                  options={[
+                    ['all', '전체'],
+                    ['handout', '핸드아웃'],
+                    ['roll20code', '롤꾸코드'],
+                  ]}
+                />
+              </div>
               {shown.length === 0 ? (
                 <div className="list-search-empty" role="status">
-                  이름이 맞는 템플릿이 없어요. 다른 검색어로 찾아보세요.
+                  {query.trim() ? '이름이 맞는 템플릿이 없어요. 다른 검색어로 찾아보세요.' : '이 유형의 템플릿이 아직 없어요.'}
                 </div>
               ) : view === 'grid' ? (
                 <div className="handout-grid">

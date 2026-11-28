@@ -29,6 +29,18 @@ describe('홈', () => {
     expect(within(section).queryByText('지운 핸드아웃')).not.toBeInTheDocument()
   })
 
+  it('최근에 연 롤꾸코드도 템플릿 아카이브에 보인다 (채팅 모양 미리보기)', async () => {
+    const fake = createFakeSupabase()
+    const code = fake.control.insertDocument({ type: 'roll20code', title: '판정 버튼', content: { format: 'roll20-code', v: 1, code: '/desc [판정](#" style="color:red")' } })
+    recordRecentView('user-1', code.id, 'roll20code', 1000)
+    renderApp('/', { client: fake.client })
+    const section = await screen.findByRole('region', { name: '템플릿 아카이브' })
+    const link = await within(section).findByRole('link', { name: '판정 버튼 열기' })
+    expect(link).toHaveAttribute('href', `/studio/roll20code/${code.id}`)
+    expect(within(link).getByText(/롤꾸코드 ·/)).toBeInTheDocument()
+    await waitFor(() => expect(link.querySelector('[data-testid="roll20-chat"]')).not.toBeNull())
+  })
+
   it('바로가기 2분할(템플릿 목록 · 로그 목록)과 빈 상태를 보여준다', async () => {
     renderApp('/', { client: createFakeSupabase().client })
 

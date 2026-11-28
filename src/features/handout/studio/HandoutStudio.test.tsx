@@ -1020,7 +1020,7 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
     await waitFor(() => expect(within(mine).getByText(/핸드아웃 1개/)).toBeInTheDocument())
     // 기본은 미리보기 카드
     expect(within(mine).getByRole('button', { name: '봉인된 편지 열기' })).toBeInTheDocument()
-    expect(within(mine).getByText('핸드아웃')).toHaveClass('kind-chip')
+    expect(within(mine).getByText('핸드아웃', { selector: '.kind-chip' })).toHaveClass('kind-chip')
     expect(within(mine).queryByRole('table')).not.toBeInTheDocument()
     expect(within(mine).queryByText('세션 1')).not.toBeInTheDocument()
 

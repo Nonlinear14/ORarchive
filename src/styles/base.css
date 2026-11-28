@@ -392,3 +392,27 @@ a:focus-visible {
   max-width: 340px;
   margin: 0 0 14px;
 }
+
+/* 목록 위: 이름 검색 + 종류 선택 (템플릿 목록 · 로그 목록) */
+.list-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.list-tools .list-search {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.list-filter {
+  flex: none;
+}
+
+.list-filter button {
+  padding: 7px 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
