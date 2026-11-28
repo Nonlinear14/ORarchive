@@ -68,7 +68,7 @@ function HandoutCard({ doc, onOpen, onDelete }: { doc: DocumentSummary; onOpen(d
             <time dateTime={doc.updated_at}>{formatRelativeTime(doc.updated_at)}</time> 수정
           </small>
         </div>
-        <button type="button" className="row-icon" aria-label={`${title} 삭제`} title="삭제" onClick={() => onDelete(doc)}>
+        <button type="button" className="row-icon is-delete" aria-label={`${title} 삭제`} title="삭제" onClick={() => onDelete(doc)}>
           <Icon name="trash" />
         </button>
       </div>

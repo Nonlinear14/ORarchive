@@ -80,7 +80,7 @@ export function DocumentList({ docs, onDelete, onOpen, kindColumn, showVisibilit
             {onDelete && (
               <button
                 type="button"
-                className="row-icon"
+                className="row-icon is-delete"
                 aria-label={`${doc.title || '제목 없음'} 삭제`}
                 title="삭제"
                 onClick={() => onDelete(doc)}

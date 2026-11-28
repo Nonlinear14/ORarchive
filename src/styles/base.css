@@ -138,16 +138,27 @@ a:focus-visible {
   border-color: var(--danger-weak);
 }
 
-.btn.danger {
-  background: var(--danger-weak);
-  color: var(--text-muted);
-  border-color: var(--danger-weak);
+/* 삭제 · 덮어쓰기처럼 되돌리기 어려운 버튼 (2026-11-28): 중대 경고색 테두리 */
+.btn.danger,
+.btn.primary.danger,
+.btn.danger.solid {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
-.btn.danger.solid {
-  background: var(--surface-3);
-  color: var(--point-ink);
-  border-color: var(--line-strong);
+.btn.danger:not(:disabled):hover {
+  background: var(--danger-weak);
+}
+
+/* 목록의 삭제 아이콘 버튼 */
+.row-icon.is-delete {
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.row-icon.is-delete:hover {
+  background: var(--danger-weak);
 }
 
 .btn:disabled,

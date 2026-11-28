@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SaveActions } from '../components/document/ManualSave'
+import { usePressAccent } from './usePressAccent'
 
 function mockHover(none: boolean) {
   vi.stubGlobal(
@@ -9,35 +9,35 @@ function mockHover(none: boolean) {
   )
 }
 
-describe('눌렀을 때만 강조하는 저장 버튼', () => {
+/** 홈 편집 바로가기처럼 누르면 잠깐 강조한 뒤 이동하는 버튼 */
+function Tile({ onGo }: { onGo(): void }) {
+  const { pressed, press } = usePressAccent()
+  return (
+    <button type="button" className={`press-accent${pressed === 't' ? ' is-pressed' : ''}`} onClick={() => press('t', onGo)}>
+      바로가기
+    </button>
+  )
+}
+
+describe('눌렀을 때만 강조하는 버튼', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.useRealTimers()
   })
 
-  it('휴대폰에서는 누른 순간 잠깐 강조하고, 저장은 곧바로 한다', async () => {
+  it('누르면 잠깐 강조한 뒤에 이동한다', async () => {
     mockHover(true)
     vi.useFakeTimers()
-    const onSave = vi.fn()
-    render(<SaveActions isNew={false} dirty saving={false} onSave={onSave} onSaveCopy={() => {}} />)
-    const button = screen.getByRole('button', { name: /^저장/ })
-    expect(button).not.toHaveClass('primary')
+    const onGo = vi.fn()
+    render(<Tile onGo={onGo} />)
+    const button = screen.getByRole('button', { name: '바로가기' })
     fireEvent.click(button)
-    expect(onSave).toHaveBeenCalledTimes(1)
     expect(button).toHaveClass('is-pressed')
+    expect(onGo).not.toHaveBeenCalled()
     await act(async () => {
       vi.advanceTimersByTime(400)
     })
-    expect(button).not.toHaveClass('is-pressed')
-  })
-
-  it('마우스가 있는 기기에서는 따로 강조 상태를 남기지 않는다', () => {
-    mockHover(false)
-    const onSave = vi.fn()
-    render(<SaveActions isNew={false} dirty saving={false} onSave={onSave} onSaveCopy={() => {}} />)
-    const button = screen.getByRole('button', { name: /^저장/ })
-    fireEvent.click(button)
-    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onGo).toHaveBeenCalledTimes(1)
     expect(button).not.toHaveClass('is-pressed')
   })
 })

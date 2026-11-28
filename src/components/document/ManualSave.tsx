@@ -1,5 +1,4 @@
-import { Icon } from '../Icon'
-import { usePressAccent } from '../../lib/usePressAccent'
+import { Icon } from "../Icon";
 
 /**
  * 수동 저장 편집기(핸드아웃 · 롤꾸코드, 2026-11-28)의 공통 부품.
@@ -11,56 +10,71 @@ import { usePressAccent } from '../../lib/usePressAccent'
 
 /** 저장 · 사본으로 저장 (수동 저장). save 는 성공하면 true, saveCopy 는 사본을 만들었으면 true */
 export interface SavingProps {
-  isNew: boolean
-  dirty: boolean
-  save(): Promise<boolean>
-  saveCopy(): Promise<boolean>
+  isNew: boolean;
+  dirty: boolean;
+  save(): Promise<boolean>;
+  saveCopy(): Promise<boolean>;
 }
 
 export interface SaveActionsProps {
   /** 아직 서버에 없는 새 문서 (사본으로 저장은 꺼 둔다) */
-  isNew: boolean
-  dirty: boolean
-  saving: boolean
-  onSave(): void
-  onSaveCopy(): void
+  isNew: boolean;
+  dirty: boolean;
+  saving: boolean;
+  onSave(): void;
+  onSaveCopy(): void;
 }
 
-export function SaveActions({ isNew, dirty, saving, onSave, onSaveCopy }: SaveActionsProps) {
-  const { pressed, flash } = usePressAccent()
+export function SaveActions({
+  isNew,
+  dirty,
+  saving,
+  onSave,
+  onSaveCopy,
+}: SaveActionsProps) {
   return (
     <div className="panel-section save-actions" role="group" aria-label="저장">
       <button
         type="button"
-        className={`btn small press-accent${pressed === 'save' ? ' is-pressed' : ''}`}
+        className="btn primary small"
         disabled={saving || (!dirty && !isNew)}
-        onClick={() => {
-          flash('save')
-          onSave()
-        }}
+        onClick={onSave}
         title="저장 (Ctrl+S)"
       >
-        <Icon name="cloud" /> {saving ? '저장 중…' : '저장'}
+        <Icon name="cloud" /> {saving ? "저장 중…" : "저장"}
       </button>
       <button
         type="button"
         className="btn small"
         disabled={saving || isNew}
         onClick={onSaveCopy}
-        title={isNew ? '먼저 저장한 뒤에 사본을 만들 수 있어요' : '지금 고친 내용으로 사본을 만들어요 (원본은 마지막으로 저장한 그대로)'}
+        title={
+          isNew
+            ? "먼저 저장한 뒤에 사본을 만들 수 있어요"
+            : "지금 고친 내용으로 사본을 만들어요 (원본은 마지막으로 저장한 그대로)"
+        }
       >
         <Icon name="copy" /> 사본으로 저장
       </button>
     </div>
-  )
+  );
 }
 
 /** 지난번에 저장하지 않은 변경이 이 기기에 남아 있어 이어서 보여 주는 중 */
-export function RestoredNotice({ onSave, onDiscard }: { onSave(): void; onDiscard(): void }) {
+export function RestoredNotice({
+  onSave,
+  onDiscard,
+}: {
+  onSave(): void;
+  onDiscard(): void;
+}) {
   return (
     <div className="callout restored-notice" role="status">
       <Icon name="alert" />
-      <span>저장하지 않은 변경이 남아 있어요. 마지막으로 편집하던 내용을 이어서 보여 주고 있어요.</span>
+      <span>
+        저장하지 않은 변경이 남아 있어요. 마지막으로 편집하던 내용을 이어서 보여
+        주고 있어요.
+      </span>
       <span className="restored-actions">
         <button type="button" className="btn small primary" onClick={onSave}>
           저장
@@ -70,6 +84,5 @@ export function RestoredNotice({ onSave, onDiscard }: { onSave(): void; onDiscar
         </button>
       </span>
     </div>
-  )
+  );
 }
-
