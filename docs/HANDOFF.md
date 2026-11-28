@@ -147,7 +147,8 @@
 ## 5-1. 롤꾸코드 편집 (2026-11-28 배포)
 - 새 문서 종류 `roll20code` (content: `{format:'roll20-code', v:1, code}`), 마이그레이션 `0002_roll20code.sql` 적용 완료(실제 저장·삭제로 확인).
 - 코드: `src/features/roll20code/` — `parse.ts`(링크 `[글자](#" style="…")` 읽기 · 괄호 짝 맞추기 · 같은 색 묶기 · 그 자리만 고치기 · 채팅 모양 그리기), `model.ts`(문서 형식 · 새 롤꾸코드 경로), `testSamples.ts`(테스트용 샘플 3종 — 앱에는 기본 제공 롤꾸 없음), `editor/`(미리보기 + 꾸미기 카드 + 편집 패널), `pages/Roll20CodeStartPage.tsx`(선택 창: 내 롤꾸코드만 + 새 롤꾸코드). 새 롤꾸코드는 `/studio/roll20code/new` 빈 편집기에서 처음 입력할 때 문서를 만들고, 만드는 동안 입력한 내용은 `location.state.r20Pending`으로 넘겨 한 번 반영한다.
-- 다음: 여러 메시지(여러 줄) 샘플을 받으면 한 문서로 저장 · 편집하게 고친다(모델은 이미 줄바꿈 허용). 스타일 프리셋은 나중에.
+- 여러 메시지(2026-11-28): `parse.ts`의 `messageSpans`(질문 안 줄바꿈은 이어 붙임) · `messageSlots` · `imageMessages` · `fontProps`/`setFontValue` · `colorGroups(code, message)`. 미리보기(`ChatPreview`)는 메시지마다 `data-msg`를 달고 누르면 고른다. 테스트용 여러 줄 샘플 3종도 `testSamples.ts`.
+- 다음: 스타일 프리셋은 나중에.
 
 ## 6. 참고 자료
 - 데이터베이스 설정 절차: `supabase/README.md`
