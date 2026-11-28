@@ -19,9 +19,12 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-/** 정사각형 칸에 긴 쪽을 맞춘 그림 자리 (잘리지 않게, 가운데) */
-export function containRect(width: number, height: number, size = SIZE) {
-  const scale = size / Math.max(width, height, 1)
+/**
+ * 정사각형 칸 안의 그림 자리: 비율과 상관없이 높이를 칸에 맞추고 가운데 (2026-11-29).
+ * 세로로 긴 그림은 양옆이 비고(투명), 가로로 긴 그림은 양옆이 잘린다 (x 가 음수)
+ */
+export function avatarRect(width: number, height: number, size = SIZE) {
+  const scale = size / Math.max(height, 1)
   const w = Math.max(1, Math.round(width * scale))
   const h = Math.max(1, Math.round(height * scale))
   return { x: Math.round((size - w) / 2), y: Math.round((size - h) / 2), w, h }
@@ -29,7 +32,7 @@ export function containRect(width: number, height: number, size = SIZE) {
 
 /**
  * 이미지 파일 → 96×96 저널 data URL.
- * 정사각형이 아니면 긴 쪽을 96px 에 맞추고 가운데에 놓는다 (2026-11-29: 자르지 않음). 남는 칸은 투명,
+ * 높이를 96px 에 맞추고 가운데에 놓는다 (2026-11-29, `avatarRect`). 남는 칸은 투명,
  * PNG 가 너무 커서 JPG 로 저장할 때만 흰색으로 채운다.
  */
 export async function imageFileToAvatar(file: File): Promise<string> {
@@ -40,7 +43,7 @@ export async function imageFileToAvatar(file: File): Promise<string> {
   canvas.height = SIZE
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('이 브라우저에서는 이미지를 줄일 수 없어요. 링크 주소를 써 주세요.')
-  const { x, y, w, h } = containRect(img.naturalWidth, img.naturalHeight)
+  const { x, y, w, h } = avatarRect(img.naturalWidth, img.naturalHeight)
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(img, x, y, w, h)
   // 투명 배경을 살리려고 PNG 를 먼저 쓰고, 너무 크면 JPG 로 (JPG 는 투명이 없어 흰 바탕 위에 다시 그린다)

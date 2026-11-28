@@ -58,7 +58,13 @@ function CcfSpeakerMenu({
       <div className="speaker-title">이 메시지의 캐릭터</div>
       {options.map((o) => (
         <button key={o.speaker} type="button" role="menuitem" aria-current={current === o.speaker} onClick={() => onPick(o.speaker)}>
-          {o.avatar ? <img src={o.avatar} alt="" /> : <span className="sp-av">{o.speaker.slice(0, 1)}</span>}
+          {o.avatar ? (
+            <span className="sp-av sp-fit">
+              <img src={o.avatar} alt="" />
+            </span>
+          ) : (
+            <span className="sp-av">{o.speaker.slice(0, 1)}</span>
+          )}
           {o.speaker}
         </button>
       ))}

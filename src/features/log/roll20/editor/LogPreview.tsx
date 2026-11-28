@@ -60,6 +60,8 @@ export const OVERLAY_CSS = `
 .speaker-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:7px 8px;border-radius:var(--radius);color:var(--text);font:inherit;cursor:pointer;text-align:left}
 .speaker-menu button:hover,.speaker-menu button:focus-visible{background:var(--surface-3);outline:none}
 .speaker-menu button[aria-current="true"]{color:var(--point)}
+.speaker-menu .sp-fit{overflow:hidden;display:flex;justify-content:center}
+.speaker-menu .sp-fit img{height:100%;width:auto;max-width:none;flex:none;display:block}
 .speaker-menu img,.speaker-menu .sp-av{width:20px;height:20px;border-radius:4px;object-fit:contain;flex:none;background:var(--surface-3);display:grid;place-items:center;font-size:9px;color:var(--text-muted)}
 .msg-flag{position:absolute;right:10px;top:9px;font:600 10px var(--font, sans-serif);color:var(--danger);background:var(--danger-weak);border:1px solid var(--danger-weak);border-radius:var(--radius);padding:3px 7px;font-style:normal}
 .log-msg.is-hidden-kind>.message{opacity:.6}
@@ -109,7 +111,13 @@ function SpeakerMenu({
         const avatar = content.characters[o.speaker]?.avatar || o.avatar
         return (
           <button key={o.speaker} type="button" role="menuitem" aria-current={current === o.speaker} onClick={() => onPick(o.speaker)}>
-            {avatar ? <img src={avatar} alt="" /> : <span className="sp-av">{o.speaker.slice(0, 1)}</span>}
+            {avatar ? (
+              <span className="sp-av sp-fit">
+                <img src={avatar} alt="" />
+              </span>
+            ) : (
+              <span className="sp-av">{o.speaker.slice(0, 1)}</span>
+            )}
             {displayName(content, o.speaker)}
           </button>
         )

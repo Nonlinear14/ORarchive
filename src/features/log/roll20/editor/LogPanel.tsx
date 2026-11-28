@@ -142,7 +142,13 @@ export function AvatarDialog({
   return (
     <Modal title={`${name} 저널`} eyebrow="LOG EDITOR / CHARACTER" onClose={onClose}>
       <div className="avatar-current">
-        {current && isUsableAvatar(current) ? <img src={current} alt="" /> : <span className="char-av broken">?</span>}
+        {current && isUsableAvatar(current) ? (
+          <span className="char-av av-fit">
+            <img src={current} alt="" />
+          </span>
+        ) : (
+          <span className="char-av broken">?</span>
+        )}
         <span>{current && !isUsableAvatar(current) ? '지금 저널은 PC 폴더 경로라 다른 사람에게 보이지 않아요.' : '지금 저널'}</span>
       </div>
       <span className="field-label">이미지 파일 불러오기</span>
@@ -228,7 +234,9 @@ function CharacterRow({
       <div className="char-main">
         <button type="button" className="char-av-btn" aria-label={`${name} 저널 바꾸기`} title="저널 바꾸기" onClick={() => setAvatarOpen(true)}>
           {shown && !broken ? (
-            <img className="char-av" src={shown} alt="" />
+            <span className="char-av av-fit">
+              <img src={shown} alt="" />
+            </span>
           ) : (
             <span className={broken ? 'char-av broken' : 'char-av'} aria-hidden="true">
               {broken ? '?' : name.slice(0, 1)}

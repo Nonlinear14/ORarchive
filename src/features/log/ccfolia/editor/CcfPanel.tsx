@@ -43,7 +43,9 @@ function CharacterRow({
       <div className="char-main">
         <button type="button" className="char-av-btn" aria-label={`${speaker} 저널 바꾸기`} title="저널 바꾸기" onClick={() => setAvatarOpen(true)}>
           {shown ? (
-            <img className="char-av" src={shown} alt="" />
+            <span className="char-av av-fit">
+              <img src={shown} alt="" />
+            </span>
           ) : (
             <span className="char-av" aria-hidden="true">
               {speaker.slice(0, 1)}
