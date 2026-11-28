@@ -23,7 +23,7 @@ function sample(patch: Partial<CcfoliaLogContent> = {}): CcfoliaLogContent {
       characters: {},
       tabs: {},
       narrators: [],
-      options: { hideEmpty: true, hideRolls: false, collapseNames: true, divider: true, avatarShape: 'square' },
+      options: { hideEmpty: true, hideRolls: false, collapseNames: true, divider: true, showTabs: false, avatarShape: 'square' },
       ...patch,
     }),
   )
@@ -78,6 +78,16 @@ describe('코코포리아 로그 그리기', () => {
     expect(haneul.style.background).toBe('rgb(16, 16, 16)')
     expect(haneul.style.color).toBe('rgb(250, 250, 250)')
     expect(html).not.toContain('main')
+  })
+
+  it('탭 이름 표시: 켜면 이름 앞에 (이름 없는 줄은 탭 이름만 한 줄), 이어진 메시지에는 없다', () => {
+    const root = doc(renderCcfMessagesHtml(sample({ narrators: ['GM'], options: { ...sample().options, showTabs: true } })))
+    const msgs = [...root.querySelectorAll('.ccf-msg')]
+    expect(msgs[0].querySelector('.ccf-tab-line')?.textContent).toBe('main') // 서술
+    expect(msgs[1].querySelector('.ccf-tab + .ccf-name')).toBeTruthy()
+    expect(msgs[2].querySelector('.ccf-tab')).toBeNull() // 연속 이름 정리
+    expect(msgs[4].querySelector('.ccf-tab-line')?.textContent).toBe('main') // system
+    expect(msgs[5].querySelector('.ccf-name-line .ccf-tab')?.textContent).toBe('other') // 표 카드 이름 줄
   })
 
   it('캐릭터 설정 · 원래 색 · 숨기기 · 주사위 결과 숨기기', () => {

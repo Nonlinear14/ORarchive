@@ -8,6 +8,7 @@ import { SYSTEM_SPEAKER, type CcfMessage, type CcfoliaLogContent } from './model
  * 글은 모두 이스케이프하고 줄바꿈만 <br> 로 바꾼다 (코코포리아 글에는 꾸밈이 없다 — * 같은 글자도 그대로 보인다).
  *
  * 색 우선순위: 탭 설정 > 캐릭터 설정 > 코코포리아 원래 색
+ * 탭 이름은 '탭 이름 표시'를 켰을 때만 (이름이 보이는 줄의 이름 앞)
  * 디자인(2026-11-28 결정): system = 수치 카드(S-3), 주사위 = 판정 카드(D-3), 표 = 표 카드(T-2)
  */
 
@@ -28,6 +29,9 @@ export const CCF_LOG_CSS = `
 .ccf-name{font-weight:700;margin-right:6px}
 .ccf-name-line{font-weight:700;display:block}
 .ccf-narr .ccf-body{text-align:center;font-weight:700}
+.ccf-tab{display:inline-block;margin-right:6px;padding:0 5px;border:1px solid rgba(0,0,0,.18);border-radius:3px;font-size:10.5px;font-weight:600;line-height:1.5;color:#8a8a8a;vertical-align:1px}
+.ccf-tab-line{display:block;margin-bottom:2px}
+.ccf-tab-line .ccf-tab{margin-right:0}
 .ccf-sys{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid rgba(0,0,0,.14);border-left:3px solid #9a9a9a;border-radius:4px;padding:4px 10px;font-size:12.5px;margin:2px 0}
 .ccf-sys-who{color:#6b6b6b}
 .ccf-sys-who b{color:#1a1a1a}
@@ -104,12 +108,16 @@ export function ccfBodyHtml(content: CcfoliaLogContent, row: CcfRow): string {
   const { message: m, kind } = row
   const colors = ccfColors(content, m)
   const name = escapeHtml(m.speaker)
-  const nameSpan = row.showHeader && m.speaker && !row.narrator ? `<span class="ccf-name" style="${hexStyle('color', colors.name)}">${name}</span>` : ''
-  const nameLine = row.showHeader && m.speaker && !row.narrator ? `<span class="ccf-name-line" style="${hexStyle('color', colors.name)}">${name}</span>` : ''
+  const hasName = row.showHeader && !!m.speaker && !row.narrator && kind.kind !== 'system'
+  const tag = content.options.showTabs && row.showHeader && m.tab ? `<span class="ccf-tab">${escapeHtml(m.tab)}</span>` : ''
+  // 이름이 없는 줄(서술 · system · 이름 없음)은 탭 이름만 한 줄로
+  const tagLine = tag && !hasName ? `<span class="ccf-tab-line">${tag}</span>` : ''
+  const nameSpan = hasName ? `${tag}<span class="ccf-name" style="${hexStyle('color', colors.name)}">${name}</span>` : tagLine
+  const nameLine = hasName ? `<span class="ccf-name-line">${tag}<span style="${hexStyle('color', colors.name)}">${name}</span></span>` : tagLine
   if (kind.kind === 'system') {
     if (kind.who !== undefined)
-      return `<div class="ccf-sys"><span class="ccf-sys-who"><b>${escapeHtml(kind.who)}</b> · ${escapeHtml(kind.label ?? '')}</span><span class="ccf-sys-val">${escapeHtml(kind.from ?? '')} → ${escapeHtml(kind.to ?? '')}${deltaBadge(kind.from, kind.to)}</span></div>`
-    return `<div class="ccf-sys-plain">${plainHtml(m.text)}</div>`
+      return `${tagLine}<div class="ccf-sys"><span class="ccf-sys-who"><b>${escapeHtml(kind.who)}</b> · ${escapeHtml(kind.label ?? '')}</span><span class="ccf-sys-val">${escapeHtml(kind.from ?? '')} → ${escapeHtml(kind.to ?? '')}${deltaBadge(kind.from, kind.to)}</span></div>`
+    return `${tagLine}<div class="ccf-sys-plain">${plainHtml(m.text)}</div>`
   }
   if (kind.kind === 'dice') {
     const tierColor = kind.tier ? `color:${TIER_COLOR[kind.tier]};` : ''

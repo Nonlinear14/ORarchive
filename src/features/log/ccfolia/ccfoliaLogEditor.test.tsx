@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFakeSupabase } from '../../../test/fakeSupabase'
 import { renderApp } from '../../../test/renderApp'
 import { resolveCcfLog, serializeCcfLog } from './model'
@@ -16,6 +16,22 @@ ${p('#FFA500', 'main', '하늘', 'CC&lt;=60  [ 관찰력 ] (1D100&lt;=60) 보너
 ${p('#888888', 'main', 'system', '[ 하늘 ] 이성 : 60 → 57')}
 ${p('#d3004d', 'other', '유진', '잡담입니다.')}
 </body></html>`
+
+// 이미지 줄이기는 브라우저 canvas 가 필요하다 — 테스트에서는 그대로 돌려준다
+vi.mock('./avatars', () => ({
+  avatarsFromJson: async (avatars: Record<string, string>) => ({ avatars: Object.fromEntries(Object.keys(avatars).map((k) => [k, 'data:image/png;base64,c21hbGw='])), failed: 0 }),
+}))
+
+const JSON_SAMPLE = JSON.stringify({
+  messages: [
+    { name: 'GM', color: '#607d8b', text: '안개가 짙은 밤입니다.', type: 'text', extend: {}, channel: 'main', channelName: 'main', iconImage: '' },
+    { name: '하늘', color: '#FFA500', text: '누구 있어요?', type: 'text', extend: {}, channel: 'main', channelName: 'main', iconImage: 'h1' },
+    { name: '하늘', color: '#FFA500', text: 'CC<=60  [ 관찰력 ]', type: 'text', extend: { roll: { result: '(1D100<=60) 보너스, 페널티 주사위[0] ＞ 28 ＞ 28 ＞ 어려운 성공', success: true } }, channel: 'main', channelName: 'main', iconImage: 'h1' },
+    { name: 'system', color: '#888888', text: '[ 하늘 ] 이성 : 60 → 57', type: 'system', extend: {}, channel: 'main', channelName: 'main', iconImage: '' },
+    { name: '유진', color: '#d3004d', text: '잡담입니다.', type: 'text', extend: {}, channel: 'x1', channelName: '잡담', iconImage: 'y1' },
+  ],
+  images: { h1: 'data:image/png;base64,aGFuZXVs', y1: 'data:image/png;base64,eXVqaW4=' },
+})
 
 const originalMatchMedia = window.matchMedia
 afterEach(() => {
@@ -45,16 +61,32 @@ describe('코코포리아 로그 편집', () => {
     const dialog = await screen.findByRole('dialog', { name: '코코포리아 로그 불러오기' })
     expect(within(dialog).queryByRole('tab', { name: /붙여넣기/ })).not.toBeInTheDocument()
 
-    fireEvent.change(within(dialog).getByLabelText('코코포리아 로그 HTML 파일'), { target: { files: [new File(['<p>아님</p>'], 'x.html', { type: 'text/html' })] } })
+    fireEvent.change(within(dialog).getByLabelText('코코포리아 로그 파일'), { target: { files: [new File(['<p>아님</p>'], 'x.html', { type: 'text/html' })] } })
     expect(await within(dialog).findByText(/코코포리아 로그 형식이 아니에요/)).toBeInTheDocument()
 
-    fireEvent.change(within(dialog).getByLabelText('코코포리아 로그 HTML 파일'), { target: { files: [new File([SAMPLE], '안개 낀 밤.html', { type: 'text/html' })] } })
+    fireEvent.change(within(dialog).getByLabelText('코코포리아 로그 파일'), { target: { files: [new File([SAMPLE], '안개 낀 밤.html', { type: 'text/html' })] } })
     expect(await within(dialog).findByText(/메시지 5개 · 캐릭터 3명 · 탭 2개 · 주사위 1개 · system 1개/)).toBeInTheDocument()
     expect(within(dialog).getByLabelText('로그 이름')).toHaveValue('안개 낀 밤')
     fireEvent.click(within(dialog).getByRole('button', { name: '불러오기' }))
     await stage()
     expect(screen.getByTestId('location').textContent).toMatch(/^\/studio\/log\/ccfolia\//)
     expect(fake.control.tables.documents[0]).toMatchObject({ type: 'log', title: '안개 낀 밤' })
+  })
+
+  it('JSON 파일도 불러온다: 주사위 결과를 이어 붙이고, 프로필 이미지를 저널로 넣는다', async () => {
+    const fake = createFakeSupabase()
+    renderApp('/studio/log/ccfolia', { client: fake.client })
+    const dialog = await screen.findByRole('dialog', { name: '코코포리아 로그 불러오기' })
+    fireEvent.change(within(dialog).getByLabelText('코코포리아 로그 파일'), { target: { files: [new File([JSON_SAMPLE], '안개 낀 밤.json', { type: 'application/json' })] } })
+    expect(await within(dialog).findByText(/메시지 5개 · 캐릭터 3명 · 탭 2개 · 주사위 1개 · system 1개/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/프로필 이미지 2명/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: '불러오기' }))
+    const root = await stage()
+    expect(root.querySelector('.ccf-dice-v')?.textContent).toBe('28')
+    const content = resolveCcfLog(fake.control.tables.documents[0].content as never)
+    expect(content.messages[4].tab).toBe('잡담')
+    expect(content.characters['하늘'].avatar).toBe('data:image/png;base64,c21hbGw=')
+    expect(content.characters['GM']).toBeUndefined()
   })
 
   it('대사를 클릭해 고치고 되돌린다 · 판정 · system 은 고칠 수 없고 옮길 수 있다', async () => {
@@ -91,6 +123,12 @@ describe('코코포리아 로그 편집', () => {
     fireEvent.click(within(panel).getByRole('switch', { name: 'other 탭 보이기' }))
     await waitFor(() => expect(saved().tabs.other).toEqual({ hidden: true }), { timeout: 3000 })
     expect(row(root, ids[4])).toBeNull()
+
+    // 탭 이름은 기본으로 숨기고, 켜면 이름 앞에 보인다
+    expect(row(root, ids[1]).querySelector('.ccf-tab')).toBeNull()
+    fireEvent.click(within(panel).getByRole('switch', { name: /탭 이름 표시/ }))
+    await waitFor(() => expect(row(root, ids[1]).querySelector('.ccf-tab')?.textContent).toBe('main'))
+    await waitFor(() => expect(saved().options.showTabs).toBe(true), { timeout: 3000 })
 
     fireEvent.click(within(panel).getByRole('switch', { name: /주사위 결과 숨기기/ }))
     await waitFor(() => expect(row(root, ids[2])).toBeNull())

@@ -40,6 +40,8 @@ export interface CcfOptions {
   collapseNames: boolean
   /** 메시지 사이 가는 선 */
   divider: boolean
+  /** 이름 앞에 탭 이름을 보인다 (2026-11-28, 기본 꺼짐) */
+  showTabs: boolean
   avatarShape: AvatarShape
 }
 
@@ -62,6 +64,7 @@ export const defaultCcfOptions: CcfOptions = {
   hideRolls: false,
   collapseNames: true,
   divider: true,
+  showTabs: false,
   avatarShape: 'square',
 }
 
@@ -119,6 +122,7 @@ function readOptions(raw: unknown): CcfOptions {
     hideRolls: bool('hideRolls'),
     collapseNames: bool('collapseNames'),
     divider: bool('divider'),
+    showTabs: bool('showTabs'),
     avatarShape: o.avatarShape === 'circle' || o.avatarShape === 'none' ? o.avatarShape : 'square',
   }
 }

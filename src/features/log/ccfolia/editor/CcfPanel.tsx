@@ -181,6 +181,7 @@ export function CcfPanel({ content, apply, notify }: PanelProps) {
         <Toggle label="주사위 결과 숨기기" sub="판정 · 표 결과" count={rollCount} checked={options.hideRolls} onChange={set('hideRolls')} />
         <Toggle label="연속 이름 정리" sub="같은 사람이 이어 말하면 이름을 한 번만" checked={options.collapseNames} onChange={set('collapseNames')} />
         <Toggle label="구분선 표시" sub="메시지 사이의 가는 선" checked={options.divider} onChange={set('divider')} />
+        <Toggle label="탭 이름 표시" sub="이름 앞에 main · other 같은 탭 이름" checked={options.showTabs} onChange={set('showTabs')} />
         <div className="seg-label">저널 모양</div>
         <div className="segmented" role="radiogroup" aria-label="저널 모양">
           {shapes.map(([v, text]) => (
@@ -218,7 +219,7 @@ export function CcfPanel({ content, apply, notify }: PanelProps) {
             <TabRow key={t.tab} {...t} content={content} apply={apply} />
           ))}
         </div>
-        <p className="field-help">켠 탭의 메시지만 보여요. 탭 색은 캐릭터 색보다 우선해요. 탭 이름은 내보낸 로그에 나오지 않아요.</p>
+        <p className="field-help">켠 탭의 메시지만 보여요. 탭 색은 캐릭터 색보다 우선해요. 탭 이름은 전체 다듬기의 '탭 이름 표시'를 켰을 때만 보여요.</p>
       </Section>
 
       <Section label="캐릭터" extra={<em className="opt-count">{speakers.length}명</em>}>

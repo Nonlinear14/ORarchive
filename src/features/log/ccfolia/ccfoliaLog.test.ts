@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { classifyMessage, tierOf } from './classify'
 import { resolveCcfLog, serializeCcfLog, tabsOf, ccfSpeakersOf } from './model'
-import { CcfoliaParseError, parseCcfoliaLog } from './parse'
+import { CcfoliaParseError, parseCcfoliaFile, parseCcfoliaJson, parseCcfoliaLog } from './parse'
 
 /** 코코포리아 "로그 출력" HTML 과 같은 구조 (대사는 지어낸 내용) */
 const p = (color: string, tab: string, name: string, body: string) => `
@@ -114,5 +114,42 @@ describe('메시지 종류 알아보기', () => {
     expect(tierOf('보통 성공')).toBe('success')
     expect(tierOf('실패')).toBe('fail')
     expect(tierOf('3')).toBeUndefined()
+  })
+})
+
+describe('코코포리아 로그 JSON 읽기', () => {
+  const json = (messages: unknown[], images: Record<string, string> = {}) => JSON.stringify({ messages, images })
+  const m = (name: string, text: string, extra: Record<string, unknown> = {}) => ({ name, color: '#ABCDEF', text, type: 'text', extend: {}, channel: 'c', channelName: 'main', iconImage: '', ...extra })
+
+  it('HTML 로그와 같은 메시지로 읽는다: 주사위 결과는 명령 뒤에 이어 붙인다', () => {
+    const { content, stats } = parseCcfoliaJson(
+      json([m('하늘', '  안녕  '), m('하늘', 'CC<=60 [ 관찰력 ]', { extend: { roll: { result: '(1D100<=60) ＞ 28 ＞ 28 ＞ 성공' } } }), m('system', '[ 하늘 ] HP : 10 → 8', { type: 'system' })]),
+    )
+    expect(content.messages[0]).toEqual({ id: 'c0', tab: 'main', speaker: '하늘', color: '#abcdef', text: '안녕' })
+    expect(content.messages[1].text).toBe('CC<=60 [ 관찰력 ] (1D100<=60) ＞ 28 ＞ 28 ＞ 성공')
+    expect(stats).toMatchObject({ messages: 3, speakers: 1, rolls: 1, system: 1 })
+  })
+
+  it('프로필 이미지: 캐릭터마다 가장 많이 쓴 것 하나 (images 의 키 · https 주소, 그 밖은 버린다)', () => {
+    const { avatars } = parseCcfoliaJson(
+      json(
+        [
+          m('하늘', 'a', { iconImage: 'k1' }),
+          m('하늘', 'b', { iconImage: 'k2' }),
+          m('하늘', 'c', { iconImage: 'k2' }),
+          m('유진', 'd', { iconImage: 'https://example.com/y.png' }),
+          m('은호', 'e', { iconImage: 'javascript:alert(1)' }),
+        ],
+        { k1: 'data:image/png;base64,AAAA', k2: 'data:image/png;base64,BBBB' },
+      ),
+    )
+    expect(avatars).toEqual({ 하늘: 'data:image/png;base64,BBBB', 유진: 'https://example.com/y.png' })
+  })
+
+  it('코코포리아 JSON 이 아니면 알려 주고, 파일 이름 · 내용으로 HTML / JSON 을 고른다', () => {
+    expect(() => parseCcfoliaJson('{"foo":1}')).toThrow(CcfoliaParseError)
+    expect(() => parseCcfoliaJson('깨진 글')).toThrow(CcfoliaParseError)
+    expect(parseCcfoliaFile(json([m('A', 'x')]), 'log.json').content.messages).toHaveLength(1)
+    expect(parseCcfoliaFile(SAMPLE, 'log.html').content.messages).toHaveLength(6)
   })
 })
