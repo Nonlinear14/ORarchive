@@ -45,6 +45,17 @@ export const setCcfMessageSpeaker =
     return { ...stored, messages: list }
   }
 
+/** 메시지 하나를 다른 탭으로 옮긴다 (기존 탭에서만 고른다 — 화면에서 보장) */
+export const setCcfMessageTab =
+  (id: string, tab: string): LogEdit =>
+  (stored) => {
+    const list = [...messagesOf(stored)]
+    const i = list.findIndex((m) => isObject(m) && m.id === id)
+    if (i < 0 || list[i].tab === tab) return stored
+    list[i] = { ...list[i], tab }
+    return { ...stored, messages: list }
+  }
+
 /** 탭 설정 한 항목 (빈 값 · false 면 지운다) */
 export const setTab =
   <K extends keyof TabSetting>(tab: string, key: K, value: TabSetting[K] | undefined): LogEdit =>

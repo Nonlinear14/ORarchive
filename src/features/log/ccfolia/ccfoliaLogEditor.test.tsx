@@ -140,6 +140,37 @@ describe('코코포리아 로그 편집', () => {
     await waitFor(() => expect(saved().messages[0].text).toBe('비가 짙은 밤입니다.'), { timeout: 3000 })
   })
 
+  it('탭 이름을 누르면 기존 탭 중에서 바꾸고, 이어진 메시지는 수정 중일 때만 탭 이름이 보인다', async () => {
+    const fake = createFakeSupabase()
+    const html = `<body>${p('#FFA500', 'main', '하늘', '첫 대사')}${p('#FFA500', 'main', '하늘', '이어진 대사')}${p('#d3004d', 'other', '유진', '잡담')}</body>`
+    const parsed = parseCcfoliaLog(html).content
+    const doc = fake.control.insertDocument({ type: 'log', title: '탭', content: serializeCcfLog({ ...parsed, options: { ...parsed.options, showTabs: true } }) })
+    const saved = () => resolveCcfLog(fake.control.tables.documents.find((d) => d.id === doc.id)!.content as never)
+    const [first, second] = parsed.messages.map((m) => m.id)
+    renderApp(`/studio/log/ccfolia/${doc.id}`, { client: fake.client })
+    const root = await stage()
+
+    // 이름이 보이는 줄: 탭 이름을 누르면 목록 (기존 탭만)
+    fireEvent.click(row(root, first).querySelector('.ccf-tab')!)
+    const menu = within(root).getByRole('menu', { name: '탭 바꾸기' })
+    expect(within(menu).getAllByRole('menuitem').map((b) => b.textContent)).toEqual(['main', 'other'])
+    expect(within(root).queryByRole('textbox', { name: '메시지 내용' })).toBeNull() // 수정은 열리지 않는다
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'other' }))
+    await waitFor(() => expect(saved().messages[0].tab).toBe('other'), { timeout: 3000 })
+    fireEvent.click(screen.getByRole('button', { name: '되돌리기' }))
+    await waitFor(() => expect(saved().messages[0].tab).toBe('main'), { timeout: 3000 })
+
+    // 이어진 메시지: 평소엔 탭 이름이 없고, 수정 중일 때만 보인다
+    expect(row(root, second).querySelector('.ccf-tab, .tab-hover')).toBeNull()
+    fireEvent.mouseEnter(row(root, second))
+    expect(row(root, second).querySelector('.tab-hover')).toBeNull()
+    fireEvent.click(row(root, second).querySelector('.ccf-msg')!)
+    const tabButton = within(row(root, second)).getByRole('button', { name: /탭 바꾸기 \(지금 main\)/ })
+    fireEvent.click(tabButton)
+    fireEvent.click(within(within(root).getByRole('menu', { name: '탭 바꾸기' })).getByRole('menuitem', { name: 'other' }))
+    await waitFor(() => expect(saved().messages[1].tab).toBe('other'), { timeout: 3000 })
+  })
+
   it('다른 주소로 열어도 코코포리아 로그 편집으로 간다 (/documents · Roll20 로그 주소)', async () => {
     const { client, row: doc } = seedLog()
     renderApp(`/documents/${doc.id}`, { client })

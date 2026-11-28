@@ -20,7 +20,7 @@ import { duplicateMessage, moveMessageBeside, newMessageId, removeMessage, setMe
 import type { MessageAction, SpeakerOption } from '../../roll20/editor/LogPreview'
 import { isRoll20Log } from '../../roll20/model'
 import '../../roll20/roll20Log.css'
-import { insertCcfMessageAfter, setCcfMessageSpeaker } from '../edits'
+import { insertCcfMessageAfter, setCcfMessageSpeaker, setCcfMessageTab } from '../edits'
 import { ccfBlogCode, ccfFileName, ccfHtmlFile } from '../export'
 import { ccfSpeakersOf, isCcfoliaLog, resolveCcfLog, type CcfMessage, type CcfoliaLogContent } from '../model'
 import { visibleCcfMessages } from '../render'
@@ -211,6 +211,13 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
   )
   const onCancelEdit = useCallback(() => setEditingId(null), [])
   const onChangeSpeaker = useCallback((message: CcfMessage, speaker: string) => apply(setCcfMessageSpeaker(message.id, speaker)), [apply])
+  const onChangeTab = useCallback(
+    (message: CcfMessage, tab: string) => {
+      apply(setCcfMessageTab(message.id, tab))
+      if (content.tabs[tab]?.hidden) show(`꺼진 탭(${tab})으로 옮겨서 지금은 보이지 않아요. 되돌리기로 돌아갈 수 있어요.`)
+    },
+    [apply, content.tabs, show],
+  )
   const onOpenMenu = useCallback((message: CcfMessage) => setMenuId(message.id), [])
   const menuIndex = menuId ? rows.findIndex((r) => r.message.id === menuId) : -1
 
@@ -284,6 +291,7 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             onCancelEdit={onCancelEdit}
             onOpenMenu={onOpenMenu}
             onChangeSpeaker={onChangeSpeaker}
+            onChangeTab={onChangeTab}
           />
           <div className="log-export-bar" role="group" aria-label="내보내기">
             <button type="button" className="btn primary" onClick={() => downloadTextFile(ccfFileName(draft.title), ccfHtmlFile(content, draft.title))}>
