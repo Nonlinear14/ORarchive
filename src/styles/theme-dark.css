@@ -1,7 +1,6 @@
 /*
  * 다크 모드. <html data-theme="dark"> 일 때만 적용된다 (src/lib/theme.ts).
  * 2026-11-28 개편: 화면 코드는 의미 토큰(--bg · --surface · --text · --point …)을 쓰므로 여기서는 토큰 값만 바꾼다.
- * 아래 "편집 화면" 묶음은 2단계(편집 화면 개편) 전까지 편집기 둘레를 어둡게 유지하려는 임시 규칙이다.
  * 핸드아웃 캔버스(문서 자체)는 실제 출력과 같아야 하므로 건드리지 않는다.
  */
 :root[data-theme='dark'] {
@@ -48,53 +47,4 @@
 
 :root[data-theme='dark'] body {
   color: var(--text);
-}
-
-/* ── 편집 화면 (2단계에서 각 화면 CSS 로 옮긴다) ── */
-:root[data-theme='dark'] .panel,
-:root[data-theme='dark'] .doc-body,
-:root[data-theme='dark'] .doc-title:focus {
-  background: var(--surface);
-  border-color: var(--line);
-}
-
-:root[data-theme='dark'] .panel-top h2 {
-  color: var(--text);
-}
-
-:root[data-theme='dark'] .editor-header p,
-:root[data-theme='dark'] .canvas-tools,
-:root[data-theme='dark'] .canvas-footer,
-:root[data-theme='dark'] .panel-top {
-  color: var(--text-muted);
-}
-
-:root[data-theme='dark'] .type-option,
-:root[data-theme='dark'] .template-option {
-  background: var(--surface-2);
-  border-color: var(--line);
-  color: var(--text);
-}
-
-:root[data-theme='dark'] .template-option.active {
-  background: var(--point-weak);
-  border-color: var(--point);
-}
-
-:root[data-theme='dark'] .swatch-default {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-:root[data-theme='dark'] .preview-workspace {
-  background: var(--surface-2);
-  border-color: var(--line);
-}
-
-:root[data-theme='dark'] .edit-hint {
-  color: var(--point);
-}
-
-:root[data-theme='dark'] .doc-recover .doc-text[readonly] {
-  background: var(--surface-2);
 }

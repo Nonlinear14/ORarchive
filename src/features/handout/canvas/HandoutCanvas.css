@@ -5,7 +5,7 @@
 }
 
 .hc-canvas > .hc-frame {
-  box-shadow: 0 19px 30px #343c331a;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .hc-canvas *,
@@ -88,8 +88,8 @@
 .hc-canvas.editable [data-hfield]:focus {
   background: color-mix(in srgb, currentColor 6%, transparent);
   box-shadow:
-    0 0 0 2px #ccb18b,
-    0 0 0 6px #ccb18b30;
+    0 0 0 2px var(--point),
+    0 0 0 6px color-mix(in srgb, var(--point) 18%, transparent);
 }
 
 .hc-canvas.editable [data-hfield]:empty::before {
@@ -151,13 +151,13 @@
 }
 
 .hb-canvas.editable .hb-row.two:hover .hb-divider > span {
-  background: #ccb18b80;
+  background: color-mix(in srgb, var(--point) 50%, transparent);
 }
 
 .hb-canvas.editable .hb-divider:hover > span,
 .hb-canvas.editable .hb-divider.is-active > span,
 .hb-canvas.editable .hb-divider:focus-visible > span {
-  background: #427a67;
+  background: var(--point);
   width: 3px;
 }
 
@@ -170,13 +170,13 @@
 }
 
 .hb-canvas.editable .hb-block:hover:not(.is-selected) {
-  box-shadow: 0 0 0 1px #ccb18b80;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--point) 50%, transparent);
 }
 
 .hb-canvas.editable .hb-block.is-selected {
   box-shadow:
-    0 0 0 2px #b8975a,
-    0 0 0 6px #b8975a26;
+    0 0 0 2px var(--point),
+    0 0 0 6px color-mix(in srgb, var(--point) 15%, transparent);
 }
 
 .hb-canvas.editable .hb-block[data-block-type='image'].is-selected {
@@ -208,7 +208,7 @@
 }
 
 .hb-canvas.editable .hb-block[data-line='true']:hover:not(.is-selected) {
-  background: #ccb18b1f;
+  background: color-mix(in srgb, var(--point) 12%, transparent);
 }
 
 /* 선택한 블록의 메뉴 버블: 끌어서 옮기는 손잡이 */
@@ -225,11 +225,11 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border: 1px solid #d8cdb9;
-  border-radius: 8px;
-  background: #fffdfa;
-  color: #5a4d3c;
-  box-shadow: 0 6px 16px rgba(23, 36, 42, 0.18);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
   cursor: grab;
   touch-action: none;
   padding: 0;
@@ -241,17 +241,17 @@
 }
 
 .hb-handle:focus-visible {
-  outline: 2px solid #427a67;
+  outline: 2px solid var(--point);
   outline-offset: 2px;
 }
 
 .hb-drop {
   position: absolute;
   z-index: 5;
-  background: #427a67;
+  background: var(--point);
   border-radius: 2px;
   pointer-events: none;
-  box-shadow: 0 0 0 3px #427a6733;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--point) 20%, transparent);
 }
 
 /* 블록의 글자 칸은 한 줄 높이부터 (모든 텍스트 블록이 여러 줄 칸이라 기본 최소 높이를 쓰지 않는다) */
@@ -272,7 +272,7 @@
 }
 
 .hb-canvas.editable .hb-space {
-  outline: 1px dashed #b8975a66;
+  outline: 1px dashed color-mix(in srgb, var(--point) 45%, transparent);
   outline-offset: -1px;
 }
 
@@ -282,8 +282,8 @@
   top: 50%;
   transform: translateY(-50%);
   font: 600 9.5px/1 var(--font, sans-serif);
-  color: #8a7552;
-  background: #fffdfacc;
+  color: var(--point);
+  background: color-mix(in srgb, #ffffff 85%, transparent);
   padding: 2px 5px;
   border-radius: 4px;
   pointer-events: none;
@@ -292,5 +292,5 @@
 
 /* 글상자에서 드래그한 범위: 패널로 포커스가 옮겨가도 보이게 */
 ::highlight(hb-range) {
-  background-color: #b8975a59;
+  background-color: color-mix(in srgb, var(--point) 30%, transparent);
 }

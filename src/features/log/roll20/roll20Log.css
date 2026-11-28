@@ -2,7 +2,7 @@
 
 .log-stage {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
   background: #fff;
   max-height: calc(100vh - 230px);
@@ -24,9 +24,9 @@
   font-style: normal;
   font-weight: 700;
   font-size: 10px;
-  color: #917047;
-  background: #f6eee2;
-  border-radius: 6px;
+  color: var(--text);
+  background: var(--warn-weak);
+  border-radius: var(--radius);
   padding: 2px 6px;
   white-space: nowrap;
 }
@@ -41,9 +41,9 @@
 }
 
 .char-list:focus-visible {
-  outline: 2px solid #caa574;
+  outline: 2px solid var(--point);
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 /* 패널이 로그 아래로 내려가는 좁은 화면은 목록을 다 펼친다 */
@@ -56,7 +56,7 @@
 
 .char-row {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 8px 9px;
   margin-bottom: 8px;
   background: var(--card);
@@ -75,20 +75,20 @@
 .char-av {
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   flex: none;
   object-fit: cover;
   display: grid;
   place-items: center;
-  background: #d9c4aa;
-  color: #4d3a2e;
+  background: var(--surface-3);
+  color: var(--text-muted);
   font: 700 13px/1 var(--font);
 }
 
 .char-av.broken {
-  background: repeating-linear-gradient(45deg, #ddd 0 4px, #eee 4px 8px);
-  color: #a25d58;
-  border: 1px dashed #c98f88;
+  background: repeating-linear-gradient(45deg, var(--surface-3) 0 4px, var(--surface-2) 4px 8px);
+  color: var(--danger);
+  border: 1px dashed var(--danger);
 }
 
 .char-name {
@@ -112,9 +112,9 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 2px solid #fff;
+  border: 2px solid var(--surface);
   border-radius: 50%;
-  box-shadow: 0 0 0 1px #d6d4cc;
+  box-shadow: 0 0 0 1px var(--line-strong);
   flex: none;
   cursor: pointer;
   background: none;
@@ -263,7 +263,7 @@
 
 .dropzone {
   border: 1.5px dashed var(--line-strong);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 26px 18px;
   text-align: center;
   display: grid;
@@ -277,7 +277,7 @@
 .dropzone.dragging,
 .dropzone:focus-within {
   border-color: var(--gold);
-  outline: 2px solid #d9ac72;
+  outline: 2px solid var(--point);
   outline-offset: 2px;
 }
 
@@ -309,7 +309,7 @@
   width: 100%;
   min-height: 96px;
   border: 1.5px dashed var(--line-strong);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 30px;
   text-align: center;
   color: var(--ink);
@@ -324,9 +324,9 @@
 }
 
 .good-callout {
-  background: #e9f3ec;
-  border-color: #d9e8dd;
-  color: #40755d;
+  background: var(--chip-green-bg);
+  border-color: var(--chip-green-line);
+  color: var(--chip-green-text);
   margin-top: 14px;
 }
 
@@ -339,7 +339,7 @@
   display: flex;
   align-items: flex-start;
   gap: 5px;
-  color: #93524d;
+  color: var(--danger);
 }
 
 .import-summary .warn-line .ico {
@@ -357,7 +357,7 @@
 .msg-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(10, 20, 22, 0.45);
+  background: rgba(0, 0, 0, 0.4);
   z-index: 90;
 }
 
@@ -368,11 +368,12 @@
   bottom: 0;
   z-index: 91;
   background: var(--card);
-  border-radius: 18px 18px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   padding: 14px 14px calc(env(safe-area-inset-bottom) + 14px);
   display: grid;
   gap: 4px;
-  box-shadow: 0 -10px 30px #0004;
+  box-shadow: none;
+  border-top: 1px solid var(--line);
 }
 
 .msg-sheet-head {
@@ -404,7 +405,7 @@
   border: 0;
   background: none;
   padding: 12px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font: 600 14px var(--font);
   color: var(--ink);
   text-align: left;
@@ -419,7 +420,7 @@
 }
 
 .msg-sheet button.danger {
-  color: #a25d58;
+  color: var(--danger);
 }
 
 .msg-sheet .msg-sheet-close {
@@ -437,41 +438,6 @@
 }
 
 /* 다크 모드 (로그 미리보기 자체는 내보낼 결과와 같게 Roll20 색 그대로) */
-:root[data-theme='dark'] .char-row {
-  background: #142128;
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .char-more,
-:root[data-theme='dark'] .opt-row {
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .opt-count {
-  background: #33291c;
-  color: #d8b783;
-}
-
-:root[data-theme='dark'] .good-callout {
-  background: #1c3229;
-  border-color: #2a4a3c;
-  color: #86c2a4;
-}
-
-:root[data-theme='dark'] .import-summary .warn-line {
-  color: #e8aaa3;
-}
-
-:root[data-theme='dark'] .log-stage {
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .dropzone,
-:root[data-theme='dark'] .pastezone {
-  background: #142128;
-  border-color: var(--d-border);
-}
-
 /* 미리보기 위 안내 · 아래 내보내기 */
 .log-notice {
   margin-bottom: 10px;
@@ -515,7 +481,7 @@
   border: 0;
   padding: 0;
   background: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   flex: none;
   cursor: pointer;
 }
@@ -527,7 +493,7 @@
 
 .char-av-btn:hover .char-av,
 .char-av-btn:focus-visible .char-av {
-  box-shadow: 0 0 0 2px #caa574;
+  box-shadow: 0 0 0 2px var(--point);
 }
 
 .char-body {
@@ -566,19 +532,19 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #c9c5ba;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line-strong);
   padding: 0;
   cursor: pointer;
 }
 
 .color-round .round.is-default {
-  background: conic-gradient(#e0dbcf 0 25%, #fff 0 50%, #e0dbcf 0 75%, #fff 0);
+  background: conic-gradient(var(--line-strong) 0 25%, var(--surface) 0 50%, var(--line-strong) 0 75%, var(--surface) 0);
   background-size: 8px 8px;
 }
 
 .color-round .round:focus-visible {
-  outline: 2px solid #d9ac72;
+  outline: 2px solid var(--point);
   outline-offset: 2px;
 }
 
@@ -591,10 +557,10 @@
   gap: 6px;
   min-width: 140px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--card);
   border: 1px solid var(--line);
-  box-shadow: 0 10px 24px #17242a26;
+  box-shadow: none;
 }
 
 .color-pick {
@@ -612,7 +578,7 @@
   height: 26px;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: none;
   cursor: pointer;
 }
@@ -652,7 +618,7 @@
 .avatar-current .char-av {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   object-fit: cover;
 }
 
@@ -669,20 +635,11 @@
   gap: 8px;
 }
 
-:root[data-theme='dark'] .color-pop {
-  background: #172429;
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .char-foot {
-  border-color: var(--d-border);
-}
-
 .desc-av {
   font: 700 9.5px/1 var(--font);
   letter-spacing: 0.3px;
-  background: #e6dfd2;
-  color: #6b5a48;
+  background: var(--surface-3);
+  color: var(--text-muted);
   width: 36px;
   height: 36px;
 }
@@ -718,7 +675,7 @@
 .image-current img {
   max-width: 120px;
   max-height: 80px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   object-fit: contain;
   background: var(--canvas);
 }

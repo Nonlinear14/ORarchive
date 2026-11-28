@@ -64,7 +64,7 @@ function ProfileCard() {
               setMessage(null)
             }}
           />
-          <button type="submit" className="btn primary" disabled={busy || value === null}>
+          <button type="submit" className="btn press-accent" disabled={busy || value === null}>
             {busy ? '저장 중…' : '저장'}
           </button>
         </div>
@@ -127,9 +127,9 @@ function SyncCard() {
   return (
     <section className="settings-card">
       <h3>기기 간 동기화</h3>
-      <p>문서는 입력을 멈추면 잠시 뒤 서버에 자동 저장됩니다.</p>
+      <p>로그는 입력을 멈추면 잠시 뒤 서버에 자동 저장돼요. 핸드아웃과 롤꾸코드는 저장을 누를 때 서버에 저장돼요.</p>
       <div className="connected">
-        <span>서버 자동 저장</span>
+        <span>로그 서버 자동 저장</span>
         <span className="tag good">사용 중</span>
       </div>
       <div className="connected">

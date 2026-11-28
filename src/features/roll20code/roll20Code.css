@@ -8,10 +8,9 @@
 .r20-chat {
   width: min(320px, 100%);
   margin: 0 auto;
-  border: 1px solid #d9d6cf;
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 14px 26px #343c3314;
   background: #fff;
 }
 
@@ -36,7 +35,7 @@
 .r20-query label {
   font-size: 12.5px;
   font-weight: 700;
-  color: #4b5753;
+  color: var(--text);
 }
 
 .r20-slot {
@@ -61,7 +60,7 @@
 .r20-slot-note {
   display: block;
   margin-top: 5px;
-  color: #8a918c;
+  color: var(--text-muted);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -72,7 +71,7 @@
 
 .r20-color .opt-count {
   font-style: normal;
-  color: #8a918c;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -97,9 +96,9 @@
   gap: 18px 22px;
   margin-top: 4px;
   padding: 16px 18px;
-  border: 1px solid #e6e4dd;
-  border-radius: 12px;
-  background: #fffdfa;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 .r20-col {
@@ -149,15 +148,15 @@
   .r20-workspace > .canvas-tools,
   .r20-workspace > .r20-stage,
   .r20-workspace > .export-bar {
-    background: #eae8e2;
-    border: 1px solid #e0ddd5;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
     margin: 0;
   }
 
   .r20-workspace > .canvas-tools {
     order: 1;
     border-bottom: 0;
-    border-radius: 14px 14px 0 0;
+    border-radius: var(--radius) var(--radius) 0 0;
     padding: 12px 12px 0;
   }
 
@@ -171,7 +170,7 @@
   .r20-workspace > .export-bar {
     order: 3;
     border-top: 0;
-    border-radius: 0 0 14px 14px;
+    border-radius: 0 0 var(--radius) var(--radius);
     padding: 12px;
     margin-bottom: 14px;
   }
@@ -200,9 +199,9 @@
     margin: 0;
     padding: 0;
     border-top: 0;
-    border-radius: 0 0 14px 14px;
-    background: #fffdfa;
-    border-color: #e6e4dd;
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--surface);
+    border-color: var(--line);
     box-shadow: var(--shadow);
   }
 
@@ -214,12 +213,6 @@
 }
 
 @media (max-width: 1050px) {
-  :root[data-theme='dark'] .r20-workspace > .canvas-tools,
-  :root[data-theme='dark'] .r20-workspace > .r20-stage,
-  :root[data-theme='dark'] .r20-workspace > .export-bar {
-    background: #141f24;
-    border-color: var(--d-border);
-  }
 }
 
 /* 스위치 (로그 편집기와 같은 모양 — 그 CSS 를 이 화면에서는 불러오지 않으므로 여기 둔다) */
@@ -329,20 +322,7 @@
 .picker-group {
   margin: 18px 0 10px;
   font-size: 14px;
-  color: #3c4a46;
-}
-
-:root[data-theme='dark'] .r20-queries {
-  background: var(--d-surface, #1f2a2e);
-}
-
-:root[data-theme='dark'] .r20-edit {
-  background: var(--d-surface);
-  border-color: var(--d-border);
-}
-
-:root[data-theme='dark'] .r20-query label {
-  color: var(--d-text);
+  color: var(--text);
 }
 
 /* 빈 롤꾸 미리보기 안내 */
@@ -350,19 +330,13 @@
   width: min(320px, 100%);
   margin: 0 auto;
   padding: 22px 18px;
-  border: 1px dashed #c9c4b8;
-  border-radius: 8px;
-  color: #7b847f;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
   font-size: 12.5px;
   text-align: center;
   line-height: 1.6;
-  background: #f7f5f0;
-}
-
-:root[data-theme='dark'] .r20-empty {
-  background: transparent;
-  border-color: var(--d-border);
-  color: var(--d-text-muted);
+  background: var(--surface-2);
 }
 
 /* ── 여러 메시지 (2026-11-28) ── */
@@ -373,14 +347,14 @@
   align-items: center;
   gap: 6px 12px;
   padding: 9px 12px;
-  border-radius: 10px;
-  background: #f3efe6;
+  border-radius: var(--radius);
+  background: var(--surface-2);
   font-size: 12px;
-  color: #6c746f;
+  color: var(--text-muted);
 }
 
 .r20-edit-head strong {
-  color: #2f3b37;
+  color: var(--text);
   font-size: 12.5px;
 }
 
@@ -389,8 +363,8 @@
 }
 
 .r20-edit-head.is-picked {
-  background: #fff3dc;
-  box-shadow: inset 0 0 0 1px #e7c98f;
+  background: var(--select-bg);
+  box-shadow: inset 0 0 0 1px var(--text);
 }
 
 .r20-jump {
@@ -410,7 +384,7 @@
   gap: 6px;
   font-size: 11.5px;
   font-weight: 700;
-  color: #6c746f;
+  color: var(--text-muted);
 }
 
 .r20-font-field .field-input {
@@ -436,7 +410,7 @@
 
 .r20-font-num em {
   font-style: normal;
-  color: #8a918c;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -449,34 +423,19 @@
     gap: 10px;
     margin: 0;
     padding: 8px 12px;
-    background: #fff3dc;
-    border: 1px solid #e0ddd5;
+    background: var(--warn-weak);
+    border: 1px solid var(--line);
     border-top: 0;
     border-bottom: 0;
     font-size: 12.5px;
     font-weight: 700;
-    color: #6d5428;
+    color: var(--text);
   }
 
   .r20-shell .r20-edit-head {
     border-radius: 0;
     padding: 12px 18px;
   }
-}
-
-:root[data-theme='dark'] .r20-edit-head {
-  background: var(--d-surface2);
-  color: var(--d-text-muted);
-}
-
-:root[data-theme='dark'] .r20-edit-head strong {
-  color: var(--d-text-strong);
-}
-
-:root[data-theme='dark'] .r20-edit-head.is-picked,
-:root[data-theme='dark'] .r20-workspace > .r20-jump {
-  background: #33291c;
-  color: #e3c48f;
 }
 
 /* "편집하러 가기"로 내려갈 때 위 고정 막대에 가리지 않게 */
@@ -490,23 +449,18 @@
   gap: 4px;
   margin: 0;
   padding: 18px 16px;
-  border: 1px dashed #d4cdbf;
-  border-radius: 10px;
-  background: #faf7f1;
-  color: #4b5753;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
   font-size: 13.5px;
   font-weight: 700;
   text-align: center;
 }
 
 .r20-pick-hint small {
-  color: #8a918c;
+  color: var(--text-muted);
   font-size: 11.5px;
   font-weight: 500;
 }
 
-:root[data-theme='dark'] .r20-pick-hint {
-  background: transparent;
-  border-color: var(--d-border);
-  color: var(--d-text);
-}

@@ -8,9 +8,9 @@
 }
 
 .preview-workspace {
-  background: #eae8e2;
-  border: 1px solid #e0ddd5;
-  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   min-height: 620px;
   padding: 18px;
   display: flex;
@@ -24,7 +24,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 18px;
-  color: #8a918b;
+  color: var(--text-muted);
   font-size: 10px;
   flex-wrap: wrap;
 }
@@ -33,7 +33,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #8a7552;
+  color: var(--text-muted);
   font-weight: 700;
 }
 
@@ -60,37 +60,36 @@
   align-items: center;
   gap: 10px;
   font-size: 10px;
-  color: #8f938d;
+  color: var(--text-muted);
   flex-wrap: wrap;
 }
 
 /* 오른쪽 패널 */
 .panel {
-  background: #fffdfa;
-  border: 1px solid #e6e4dd;
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
 .panel-top {
   padding: 16px 17px;
-  border-bottom: 1px solid #eeeae2;
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #8a918b;
+  color: var(--text-muted);
 }
 
 .panel-top h2 {
   font-size: 12px;
-  color: #37453e;
+  color: var(--text);
   margin: 0;
 }
 
 .panel-section {
   padding: 16px 17px;
-  border-bottom: 1px solid #f0ede7;
+  border-bottom: 1px solid var(--line);
 }
 
 .panel-section:last-child {
@@ -133,11 +132,11 @@
   align-items: center;
   gap: 10px;
   text-align: left;
-  border: 1px solid #e7e4dc;
-  background: #fffefa;
-  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
   padding: 8px 10px;
-  color: #45534d;
+  color: var(--text);
 }
 
 .template-option b {
@@ -148,21 +147,22 @@
 .template-option small {
   display: block;
   font-size: 10px;
-  color: #9aa09a;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .template-option.active {
-  border-color: #a78960;
-  box-shadow: 0 0 0 1px #a78960;
-  background: #fbf6ec;
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+  background: var(--select-bg);
+  font-weight: 700;
 }
 
 .template-option-dot {
   flex: none;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   border: 1px solid;
 }
 
@@ -174,22 +174,22 @@
 }
 
 .swatch {
-  border: 2px solid #fff;
+  border: 2px solid var(--surface);
   border-radius: 50%;
   width: 27px;
   height: 27px;
   padding: 0;
-  box-shadow: 0 0 0 1px #d6d4cc;
+  box-shadow: 0 0 0 1px var(--line-strong);
 }
 
 .swatch.selected {
-  box-shadow: 0 0 0 2px #a78960;
+  box-shadow: 0 0 0 2px var(--text);
 }
 
 .swatch-default {
-  background: #f3efe6;
-  color: #8a7552;
-  font: 700 11px var(--font-serif);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: 700 11px var(--font);
 }
 
 .inline-form {
@@ -210,8 +210,8 @@
   flex: none;
   width: 18px;
   height: 18px;
-  border-radius: 5px;
-  border: 1px solid #d6d4cc;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
 }
 
 /* 글꼴: .segmented 는 base.css */
@@ -219,9 +219,10 @@
 .code-preview {
   width: 100%;
   min-height: 320px;
-  background: #15242a;
-  border-radius: 9px;
-  color: #ead8bc;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
   padding: 16px;
   font: 11px/1.8 monospace;
   word-break: break-all;
@@ -300,7 +301,7 @@
   gap: 8px;
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid #dcd8cf;
+  border-top: 1px solid var(--line);
 }
 
 .export-bar .field-help {
@@ -328,8 +329,8 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 2px solid #fffdfa;
-  box-shadow: 0 0 0 1px #cfc9bd;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line-strong);
   cursor: pointer;
   overflow: hidden;
 }
@@ -337,8 +338,8 @@
 
 .color-dot:focus-visible {
   box-shadow:
-    0 0 0 1px #cfc9bd,
-    0 0 0 4px #427a6744;
+    0 0 0 1px var(--line-strong),
+    0 0 0 4px var(--point-line);
 }
 
 .hex-input {
@@ -363,9 +364,9 @@
 }
 
 .btn.icon-only.active {
-  background: #213a35;
-  color: #f4efe4;
-  border-color: #213a35;
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 .size-stepper {
@@ -383,7 +384,7 @@
 
 .size-unit {
   font-size: 11px;
-  color: #8a918b;
+  color: var(--text-muted);
 }
 
 .block-add {
@@ -440,9 +441,9 @@
 }
 
 .align-tools .btn.active {
-  background: #213a35;
-  color: #f4efe4;
-  border-color: #213a35;
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 .rule-tools {
@@ -455,7 +456,7 @@
 
 .rule-tool-label {
   font-size: 11.5px;
-  color: #5f6b66;
+  color: var(--text-muted);
 }
 
 .rule-tools .size-stepper {
@@ -478,9 +479,9 @@
 }
 
 .line-styles .btn.active {
-  background: #213a35;
-  color: #f4efe4;
-  border-color: #213a35;
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 .history-tools .reset-btn {
@@ -497,10 +498,10 @@
   gap: 6px;
   min-width: 140px;
   padding: 8px;
-  border-radius: 10px;
-  background: var(--card, #fffdfa);
-  border: 1px solid var(--line, #e2ddd2);
-  box-shadow: 0 10px 24px #17242a26;
+  border-radius: var(--radius);
+  background: var(--card, var(--surface));
+  border: 1px solid var(--line, var(--line));
+  box-shadow: none;
 }
 
 .color-wrap .color-pick {
@@ -516,8 +517,8 @@
   width: 30px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--line, #e2ddd2);
-  border-radius: 6px;
+  border: 1px solid var(--line, var(--line));
+  border-radius: var(--radius);
   background: none;
   cursor: pointer;
 }
@@ -536,15 +537,15 @@
   padding: 9px 14px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #7a5f2e;
-  background: #f1e5cc80;
-  border-bottom: 1px solid #e6dfd2;
+  color: var(--text);
+  background: var(--warn-weak);
+  border-bottom: 1px solid var(--warn);
 }
 
 .range-note {
   margin: 4px 0 0;
   font-size: 11px;
-  color: #7a5f2e;
+  color: var(--text);
 }
 
 .deco-row {
