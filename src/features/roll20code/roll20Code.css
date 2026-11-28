@@ -87,6 +87,8 @@
    1050px 이하: 미리보기 · 복사 → 되돌리기 · 코드 → 꾸미기(옵션 · 내용 · 질문 예시 · 색) 한 줄 */
 .studio-shell.r20-shell {
   align-items: stretch;
+  /* 코드는 가로로 길수록 편해서 미리보기 : 편집 패널 = 3 : 2 (2026-11-28) */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 
 .r20-edit {
