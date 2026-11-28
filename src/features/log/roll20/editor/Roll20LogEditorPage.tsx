@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import { DeletedRecovery } from '../../../../components/document/DeletedRecovery'
 import '../../../../components/document/DocumentEditor.css'
 import { SyncNotices } from '../../../../components/document/SyncNotices'
@@ -9,7 +9,8 @@ import { SaveStatusChip } from '../../../../components/SaveStatusChip'
 import { Toast } from '../../../../components/Toast'
 import { copyText } from '../../../../lib/clipboard'
 import { downloadTextFile } from '../../../../lib/download'
-import type { DocumentContent, DocumentDraft, DocumentRecord } from '../../../../lib/documents'
+import { documentPath, type DocumentContent, type DocumentDraft, type DocumentRecord } from '../../../../lib/documents'
+import { CCFOLIA_LOG_FORMAT, isCcfoliaLog } from '../../ccfolia/model'
 import type { SaveStatus } from '../../../../lib/documentSync'
 import { formatRelativeTime } from '../../../../lib/format'
 import { useDocument } from '../../../../lib/useDocument'
@@ -456,6 +457,8 @@ function Roll20LogEditor({ docId }: { docId: string }) {
         <span>로그를 불러오지 못했어요. 네트워크 연결을 확인한 뒤 새로고침해 주세요. {errorMessage}</span>
       </div>
     )
+  // 코코포리아 로그는 코코포리아 로그 편집으로
+  if (doc.type === 'log' && isCcfoliaLog(draft.content)) return <Navigate to={documentPath('log', doc.id, CCFOLIA_LOG_FORMAT)} replace />
   if (doc.type !== 'log' || !content)
     return (
       <div className="callout" role="note">

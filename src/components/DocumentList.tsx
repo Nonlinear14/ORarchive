@@ -55,7 +55,7 @@ export function DocumentList({ docs, onDelete, onOpen, kindColumn, showVisibilit
                 <span className="item-name">{doc.title.trim() || '제목 없음'}</span>
               </button>
             ) : (
-              <Link to={documentPath(doc.type, doc.id)} className="item-title">
+              <Link to={documentPath(doc.type, doc.id, doc.format)} className="item-title">
                 <span className={`item-square ${squareTone[doc.type]}`} aria-hidden="true">
                   <Icon name={typeIcon[doc.type]} />
                 </span>
@@ -99,7 +99,7 @@ export function DocumentList({ docs, onDelete, onOpen, kindColumn, showVisibilit
                 <Icon name="chev" />
               </button>
             ) : (
-              <Link to={documentPath(doc.type, doc.id)} className="row-icon" aria-label={`${doc.title || '제목 없음'} 열기`} title="열기">
+              <Link to={documentPath(doc.type, doc.id, doc.format)} className="row-icon" aria-label={`${doc.title || '제목 없음'} 열기`} title="열기">
                 <Icon name="chev" />
               </Link>
             )}

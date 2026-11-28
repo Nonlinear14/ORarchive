@@ -1,5 +1,6 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { useOpenUpward } from './useOpenUpward'
 import { Icon } from '../../../../components/Icon'
 import { isEditable, resolveTypedSpeaker, type LogMessage, type Roll20LogContent } from '../model'
 import { containerClass, displayName, logCss, messageClass, messageInnerHtml, messageStyle, textToHtml, visibleMessages } from '../render'
@@ -19,7 +20,8 @@ export type MessageAction = 'edit' | 'duplicate' | 'up' | 'down' | 'insert' | 'r
 /** 화자 바꾸기 대상: 캐릭터 이름, 또는 desc 서술(null) */
 export type SpeakerTarget = string | null
 
-const OVERLAY_CSS = `
+/** 미리보기 위 편집 표시 (코코포리아 로그 미리보기도 같이 쓴다) */
+export const OVERLAY_CSS = `
 :host{display:block}
 ::selection{background:#8a8a8a;color:currentColor}
 .log-msg{position:relative;outline:none}
@@ -71,32 +73,6 @@ const OVERLAY_CSS = `
 export interface SpeakerOption {
   speaker: string
   avatar?: string
-}
-
-/**
- * 아래로 열면 로그 상자(스크롤 영역) 아래로 잘릴 때 위로 연다.
- * 미리보기는 그림자 DOM 안이라 상자는 그림자의 바깥 host(.log-stage).
- */
-function useOpenUpward(ref: React.RefObject<HTMLElement | null>) {
-  const [up, setUp] = useState(false)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const root = el.getRootNode()
-    const box = (root instanceof ShadowRoot ? root.host : el.closest('.log-stage')) as HTMLElement | null
-    if (!box) return
-    const menu = el.getBoundingClientRect()
-    const area = box.getBoundingClientRect()
-    const row = (el.closest('.log-msg') as HTMLElement | null)?.getBoundingClientRect()
-    const below = area.bottom - menu.top
-    const above = (row ? row.top : menu.top) - area.top
-    const openUp = menu.height > below && above > below
-    if (openUp) setUp(true)
-    // 고른 쪽도 모자라면 그 안에 맞게 줄이고 목록 안에서 스크롤
-    const room = (openUp ? above : below) - 8
-    if (menu.height > room && room > 120) el.style.maxHeight = `${Math.floor(room)}px`
-  }, [ref])
-  return up
 }
 
 /** 화자 바꾸기 드롭다운 */
@@ -166,7 +142,7 @@ function SpeakerMenu({
 }
 
 /** 이름 입력 칸의 자동 완성 목록 (기존 캐릭터 이름) */
-function SpeakerNames({ options }: { options: SpeakerOption[] }) {
+export function SpeakerNames({ options }: { options: SpeakerOption[] }) {
   return (
     <datalist id="speaker-names">
       {options.map((o) => (
@@ -177,7 +153,7 @@ function SpeakerNames({ options }: { options: SpeakerOption[] }) {
 }
 
 /** 이름을 더블 클릭했을 때: 이름을 글자로 직접 고친다 (Enter · 칸 밖 누르기 적용, Esc 취소) */
-function NameEditor({
+export function NameEditor({
   initial,
   options,
   onCommit,

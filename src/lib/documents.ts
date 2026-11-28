@@ -55,10 +55,14 @@ export function defaultTitle(type: DocumentType): string {
   return `제목 없는 ${documentTypeLabels[type]}`
 }
 
-/** 문서를 여는 화면 경로: 핸드아웃은 핸드아웃 편집, 로그는 Roll20 로그 편집, 나머지는 (각 화면이 생기기 전까지) 기본 편집기 */
-export function documentPath(type: DocumentType, id: string): string {
+/**
+ * 문서를 여는 화면 경로: 핸드아웃은 핸드아웃 편집, 로그는 형식(content.format)에 맞는 로그 편집
+ * (코코포리아면 코코포리아 로그 편집, 그 밖은 Roll20 로그 편집 — Roll20 편집기도 코코포리아 로그를 받으면 넘겨준다),
+ * 나머지는 (각 화면이 생기기 전까지) 기본 편집기
+ */
+export function documentPath(type: DocumentType, id: string, format?: string | null): string {
   if (type === 'handout') return `/studio/handout/${id}`
-  if (type === 'log') return `/studio/log/roll20/${id}`
+  if (type === 'log') return format?.startsWith('ccfolia') ? `/studio/log/ccfolia/${id}` : `/studio/log/roll20/${id}`
   if (type === 'roll20code') return `/studio/roll20code/${id}`
   return `/documents/${id}`
 }

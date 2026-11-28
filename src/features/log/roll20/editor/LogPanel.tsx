@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ConfirmDialog } from '../../../../components/ConfirmDialog'
 import { Icon } from '../../../../components/Icon'
 import { Modal } from '../../../../components/Modal'
@@ -19,14 +19,15 @@ interface PanelProps {
 
 const COLOR_LABELS: Record<ColorKey, string> = { color: '이름', bg: '배경', text: '대사' }
 
-/** 색 동그라미: 누르면 색 고르기와 '기본 색으로'가 나온다 */
-function ColorRound({
+/** 색 동그라미: 누르면 색 고르기와 '기본 색으로'가 나온다 (코코포리아 로그 편집도 같이 쓴다) */
+export function ColorRound({
   speaker,
   name,
   colorKey,
   value,
   detected,
   apply,
+  set,
 }: {
   speaker: string
   /** 화면에 보이는 이름 (desc 서술 등) */
@@ -37,8 +38,11 @@ function ColorRound({
   /** 불러온 로그의 원래 색 (고른 색이 없을 때 보여 준다) */
   detected?: string
   apply(op: LogEdit): void
+  /** 캐릭터 설정이 아닌 곳의 색 (예: 코코포리아 탭 색). 없으면 캐릭터 설정의 colorKey */
+  set?: (value: string | undefined) => LogEdit
 }) {
   const shown = value ?? detected
+  const setColor = useMemo(() => set ?? ((v: string | undefined) => setCharacter(speaker, colorKey, v)), [set, speaker, colorKey])
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -62,10 +66,10 @@ function ColorRound({
   useEffect(() => {
     const el = inputRef.current
     if (!el) return
-    const onChange = () => apply(setCharacter(speaker, colorKey, el.value))
+    const onChange = () => apply(setColor(el.value))
     el.addEventListener('change', onChange)
     return () => el.removeEventListener('change', onChange)
-  }, [open, apply, speaker, colorKey])
+  }, [open, apply, setColor])
 
   return (
     <div className="color-round" ref={wrapRef}>
@@ -89,7 +93,7 @@ function ColorRound({
             className="btn small"
             disabled={!value}
             onClick={() => {
-              apply(setCharacter(speaker, colorKey, undefined))
+              apply(setColor(undefined))
               setOpen(false)
             }}
           >
@@ -102,7 +106,7 @@ function ColorRound({
 }
 
 /** 저널 바꾸기: 이미지 파일 불러오기(줄여서 로그 안에 저장) 또는 링크 주소 */
-function AvatarDialog({
+export function AvatarDialog({
   speaker,
   name,
   setting,
@@ -383,7 +387,7 @@ function WhisperRow({
   )
 }
 
-function Toggle({
+export function Toggle({
   label,
   sub,
   count,
@@ -408,7 +412,7 @@ function Toggle({
   )
 }
 
-function Section({ label, extra, children }: { label: string; extra?: ReactNode; children: ReactNode }) {
+export function Section({ label, extra, children }: { label: string; extra?: ReactNode; children: ReactNode }) {
   return (
     <div className="panel-section">
       <span className="field-label">

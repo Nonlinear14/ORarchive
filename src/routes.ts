@@ -65,7 +65,7 @@ export const navSections: NavSection[] = [
         label: '코코포리아 로그 편집',
         icon: 'logs',
         eyebrow: 'LOG ARCHIVE / CCFOLIA',
-        description: '코코포리아 기록에 이미지를 넣고, 캐릭터별로 걸러 보고, 주사위 표시를 다듬어 보세요.',
+        description: '코코포리아 로그를 불러와 탭 · 캐릭터별로 다듬고 HTML로 내보내세요.',
       },
     ],
   },

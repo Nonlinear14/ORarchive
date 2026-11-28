@@ -1,0 +1,40 @@
+/* 코코포리아 로그 편집 패널 (나머지는 roll20Log.css 를 같이 쓴다) */
+.narrator-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.narrator-chip {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.narrator-chip:hover {
+  background: var(--surface-2);
+}
+/* 패널 안 켜짐 표시: 진한 글자색 + 굵게 (포인트색 없음) */
+.narrator-chip.active {
+  background: var(--surface-3);
+  border-color: var(--text);
+  color: var(--text);
+  font-weight: 700;
+}
+.narrator-chip:focus-visible {
+  outline: 2px solid var(--point);
+  outline-offset: 1px;
+}
+.tab-row .char-main {
+  align-items: center;
+}
+.tab-row .tab-switch {
+  margin-left: auto;
+  flex: none;
+}
+.tab-list {
+  max-height: none;
+}

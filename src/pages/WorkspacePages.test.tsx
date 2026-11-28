@@ -41,7 +41,7 @@ describe('홈', () => {
     await waitFor(() => expect(link.querySelector('[data-testid="roll20-chat"]')).not.toBeNull())
   })
 
-  it('홈 순서: 캐릭터 → 로그 → 템플릿 아카이브, 섹션 아래 편집 바로가기 (코코포리아는 준비 중)', async () => {
+  it('홈 순서: 캐릭터 → 로그 → 템플릿 아카이브, 섹션 아래 편집 바로가기', async () => {
     renderApp('/', { client: createFakeSupabase().client })
 
     expect(await screen.findByText('아직 열어 본 템플릿이 없어요.')).toBeInTheDocument()
@@ -57,8 +57,7 @@ describe('홈', () => {
     expect(within(templates).getByRole('link', { name: '롤꾸코드 편집' })).toHaveAttribute('href', '/studio/roll20code')
     const logs = screen.getByRole('region', { name: '로그 아카이브' })
     expect(within(logs).getByRole('link', { name: 'Roll20 로그 편집' })).toHaveAttribute('href', '/studio/log/roll20')
-    expect(within(logs).getByRole('link', { name: /코코포리아 로그 편집/ })).toHaveAttribute('aria-disabled', 'true')
-    expect(within(logs).getByRole('link', { name: /코코포리아 로그 편집/ })).not.toHaveAttribute('href')
+    expect(within(logs).getByRole('link', { name: '코코포리아 로그 편집' })).toHaveAttribute('href', '/studio/log/ccfolia')
     expect(within(logs).getByRole('link', { name: /로그 보기/ })).toHaveAttribute('href', '/logs')
 
     // 사이드바 순서: 캐릭터 → 로그 → 템플릿 → 설정

@@ -21,7 +21,7 @@ function stateView(item: PendingItem): { label: string; tone: string } {
  */
 /**
  * 핸드아웃 · 롤꾸코드는 그 편집기로 바로 연다. 그 밖(로그 · 종류를 모르는 이전 기록)은 문서 주소로 —
- * 문서 주소가 내용을 보고 맞는 편집기로 넘긴다 (Roll20 로그 / 아주 예전 형식 로그)
+ * 문서 주소가 내용을 보고 맞는 편집기로 넘긴다 (Roll20 로그 / 코코포리아 로그 / 아주 예전 형식 로그)
  */
 const openPath = (item: PendingItem) =>
   item.docType === 'handout' || item.docType === 'roll20code' ? documentPath(item.docType, item.docId) : `/documents/${item.docId}`

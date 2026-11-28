@@ -79,7 +79,7 @@ function RecentCard({ item }: { item: RecentItem }) {
   const { view, doc } = item
   const title = doc.title.trim() || '제목 없음'
   return (
-    <Link to={documentPath(doc.type, doc.id)} className="recent-card" aria-label={`${title} 열기`}>
+    <Link to={documentPath(doc.type, doc.id, doc.format)} className="recent-card" aria-label={`${title} 열기`}>
       {view.kind === 'handout' ? (
         <HandoutPreview id={doc.id} />
       ) : view.kind === 'roll20code' ? (
@@ -216,7 +216,7 @@ function LogSection({ docs, loading }: { docs: DocumentSummary[]; loading: boole
         tone="log"
         items={[
           { to: '/studio/log/roll20', label: 'Roll20 로그 편집' },
-          { to: '/studio/log/ccfolia', label: '코코포리아 로그 편집', ready: false },
+          { to: '/studio/log/ccfolia', label: '코코포리아 로그 편집' },
         ]}
       />
     </section>

@@ -19,6 +19,8 @@ const TemplateEditorPage = lazy(() => import('./features/handout/pages/TemplateE
 const LogListPage = lazy(() => import('./features/log/pages/LogListPage'))
 const Roll20LogStartPage = lazy(() => import('./features/log/roll20/pages/Roll20LogStartPage'))
 const Roll20LogEditorPage = lazy(() => import('./features/log/roll20/editor/Roll20LogEditorPage'))
+const CcfoliaLogStartPage = lazy(() => import('./features/log/ccfolia/pages/CcfoliaLogStartPage'))
+const CcfoliaLogEditorPage = lazy(() => import('./features/log/ccfolia/editor/CcfoliaLogEditorPage'))
 const HandoutStudioPage = lazy(() => import('./features/handout/studio/HandoutStudioPage'))
 const Roll20CodeStartPage = lazy(() => import('./features/roll20code/pages/Roll20CodeStartPage'))
 const Roll20CodeEditorPage = lazy(() => import('./features/roll20code/editor/Roll20CodeEditorPage'))
@@ -28,7 +30,7 @@ function Lazy({ children }: { children: ReactNode }) {
 }
 
 /** 실제 화면이 있는 경로 (나머지 내비 경로는 '준비 중' 자리표시) */
-const implemented = new Set(['/', '/settings', '/templates', '/studio/handout', '/studio/roll20code', '/logs', '/studio/log/roll20'])
+const implemented = new Set(['/', '/settings', '/templates', '/studio/handout', '/studio/roll20code', '/logs', '/studio/log/roll20', '/studio/log/ccfolia'])
 
 export function App() {
   return (
@@ -49,6 +51,8 @@ export function App() {
             <Route path="/logs" element={<Lazy><LogListPage /></Lazy>} />
             <Route path="/studio/log/roll20" element={<Lazy><Roll20LogStartPage /></Lazy>} />
             <Route path="/studio/log/roll20/:id" element={<Lazy><Roll20LogEditorPage /></Lazy>} />
+            <Route path="/studio/log/ccfolia" element={<Lazy><CcfoliaLogStartPage /></Lazy>} />
+            <Route path="/studio/log/ccfolia/:id" element={<Lazy><CcfoliaLogEditorPage /></Lazy>} />
             {/* 예전 주소 */}
             <Route path="/studio/log" element={<Navigate to="/logs" replace />} />
             <Route path="/templates/roll20" element={<Navigate to="/templates" replace />} />

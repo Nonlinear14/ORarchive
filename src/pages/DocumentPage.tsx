@@ -8,6 +8,7 @@ import { LoadingState } from '../components/LoadingState'
 import { SaveStatusChip } from '../components/SaveStatusChip'
 import { isStructuredHandout } from '../features/handout/model'
 import { isRoll20Log } from '../features/log/roll20/model'
+import { CCFOLIA_LOG_FORMAT, isCcfoliaLog } from '../features/log/ccfolia/model'
 import { blockRoll20Text } from '../features/handout/blockRoll20'
 import { resolveLayout } from '../features/handout/layout'
 import { contentText, documentPath, documentTypeLabels, type DocumentContent } from '../lib/documents'
@@ -70,6 +71,7 @@ function DocumentEditor({ docId }: { docId: string }) {
   if (doc.type === 'handout' && isStructuredHandout(draft.content))
     return <Navigate to={documentPath('handout', doc.id)} replace />
   if (doc.type === 'log' && isRoll20Log(draft.content)) return <Navigate to={documentPath('log', doc.id)} replace />
+  if (doc.type === 'log' && isCcfoliaLog(draft.content)) return <Navigate to={documentPath('log', doc.id, CCFOLIA_LOG_FORMAT)} replace />
 
   const typeLabel = documentTypeLabels[doc.type]
 
@@ -141,7 +143,7 @@ function DocumentEditor({ docId }: { docId: string }) {
  * 기본 편집기는 자동 저장이라, 수동 저장 문서(핸드아웃 · 롤꾸코드)를 열면 저장하지 않은 변경을 보내 버린다.
  * 그래서 종류는 이 기기의 대기 기록 → 마지막으로 본 사본 → 서버 순으로 읽기만 해서 알아낸다.
  * - handout · roll20code: 항상 그 편집기로 (삭제된 문서 복구도 그 편집기가 맡는다)
- * - log: Roll20 로그면 로그 편집기로, 아니면(아주 예전 `{ text }` 로그) 기본 편집기
+ * - log: Roll20 · 코코포리아 로그면 그 로그 편집기로, 아니면(아주 예전 `{ text }` 로그) 기본 편집기
  * - 그 밖: 기본 편집기
  */
 type Route = { to: string } | { basic: true } | { notFound: true } | { error: true }
@@ -149,6 +151,7 @@ type Route = { to: string } | { basic: true } | { notFound: true } | { error: tr
 function editorFor(type: DocumentType | undefined, content: DocumentContent | undefined, id: string): Route {
   if (type === 'handout' || type === 'roll20code') return { to: documentPath(type, id) }
   if (type === 'log' && content && isRoll20Log(content)) return { to: documentPath('log', id) }
+  if (type === 'log' && content && isCcfoliaLog(content)) return { to: documentPath('log', id, CCFOLIA_LOG_FORMAT) }
   return { basic: true }
 }
 
