@@ -211,13 +211,7 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
   )
   const onCancelEdit = useCallback(() => setEditingId(null), [])
   const onChangeSpeaker = useCallback((message: CcfMessage, speaker: string) => apply(setCcfMessageSpeaker(message.id, speaker)), [apply])
-  const onChangeTab = useCallback(
-    (message: CcfMessage, tab: string) => {
-      apply(setCcfMessageTab(message.id, tab))
-      if (content.tabs[tab]?.hidden) show(`꺼진 탭(${tab})으로 옮겨서 지금은 보이지 않아요. 되돌리기로 돌아갈 수 있어요.`)
-    },
-    [apply, content.tabs, show],
-  )
+  const onChangeTab = useCallback((message: CcfMessage, tab: string) => apply(setCcfMessageTab(message.id, tab)), [apply])
   const onOpenMenu = useCallback((message: CcfMessage) => setMenuId(message.id), [])
   const menuIndex = menuId ? rows.findIndex((r) => r.message.id === menuId) : -1
 

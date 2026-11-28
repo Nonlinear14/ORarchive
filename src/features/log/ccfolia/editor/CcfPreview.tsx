@@ -31,7 +31,6 @@ const CCF_OVERLAY_CSS = `
 /* 탭 이름(최대 80px)을 가리지 않게 편집 버튼 줄을 왼쪽으로 */
 .tabs-on .msg-actions{right:96px}
 .tab-menu{left:auto;right:6px;top:26px;min-width:160px}
-.tab-menu .tab-hidden{color:var(--text-muted);font-weight:500;font-size:10.5px;margin-left:auto}
 .log-msg>.ccf-msg{transition:box-shadow .12s}
 .log-msg.is-active>.ccf-msg,.log-msg:focus-visible>.ccf-msg,.log-msg.is-editing>.ccf-msg{box-shadow:inset 0 0 0 2px var(--point)}
 .log-msg.is-editable>.ccf-msg{cursor:text}
@@ -103,7 +102,7 @@ function CcfSpeakerMenu({
   )
 }
 
-/** 탭 바꾸기 목록 (기존 탭에서만 고른다) */
+/** 탭 바꾸기 목록 (기존 탭에서만 고른다. 꺼진 탭도 이름 그대로 보이고, 옮겨도 따로 알리지 않는다) */
 function TabMenu({ content, current, onPick, onClose }: { content: CcfoliaLogContent; current: string; onPick(tab: string): void; onClose(): void }) {
   const menuRef = useRef<HTMLDivElement>(null)
   const up = useOpenUpward(menuRef)
@@ -134,7 +133,6 @@ function TabMenu({ content, current, onPick, onClose }: { content: CcfoliaLogCon
       {tabsOf(content).map(({ tab }) => (
         <button key={tab} type="button" role="menuitem" aria-current={tab === current} onClick={() => onPick(tab)}>
           {tab || '탭 없음'}
-          {content.tabs[tab]?.hidden && <span className="tab-hidden">꺼진 탭</span>}
         </button>
       ))}
     </div>
