@@ -144,10 +144,9 @@
 - 미리보기에만 Pretendard 웹폰트(`editor/viewerFonts.ts`). 내보내기에는 넣지 않는다. 글꼴 메뉴는 만들지 않기로 함.
 - 실제 샘플 확인: `src/features/log/roll20/samples.local.test.ts`(저장소 제외, `*.local.test.ts`)를 만들어 `SAMPLE_DIR` 의 저장본을 읽어 볼 수 있다.
 
-## 5-1. 진행 중: 롤꾸코드 편집 (브랜치 `roll20code`, 목업 확인 대기)
-- 새 문서 종류 `roll20code` (content: `{format:'roll20-code', v:1, code}`). DB가 받으려면 `supabase/migrations/0002_roll20code.sql`을 SQL Editor에서 실행해야 한다 — **main 반영 전에 필수**.
-- 코드: `src/features/roll20code/` — `parse.ts`(링크 `[글자](#" style="…")` 읽기 · 괄호 짝 맞추기 · 같은 색 묶기 · 그 자리만 고치기 · 채팅 모양 그리기), `model.ts`(기본 제공 롤꾸 3종), `editor/`(미리보기 + 편집 패널), `pages/Roll20CodeStartPage.tsx`(선택 창).
-- 템플릿 목록에 핸드아웃과 함께 갈색 "롤꾸코드" 칩으로 보이고, 누르면 바로 편집기로 간다.
+## 5-1. 롤꾸코드 편집 (2026-11-28 배포)
+- 새 문서 종류 `roll20code` (content: `{format:'roll20-code', v:1, code}`), 마이그레이션 `0002_roll20code.sql` 적용 완료(실제 저장·삭제로 확인).
+- 코드: `src/features/roll20code/` — `parse.ts`(링크 `[글자](#" style="…")` 읽기 · 괄호 짝 맞추기 · 같은 색 묶기 · 그 자리만 고치기 · 채팅 모양 그리기), `model.ts`(기본 제공 롤꾸 3종), `editor/`(미리보기 + 꾸미기 카드 + 편집 패널), `pages/Roll20CodeStartPage.tsx`(선택 창).
 - 다음: 여러 메시지(여러 줄) 샘플을 받으면 한 문서로 저장 · 편집하게 고친다(모델은 이미 줄바꿈 허용). 스타일 프리셋은 나중에.
 
 ## 6. 참고 자료
