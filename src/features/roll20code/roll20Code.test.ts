@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROLL20_CODE_STARTERS } from './model'
+import { ROLL20_CODE_SAMPLES } from './testSamples'
 import {
   allDesc,
   colorGroups,
@@ -17,7 +17,7 @@ import {
   uniqueQueries,
 } from './parse'
 
-const [judge, chapter, full] = ROLL20_CODE_STARTERS.map((s) => s.code)
+const [judge, chapter, full] = ROLL20_CODE_SAMPLES.map((s) => s.code)
 
 describe('롤꾸 코드 읽기', () => {
   it('판정 버튼: 끝의 linear-gradient( ) 괄호가 링크의 끝을 겸한다', () => {

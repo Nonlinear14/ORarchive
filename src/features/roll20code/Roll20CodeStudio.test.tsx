@@ -2,7 +2,8 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFakeSupabase } from '../../test/fakeSupabase'
 import { renderApp } from '../../test/renderApp'
-import { ROLL20_CODE_STARTERS, roll20CodeContent } from './model'
+import { roll20CodeContent } from './model'
+import { ROLL20_CODE_SAMPLES } from './testSamples'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -10,24 +11,63 @@ afterEach(() => {
   localStorage.clear()
 })
 
-const chapter = ROLL20_CODE_STARTERS.find((s) => s.id === 'chapter')!
+const chapter = ROLL20_CODE_SAMPLES.find((s) => s.id === 'chapter')!
 
 function docsOf(fake: ReturnType<typeof createFakeSupabase>) {
   return fake.control.tables.documents as { id: string; type: string; title: string; content: { code?: string }; deleted_at: string | null }[]
 }
 
 describe('롤꾸코드 편집', () => {
-  it('선택 창: 기본 제공 롤꾸를 고르면 사본 문서를 만들어 편집기를 연다', async () => {
+  it('선택 창: 기본 제공 롤꾸 없이 내 롤꾸코드만 · 고르면 사본으로 편집기를 연다', async () => {
+    const fake = createFakeSupabase()
+    fake.control.insertDocument({ type: 'roll20code', title: '챕터', content: roll20CodeContent(chapter.code) })
+    fake.control.insertDocument({ type: 'handout', title: '봉인된 편지' })
+    renderApp('/studio/roll20code', { client: fake.client })
+    const dialog = await screen.findByRole('dialog')
+    expect(await within(dialog).findByText('챕터')).toBeInTheDocument()
+    expect(within(dialog).queryByText('판정 버튼')).not.toBeInTheDocument()
+    expect(within(dialog).queryByText('봉인된 편지')).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: /새 롤꾸코드/ })).toHaveAttribute('href', '/studio/roll20code/new')
+    fireEvent.click(within(dialog).getByRole('button', { name: '챕터 — 이 템플릿 사용하기' }))
+    expect(await screen.findByRole('complementary', { name: '롤꾸 편집' })).toBeInTheDocument()
+    const codes = docsOf(fake).filter((d) => d.type === 'roll20code')
+    expect(codes.map((d) => d.title).sort()).toEqual(['챕터', '챕터 (사본)'])
+    expect(codes.every((d) => d.content.code === chapter.code)).toBe(true)
+  })
+
+  it('선택 창: 롤꾸코드가 없으면 안내와 새 롤꾸코드 버튼만', async () => {
     const fake = createFakeSupabase()
     renderApp('/studio/roll20code', { client: fake.client })
     const dialog = await screen.findByRole('dialog')
-    for (const s of ROLL20_CODE_STARTERS) expect(within(dialog).getByText(s.title)).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: `${chapter.title} — 이 템플릿 사용하기` }))
-    expect(await screen.findByRole('complementary', { name: '롤꾸 편집' })).toBeInTheDocument()
-    const created = docsOf(fake).filter((d) => d.type === 'roll20code')
-    expect(created).toHaveLength(1)
-    expect(created[0].title).toBe(chapter.title)
-    expect(created[0].content.code).toBe(chapter.code)
+    expect(await within(dialog).findByText(/아직 롤꾸코드가 없어요/)).toBeInTheDocument()
+    expect(within(dialog).queryAllByRole('article')).toHaveLength(0)
+  })
+
+  it('새 롤꾸코드: 아무것도 넣지 않으면 문서를 만들지 않고, 코드를 붙여 넣으면 만들어 그 편집기로 넘어간다', async () => {
+    const fake = createFakeSupabase()
+    const { unmount } = renderApp('/studio/roll20code/new', { client: fake.client })
+    const side = await screen.findByRole('complementary', { name: '롤꾸 편집' })
+    expect(screen.getByRole('note')).toHaveTextContent('코드 직접 고치기')
+    expect(screen.getByText(/아직 저장 전/)).toBeInTheDocument()
+    expect(within(side).getByLabelText('롤꾸 코드')).toBeVisible()
+    expect(docsOf(fake)).toHaveLength(0)
+    // 만드는 동안 더 입력해도 마지막 입력이 남는다
+    fireEvent.change(within(side).getByLabelText('롤꾸 코드'), { target: { value: '[가](#" style="color:red")' } })
+    fireEvent.change(within(side).getByLabelText('롤꾸 코드'), { target: { value: chapter.code } })
+    await waitFor(() => expect(screen.queryByText(/아직 저장 전/)).not.toBeInTheDocument())
+    await waitFor(() => expect(docsOf(fake)[0]?.content.code).toBe(chapter.code), { timeout: 3000 })
+    expect(docsOf(fake)).toHaveLength(1)
+    expect(docsOf(fake)[0].title).toBe('새 롤꾸코드')
+    expect(screen.getByRole('textbox', { name: '롤꾸코드 이름' })).toHaveValue('새 롤꾸코드')
+    unmount()
+  })
+
+  it('새 롤꾸코드: 그냥 나가면 목록에 남지 않는다', async () => {
+    const fake = createFakeSupabase()
+    const { unmount } = renderApp('/studio/roll20code/new', { client: fake.client })
+    await screen.findByRole('complementary', { name: '롤꾸 편집' })
+    unmount()
+    expect(docsOf(fake)).toHaveLength(0)
   })
 
   it('글자 · 같은 색 한꺼번에 · /desc 를 고치면 저장되고, 되돌리기로 돌아간다', async () => {
@@ -63,12 +103,12 @@ describe('롤꾸코드 편집', () => {
   it('템플릿 목록: 롤꾸코드는 갈색 칩 · 누르면 편집기로 · 새 롤꾸코드 버튼', async () => {
     const fake = createFakeSupabase()
     fake.control.insertDocument({ type: 'handout', title: '봉인된 편지' })
-    fake.control.insertDocument({ type: 'roll20code', title: '판정 버튼 (빨강)', content: roll20CodeContent(ROLL20_CODE_STARTERS[0].code) })
+    fake.control.insertDocument({ type: 'roll20code', title: '판정 버튼 (빨강)', content: roll20CodeContent(ROLL20_CODE_SAMPLES[0].code) })
     renderApp('/templates', { client: fake.client })
     const mine = await screen.findByRole('region', { name: '내 템플릿' })
     await waitFor(() => expect(within(mine).getByText(/핸드아웃 1개 · 롤꾸코드 1개/)).toBeInTheDocument())
     expect(within(mine).getByText('롤꾸코드')).toHaveClass('kind-chip', 'tone-brown')
-    expect(screen.getByRole('link', { name: /새 롤꾸코드/ })).toHaveAttribute('href', '/studio/roll20code')
+    expect(screen.getByRole('link', { name: /새 롤꾸코드/ })).toHaveAttribute('href', '/studio/roll20code/new')
     fireEvent.click(within(mine).getByRole('button', { name: '판정 버튼 (빨강) 열기' }))
     expect(await screen.findByRole('complementary', { name: '롤꾸 편집' })).toBeInTheDocument()
   })

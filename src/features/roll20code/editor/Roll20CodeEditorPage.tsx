@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { DeletedRecovery } from '../../../components/document/DeletedRecovery'
 import '../../../components/document/DocumentEditor.css'
 import { SyncNotices } from '../../../components/document/SyncNotices'
@@ -9,17 +9,18 @@ import { SaveStatusChip } from '../../../components/SaveStatusChip'
 import { Toast } from '../../../components/Toast'
 import { useAuth } from '../../../lib/auth/context'
 import { copyText } from '../../../lib/clipboard'
-import type { DocumentContent, DocumentDraft, DocumentRecord } from '../../../lib/documents'
-import type { SaveStatus } from '../../../lib/documentSync'
+import { documentPath, type DocumentContent, type DocumentDraft, type DocumentRecord } from '../../../lib/documents'
+import { errorMessageOf, type SaveStatus } from '../../../lib/documentSync'
 import { formatRelativeTime } from '../../../lib/format'
 import { recordRecentView } from '../../../lib/recentViews'
 import { useDocument } from '../../../lib/useDocument'
 import { useEditHistory } from '../../../lib/useEditHistory'
+import { useRepository } from '../../../lib/useRepository'
 import { useToast } from '../../../lib/useToast'
 import { NotFoundPage } from '../../../pages/NotFoundPage'
 import { ColorField } from '../../handout/studio/DesignPanel'
 import '../../handout/studio/HandoutStudio.css'
-import { isRoll20Code, resolveRoll20Code, type Roll20CodeContent } from '../model'
+import { isRoll20Code, NEW_ROLL20_CODE_TITLE, resolveRoll20Code, roll20CodeContent, type Roll20CodeContent } from '../model'
 import {
   allDesc,
   colorGroups,
@@ -54,16 +55,21 @@ interface EditorProps {
   offlineCopy: boolean
   edit(patch: Partial<DocumentDraft>): void
   flush(): Promise<void>
-  children: ReactNode
+  children?: ReactNode
+  /** 아직 서버에 없는 새 롤꾸코드 (코드나 이름을 처음 넣을 때 만든다) */
+  isNew?: boolean
 }
 
-function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, children }: EditorProps) {
+function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, children, isNew = false }: EditorProps) {
   const { toast, show } = useToast()
   const { apply, undo, redo, canUndo, canRedo } = useEditHistory(draft.content, edit)
   const code = content.code
   // 질문 예시 답: 미리보기 · 롤꾸 복사에만 쓰고 저장하지 않는다
   // 코드 직접 고치기: 넓은 화면에서는 처음부터 펼침, 휴대폰은 접어 둠
-  const [rawOpen, setRawOpen] = useState(() => typeof window.matchMedia !== 'function' || window.matchMedia('(min-width: 1051px)').matches)
+  // 코드가 비어 있으면(새 롤꾸코드) 휴대폰에서도 펼친다
+  const [rawOpen, setRawOpen] = useState(
+    () => !content.code.trim() || typeof window.matchMedia !== 'function' || window.matchMedia('(min-width: 1051px)').matches,
+  )
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const slots = useMemo(() => textSlots(code), [code])
   const colors = useMemo(() => colorGroups(code), [code])
@@ -110,11 +116,13 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             onChange={(event) => edit({ title: event.target.value })}
           />
           <p>
-            롤꾸코드 · v{doc.version} · {offlineCopy ? '이 기기에 저장해 둔 사본' : `${formatRelativeTime(doc.updated_at)} 서버에 저장`}
+            {isNew
+              ? '롤꾸코드 · 아직 저장 전 · 코드를 붙여 넣거나 이름을 바꾸면 저장돼요'
+              : `롤꾸코드 · v${doc.version} · ${offlineCopy ? '이 기기에 저장해 둔 사본' : `${formatRelativeTime(doc.updated_at)} 서버에 저장`}`}
           </p>
         </div>
         <div className="editor-toolbar">
-          <SaveStatusChip status={status} />
+          {!isNew && <SaveStatusChip status={status} />}
           {status === 'error' && (
             <button type="button" className="btn small" onClick={() => void flush()}>
               다시 시도
@@ -139,13 +147,21 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             <span className="canvas-meta">Roll20 채팅창</span>
           </div>
           <div className="canvas-stage r20-stage">
-            <ChatPreview code={code} answers={answers} />
+            {code.trim() ? (
+              <ChatPreview code={code} answers={answers} />
+            ) : (
+              <p className="r20-empty" role="note">
+                편집 패널의 "코드 직접 고치기"에 롤꾸 코드를 붙여 넣으세요.
+                <br />
+                붙여 넣으면 이곳에 Roll20 채팅 모양으로 보이고, 내 템플릿에 저장돼요.
+              </p>
+            )}
           </div>
           <section className="r20-edit" aria-label="꾸미기">
             <div className="r20-col r20-col-content">
               <span className="field-label">내용</span>
               {slots.length === 0 ? (
-                <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. 아래 코드에서 직접 넣을 수 있어요.</p>
+                <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. "코드 직접 고치기"에서 넣을 수 있어요.</p>
               ) : (
                 slots.map((slot, i) => {
                   const id = `slot-${i}`
@@ -248,6 +264,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             <button
               type="button"
               className="btn primary"
+              disabled={!code.trim()}
               onClick={() => void copy(fillQueries(code, answers), '롤꾸를 복사했습니다. Roll20 채팅창에 붙여 넣어 보내세요.')}
             >
               <Icon name="copy" /> 롤꾸 복사
@@ -323,6 +340,17 @@ function Roll20CodeStudio({ docId }: { docId: string }) {
   const stored = draft?.content
   const content = useMemo(() => (stored && isRoll20Code(stored) ? resolveRoll20Code(stored) : null), [stored])
   const { user } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+  // 새 롤꾸코드: 문서를 만드는 동안 더 입력한 내용을 넘겨받아 한 번 반영하고, 기록에서 지운다 (새로고침 때 다시 덮지 않게)
+  const pending = (location.state as { r20Pending?: DocumentDraft } | null)?.r20Pending
+  useEffect(() => {
+    if (!pending || phase !== 'ready' || !draft) return
+    const code = (draft.content as { code?: unknown }).code
+    const pendingCode = (pending.content as { code?: unknown }).code
+    if (pending.title !== draft.title || pendingCode !== code) edit({ title: pending.title, content: { ...(draft.content as object), code: pendingCode } as DocumentContent })
+    navigate(location.pathname, { replace: true, state: null })
+  }, [pending, phase, draft, edit, navigate, location.pathname])
   const openedId = phase === 'ready' && doc?.type === 'roll20code' ? doc.id : null
   useEffect(() => {
     if (user && openedId) recordRecentView(user.id, openedId, 'roll20code')
@@ -365,13 +393,64 @@ function Roll20CodeStudio({ docId }: { docId: string }) {
   )
 }
 
+/**
+ * /studio/roll20code/new — 빈 롤꾸코드 편집기. 아무것도 넣지 않고 나가면 문서가 생기지 않는다.
+ * 코드나 이름을 처음 바꾸는 순간 문서를 만들고(그 사이 입력은 이 화면에 쌓아 둠), 만들어지면 그 문서의 편집기로 넘어가며
+ * 마지막 입력을 넘겨 준다 — 입력한 글은 잃지 않는다. 만들기에 실패하면 글은 화면에 남고, 다음 입력 때 다시 시도한다.
+ */
+function NewRoll20Code() {
+  const repo = useRepository()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [draft, setDraft] = useState<DocumentDraft>(() => ({ title: NEW_ROLL20_CODE_TITLE, content: roll20CodeContent('') }))
+  const latest = useRef(draft)
+  const creating = useRef(false)
+  const [failed, setFailed] = useState<string | null>(null)
+  const content = useMemo(() => resolveRoll20Code(draft.content), [draft.content])
+  const now = useMemo(() => new Date().toISOString(), [])
+  const doc: DocumentRecord = useMemo(
+    () => ({ id: 'new', owner_id: user?.id ?? '', project_id: null, type: 'roll20code', title: draft.title, content: draft.content, visibility: 'private', version: 0, created_at: now, updated_at: now, deleted_at: null }) as DocumentRecord,
+    [user?.id, draft, now],
+  )
+
+  const edit = useCallback(
+    (patch: Partial<DocumentDraft>) => {
+      const next = { ...latest.current, ...patch }
+      latest.current = next
+      setDraft(next)
+      if (creating.current) return
+      creating.current = true
+      setFailed(null)
+      repo.create({ type: 'roll20code', title: next.title, content: next.content }).then(
+        (created) => navigate(documentPath('roll20code', created.id), { replace: true, state: { r20Pending: latest.current } }),
+        (err: unknown) => {
+          creating.current = false
+          setFailed(errorMessageOf(err))
+        },
+      )
+    },
+    [repo, navigate],
+  )
+
+  return (
+    <CodeEditor doc={doc} draft={draft} content={content} status="saved" offlineCopy={false} edit={edit} flush={() => Promise.resolve()} isNew>
+      {failed && (
+        <div className="callout danger" role="alert">
+          <Icon name="alert" />
+          <span>롤꾸코드를 저장하지 못했어요: {failed} 입력한 내용은 이 화면에 남아 있고, 다시 입력하면 다시 저장해요.</span>
+        </div>
+      )}
+    </CodeEditor>
+  )
+}
+
 /** /studio/roll20code/:id — 롤꾸코드 편집 */
 export default function Roll20CodeEditorPage() {
   const { id = '' } = useParams()
   return (
     <>
       <h1 className="sr-only">롤꾸코드 편집</h1>
-      <Roll20CodeStudio key={id} docId={id} />
+      {id === 'new' ? <NewRoll20Code /> : <Roll20CodeStudio key={id} docId={id} />}
     </>
   )
 }

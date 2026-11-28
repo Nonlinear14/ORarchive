@@ -15,6 +15,7 @@ import { useRepository } from '../../../lib/useRepository'
 import { templateKindChips } from '../../../lib/kindChips'
 import { HandoutPreview } from '../HandoutPreview'
 import { Roll20CodePreview } from '../../roll20code/Roll20CodePreview'
+import { NEW_ROLL20_CODE_PATH } from '../../roll20code/model'
 import { useCopyHandout } from '../useCopyHandout'
 import { useSeedSampleHandout } from '../useSeedSampleHandout'
 import { TemplatePickerDialog } from './TemplatePicker'
@@ -139,7 +140,7 @@ export default function HandoutArchivePage() {
         action={
           <div className="archive-actions">
             <ViewToggle view={view} onChange={changeView} />
-            <Link to="/studio/roll20code" className="btn">
+            <Link to={NEW_ROLL20_CODE_PATH} className="btn">
               <Icon name="plus" /> 새 롤꾸코드
             </Link>
             <button type="button" className="btn primary" onClick={() => setPicking(true)}>

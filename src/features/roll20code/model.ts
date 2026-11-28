@@ -45,27 +45,8 @@ export function roll20CodeContent(code: string, source?: Roll20CodeContent['sour
   return { format: ROLL20_CODE_FORMAT, v: ROLL20_CODE_VERSION, code, ...(source ? { source } : {}) } as DocumentContent
 }
 
-/** 기본 제공 롤꾸 (사본으로 시작) */
-export interface Roll20CodeStarter {
-  id: string
-  title: string
-  code: string
-}
+/** 새 롤꾸코드 기본 이름 */
+export const NEW_ROLL20_CODE_TITLE = '새 롤꾸코드'
 
-export const ROLL20_CODE_STARTERS: Roll20CodeStarter[] = [
-  {
-    id: 'judge-button',
-    title: '판정 버튼',
-    code: '/desc [✷　?{기능|} 판정　✷](#" style=" text-decoration: none; font-style: normal !important; text-align: center; display: inline-block; color: white; letter-spacing: -1px; border-radius: 20px; padding: 5px 25px;margin-left: -4px;background-image: linear-gradient(135deg, #FF0053, #FFD444)',
-  },
-  {
-    id: 'chapter',
-    title: '챕터 표시',
-    code: '/desc [─────── CHAPTER ?{챕터 숫자|} ───────](#" style="text-decoration:none; color: #F5C542; background-color:#EE1B60; text-align:center; display:block; padding:2px; box-shadow: 0px 8px 0px 15px #EE1B60; font-size:12px; font-style: normal;)[?{챕터명|}](#" style="text-decoration:none; color: #FFFFFF; background-color:#EE1B60; text-align:center; display:block; padding:2px; box-shadow: 0px 8px 0px 15px #EE1B60; font-style: normal;)',
-  },
-  {
-    id: 'full-desc',
-    title: '배경색이 꽉 차는 desc 서술',
-    code: '/desc [?{내용|}](#" style="text-decoration:none; color: #FFFFFF; background-color:#87BD00; text-align:center; display:block; padding:2px; box-shadow: 0px 8px 0px 15px #87BD00;)',
-  },
-]
+/** 빈 편집기 (코드나 제목을 처음 넣을 때 문서를 만든다) */
+export const NEW_ROLL20_CODE_PATH = '/studio/roll20code/new'
