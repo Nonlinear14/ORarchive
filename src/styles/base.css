@@ -33,7 +33,8 @@ a {
 }
 
 ::selection {
-  background: var(--point);
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 input:focus,

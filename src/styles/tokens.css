@@ -28,6 +28,9 @@
   --radius: 4px;
   /* 선택된 메뉴 · 분할 버튼의 강조 상자 */
   --select-bg: #ffffff;
+  /* 글자를 끌어 고른 영역 (2026-11-28): 라이트 = 검정 바탕 · 흰 글자, 다크 = 반대 */
+  --selection-bg: #1a1a1a;
+  --selection-text: #fafafa;
 
   /* 종류 칩 (2026-11-28): 핸드아웃 · Roll20 = 포인트보다 옅고 차분한 파랑, 롤꾸코드 · 코코포리아 = 녹색 */
   --chip-blue-text: #3e4f9a;

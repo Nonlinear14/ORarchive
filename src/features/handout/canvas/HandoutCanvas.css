@@ -292,5 +292,13 @@
 
 /* 글상자에서 드래그한 범위: 패널로 포커스가 옮겨가도 보이게 */
 ::highlight(hb-range) {
-  background-color: color-mix(in srgb, var(--point) 30%, transparent);
+  background-color: #1a1a1a;
+  color: #fafafa;
+}
+
+/* 문서(캔버스)는 다크 모드에서도 흰 바탕이라 고른 영역은 테마와 상관없이 검정 바탕 · 흰 글자 */
+.hc-canvas ::selection,
+.hc-canvas::selection {
+  background: #1a1a1a;
+  color: #fafafa;
 }
