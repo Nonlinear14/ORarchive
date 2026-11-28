@@ -28,14 +28,21 @@ import {
   defaultAnswer,
   fillQueries,
   findQueries,
+  fontProps,
+  imageMessages,
+  inMessage,
   italicRemoved,
+  messageSlots,
+  messageSpans,
   setColor,
   setDesc,
+  setFontValue,
+  setImageUrl,
   setItalicRemoved,
   setSlotText,
   slotAsQuery,
-  textSlots,
-  uniqueQueries,
+  type FontProp,
+  type LinkPart,
 } from '../parse'
 import '../roll20Code.css'
 import { ChatPreview } from './ChatPreview'
@@ -45,6 +52,92 @@ const withCode = (code: string) => (stored: DocumentContent) => {
   const obj = (stored && typeof stored === 'object' ? stored : {}) as Record<string, unknown>
   if (obj.code === code) return stored
   return { ...obj, code } as DocumentContent
+}
+
+const FONT_LABEL: Record<FontProp['property'], string> = {
+  'font-size': '크기',
+  'font-weight': '굵기',
+  'letter-spacing': '자간',
+  'line-height': '행간',
+  'font-style': '기울임',
+}
+const WEIGHTS = ['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900']
+const FONT_STYLES = ['normal', 'italic']
+
+/** 글자 칸 아래 글꼴 칸: 코드에 이미 있는 속성만 (크기 · 굵기 · 자간 · 행간 · 기울임). 고치면 그 값 자리만 바뀐다 */
+function FontFields({
+  code,
+  slot,
+  idBase,
+  label,
+  apply,
+}: {
+  code: string
+  slot: LinkPart
+  idBase: string
+  label: string
+  apply(op: (stored: DocumentContent) => DocumentContent, group?: string): void
+}) {
+  const props = fontProps(slot)
+  if (props.length === 0) return null
+  return (
+    <div className="r20-font" role="group" aria-label={`${label} 글꼴`}>
+      {props.map((prop) => {
+        const id = `${idBase}-${prop.property}`
+        const set = (value: string) => apply(withCode(setFontValue(code, prop, value)), `${id}:${slot.styleSpan?.start}`)
+        const num = /^(-?\d*\.?\d+)([a-z%]*)$/i.exec(prop.value)
+        let control: ReactNode
+        if (prop.property === 'font-weight' || prop.property === 'font-style') {
+          const list = prop.property === 'font-weight' ? WEIGHTS : FONT_STYLES
+          const choices = list.includes(prop.value.toLowerCase()) ? list : [prop.value, ...list]
+          control = (
+            <select
+              id={id}
+              className="field-input"
+              value={list.includes(prop.value.toLowerCase()) ? prop.value.toLowerCase() : prop.value}
+              onChange={(e) => set(e.target.value)}
+            >
+              {choices.map((c) => (
+                <option key={c} value={c}>
+                  {c === 'normal'
+                    ? prop.property === 'font-style'
+                      ? '없음 (normal)'
+                      : '보통 (normal)'
+                    : c === 'bold'
+                      ? '굵게 (bold)'
+                      : c === 'italic'
+                        ? '기울임 (italic)'
+                        : c}
+                </option>
+              ))}
+            </select>
+          )
+        } else if (num) {
+          control = (
+            <span className="r20-font-num">
+              <input
+                id={id}
+                className="field-input"
+                type="number"
+                step={num[2] === 'px' || num[2] === '' ? 1 : 0.1}
+                value={num[1]}
+                onChange={(e) => e.target.value !== '' && set(`${e.target.value}${num[2]}`)}
+              />
+              {num[2] && <em>{num[2]}</em>}
+            </span>
+          )
+        } else {
+          control = <input id={id} className="field-input" value={prop.value} onChange={(e) => set(e.target.value)} />
+        }
+        return (
+          <div key={prop.property} className="r20-font-field">
+            <label htmlFor={id}>{FONT_LABEL[prop.property]}</label>
+            {control}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 interface EditorProps {
@@ -71,9 +164,38 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
     () => !content.code.trim() || typeof window.matchMedia !== 'function' || window.matchMedia('(min-width: 1051px)').matches,
   )
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const slots = useMemo(() => textSlots(code), [code])
-  const colors = useMemo(() => colorGroups(code), [code])
-  const queries = useMemo(() => uniqueQueries(code), [code])
+  // 여러 메시지: 미리보기에서 누른 메시지만 고친다 (null = 전체)
+  const [selected, setSelected] = useState<number | null>(null)
+  const editCard = useRef<HTMLElement>(null)
+  const messages = useMemo(() => messageSpans(code), [code])
+  const multi = messages.length > 1
+  const sel = multi && selected !== null && selected < messages.length ? selected : null
+  const toggleMessage = useCallback((i: number) => setSelected((cur) => (cur === i ? null : i)), [])
+  const msgLabel = (message: number) => (multi && sel === null ? `메시지 ${message + 1} · ` : '')
+  const slotRefs = useMemo(() => messageSlots(code), [code])
+  const slots = useMemo(() => slotRefs.map((r) => r.slot), [slotRefs])
+  // 글자 번호: 한 메시지면 문서 전체 순서, 여러 메시지면 메시지 안 순서
+  const shownSlots = useMemo(() => {
+    const counts = new Map<number, number>()
+    return slotRefs
+      .map((r, global) => {
+        const n = (counts.get(r.message) ?? 0) + 1
+        counts.set(r.message, n)
+        return { ...r, global, n: multi ? n : global + 1 }
+      })
+      .filter((r) => sel === null || r.message === sel)
+  }, [slotRefs, multi, sel])
+  const shownImages = useMemo(() => imageMessages(code).filter((img) => sel === null || img.message === sel), [code, sel])
+  const colors = useMemo(() => colorGroups(code, sel), [code, sel])
+  const shownQueries = useMemo(() => {
+    const inside = inMessage(code, sel)
+    const seen = new Set<string>()
+    return findQueries(code).filter((q) => {
+      if (!inside(q) || seen.has(q.label)) return false
+      seen.add(q.label)
+      return true
+    })
+  }, [code, sel])
   const desc = allDesc(code)
   const noItalic = italicRemoved(code)
 
@@ -97,6 +219,64 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
       () => show(ok),
       () => show('클립보드 접근을 차단했습니다. 브라우저의 클립보드 권한을 확인해 주세요.', 'error'),
     )
+
+  const renderImage = (img: (typeof shownImages)[number]) => {
+    const id = `img-${img.message}`
+    return (
+      <div className="r20-slot" key={id}>
+        <label className="field-label sub" htmlFor={img.asked ? undefined : id}>
+          {msgLabel(img.message)}이미지 주소
+        </label>
+        {img.asked ? (
+          <small className="r20-slot-note">주소 안에 질문(?{'{…}'})이 있어요. 아래 "질문 예시"에서 고르면 그 이미지가 보여요.</small>
+        ) : (
+          <input
+            id={id}
+            className="field-input"
+            value={img.url}
+            spellCheck={false}
+            onChange={(e) => apply(withCode(setImageUrl(code, img, e.target.value)), `img:${img.message}`)}
+          />
+        )}
+      </div>
+    )
+  }
+  const renderSlot = ({ message, slot, n, global }: (typeof shownSlots)[number]) => {
+    const id = `slot-${global}`
+    const asked = /\?\{[^{}]*\}/.test(slot.text)
+    return (
+      <div className="r20-slot" key={`${global}-${slot.textSpan.start}`}>
+        <label className="field-label sub" htmlFor={id}>
+          {msgLabel(message)}글자 {n}
+        </label>
+        <div className="r20-slot-row">
+          <input
+            id={id}
+            className="field-input"
+            value={slot.text}
+            onChange={(e) => apply(withCode(setSlotText(code, slot, e.target.value)), `slot:${global}`)}
+          />
+          {!asked && (
+            <button
+              type="button"
+              className="btn small"
+              title="Roll20 매크로를 실행할 때 이 글자를 물어보게 해요"
+              onClick={() => apply(withCode(setSlotText(code, slot, slotAsQuery(slot.text, global))))}
+            >
+              질문으로
+            </button>
+          )}
+        </div>
+        <FontFields code={code} slot={slot} idBase={id} label={`${msgLabel(message)}글자 ${n}`} apply={apply} />
+        {asked && !multi && <small className="r20-slot-note">?{'{…}'} 질문은 매크로를 실행할 때 물어봐요. 미리보기는 아래 "질문 예시"로 채워요.</small>}
+      </div>
+    )
+  }
+  // 메시지 순서대로: 이미지 주소 · 글자 칸
+  const contentItems = [
+    ...shownImages.map((img) => ({ at: img.message, node: renderImage(img) })),
+    ...shownSlots.map((r) => ({ at: r.message, node: renderSlot(r) })),
+  ].sort((x, y) => x.at - y.at)
 
   return (
     <article className="doc-editor handout-studio roll20code-studio">
@@ -148,7 +328,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
           </div>
           <div className="canvas-stage r20-stage">
             {code.trim() ? (
-              <ChatPreview code={code} answers={answers} />
+              <ChatPreview code={code} answers={answers} selected={multi ? sel : null} onSelect={multi ? toggleMessage : undefined} />
             ) : (
               <p className="r20-empty" role="note">
                 편집 패널의 "코드 직접 고치기"에 롤꾸 코드를 붙여 넣으세요.
@@ -157,71 +337,64 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
               </p>
             )}
           </div>
-          <section className="r20-edit" aria-label="꾸미기">
+          {sel !== null && (
+            <div className="r20-jump" role="status">
+              <span>메시지 {sel + 1} 선택됨</span>
+              <button type="button" className="btn small" onClick={() => editCard.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                편집하러 가기 ↓
+              </button>
+            </div>
+          )}
+          <section className="r20-edit" aria-label="꾸미기" ref={editCard}>
+            {multi && (
+              <div className={`r20-edit-head${sel !== null ? ' is-picked' : ''}`}>
+                {sel !== null ? (
+                  <>
+                    <strong>메시지 {sel + 1} 편집 중</strong>
+                    <span>이 메시지 안의 글자 · 색 · 질문만 보여요</span>
+                    <button type="button" className="btn small" onClick={() => setSelected(null)}>
+                      전체 보기
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <strong>전체 메시지 {messages.length}개</strong>
+                    <span>미리보기에서 메시지를 누르면 그 메시지만 고칠 수 있어요</span>
+                  </>
+                )}
+              </div>
+            )}
             <div className="r20-col r20-col-content">
               <span className="field-label">내용</span>
-              {slots.length === 0 ? (
+              {shownSlots.length === 0 && shownImages.length === 0 && (
                 <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. "코드 직접 고치기"에서 넣을 수 있어요.</p>
-              ) : (
-                slots.map((slot, i) => {
-                  const id = `slot-${i}`
-                  const asked = /\?\{[^{}]*\}/.test(slot.text)
-                  return (
-                    <div className="r20-slot" key={`${i}-${slot.textSpan.start}`}>
-                      <label className="field-label sub" htmlFor={id}>
-                        글자 {i + 1}
-                      </label>
-                      <div className="r20-slot-row">
-                        <input
-                          id={id}
-                          className="field-input"
-                          value={slot.text}
-                          onChange={(e) => apply(withCode(setSlotText(code, slot, e.target.value)), `slot:${i}`)}
-                        />
-                        {!asked && (
-                          <button
-                            type="button"
-                            className="btn small"
-                            title="Roll20 매크로를 실행할 때 이 글자를 물어보게 해요"
-                            onClick={() => apply(withCode(setSlotText(code, slot, slotAsQuery(slot.text, i))))}
-                          >
-                            질문으로
-                          </button>
-                        )}
-                      </div>
-                      {asked && <small className="r20-slot-note">?{'{…}'} 질문은 매크로를 실행할 때 물어봐요. 미리보기는 아래 "질문 예시"로 채워요.</small>}
-                    </div>
-                  )
-                })
               )}
-              {queries.length > 0 && (
+              {contentItems.map((item) => item.node)}
+              {shownQueries.length > 0 && (
                 <div className="r20-queries" role="group" aria-label="질문 예시">
                   <span className="field-label">질문 예시</span>
                   <p className="field-help">
                     Roll20 이 매크로를 실행할 때 묻는 질문이에요. 여기 넣은 답으로 미리보기 · 롤꾸 복사를 만들어요 (저장되지 않아요).
                   </p>
-                  {queries.map((q) => {
+                  {shownQueries.map((q) => {
                     const id = `q-${q.label}`
+                    const set = (value: string) => setAnswers({ ...answers, [q.label]: value })
                     return (
                       <div className="r20-query" key={q.label}>
                         <label htmlFor={id}>{q.label || '(이름 없는 질문)'}</label>
                         {q.options.length > 1 ? (
-                          <select
-                            id={id}
-                            className="field-input"
-                            value={answers[q.label] ?? defaultAnswer(q)}
-                            onChange={(e) =>
-                              setAnswers({
-                                ...answers,
-                                [q.label]: e.target.value,
-                              })
-                            }
-                          >
-                            {q.options.map((o, i) => (
-                              <option key={`${o.value}-${i}`} value={o.value}>
-                                {o.name}
-                              </option>
-                            ))}
+                          <select id={id} className="field-input" value={answers[q.label] ?? defaultAnswer(q)} onChange={(e) => set(e.target.value)}>
+                            {q.options.map((o, i) =>
+                              o.separator ? (
+                                <option key={`sep-${i}`} disabled value={`\u0000sep-${i}`}>
+                                  {o.name}
+                                </option>
+                              ) : (
+                                <option key={`${o.value}-${i}`} value={o.value}>
+                                  {o.name}
+                                </option>
+                              ),
+                            )}
                           </select>
                         ) : (
                           <input
@@ -229,12 +402,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
                             className="field-input"
                             value={answers[q.label] ?? ''}
                             placeholder={defaultAnswer(q)}
-                            onChange={(e) =>
-                              setAnswers({
-                                ...answers,
-                                [q.label]: e.target.value,
-                              })
-                            }
+                            onChange={(e) => set(e.target.value)}
                           />
                         )}
                       </div>
@@ -246,7 +414,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             <div className="r20-col r20-col-colors">
               <span className="field-label">색</span>
               {colors.length === 0 ? (
-                <p className="field-help">코드에서 바꿀 수 있는 색을 찾지 못했어요.</p>
+                <p className="field-help">{sel !== null ? '이 메시지에는 바꿀 수 있는 색이 없어요.' : '코드에서 바꿀 수 있는 색을 찾지 못했어요.'}</p>
               ) : (
                 colors.map((group, i) => (
                   <div className="r20-color" key={`${group.hex}-${i}`}>
@@ -348,7 +516,8 @@ function Roll20CodeStudio({ docId }: { docId: string }) {
     if (!pending || phase !== 'ready' || !draft) return
     const code = (draft.content as { code?: unknown }).code
     const pendingCode = (pending.content as { code?: unknown }).code
-    if (pending.title !== draft.title || pendingCode !== code) edit({ title: pending.title, content: { ...(draft.content as object), code: pendingCode } as DocumentContent })
+    if (pending.title !== draft.title || pendingCode !== code)
+      edit({ title: pending.title, content: { ...(draft.content as object), code: pendingCode } as DocumentContent })
     navigate(location.pathname, { replace: true, state: null })
   }, [pending, phase, draft, edit, navigate, location.pathname])
   const openedId = phase === 'ready' && doc?.type === 'roll20code' ? doc.id : null
@@ -409,7 +578,20 @@ function NewRoll20Code() {
   const content = useMemo(() => resolveRoll20Code(draft.content), [draft.content])
   const now = useMemo(() => new Date().toISOString(), [])
   const doc: DocumentRecord = useMemo(
-    () => ({ id: 'new', owner_id: user?.id ?? '', project_id: null, type: 'roll20code', title: draft.title, content: draft.content, visibility: 'private', version: 0, created_at: now, updated_at: now, deleted_at: null }) as DocumentRecord,
+    () =>
+      ({
+        id: 'new',
+        owner_id: user?.id ?? '',
+        project_id: null,
+        type: 'roll20code',
+        title: draft.title,
+        content: draft.content,
+        visibility: 'private',
+        version: 0,
+        created_at: now,
+        updated_at: now,
+        deleted_at: null,
+      }) as DocumentRecord,
     [user?.id, draft, now],
   )
 

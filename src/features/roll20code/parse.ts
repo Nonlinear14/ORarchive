@@ -3,7 +3,7 @@
  *
  * Roll20 채팅은 [글자](주소) 를 링크로 바꾸는데, 주소 자리에 `#" style="…"` 를 넣으면 따옴표가 닫히지 않은 채로
  * style 속성이 링크에 붙는다 — 이것이 롤꾸다. 이 파일은 그 문법을 Roll20 과 같은 방식으로 읽는다:
- * - 한 줄 = 메시지 하나. 맨 앞 /desc · /em 은 desc 서술 · 감정 표현
+ * - 한 줄 = 메시지 하나 (단, ?{ … } 질문 안의 줄바꿈은 같은 메시지 — 여러 줄 선택지 매크로). 맨 앞 /desc · /em 은 desc 서술 · 감정 표현
  * - [글자] 바로 뒤 ( 부터 첫 " 까지가 주소, 이어서 style=" 부터 닫는 ) 까지가 스타일
  *   (스타일 안의 linear-gradient( … ) 같은 괄호는 짝을 맞춰 넘긴다)
  * - ?{질문|기본값} · ?{질문|선택1|선택2,값2} 은 Roll20 매크로 질문 (미리보기에서는 예시 답으로 채운다)
@@ -44,12 +44,32 @@ export interface CodeLine extends Span {
   parts: Part[]
 }
 
+export interface QueryOption {
+  /** 화면용 (앞뒤 공백 · 줄바꿈을 걷어 낸 이름 · 값 — 원본 코드는 그대로) */
+  name: string
+  value: string
+  /** ---------- 처럼 줄만 있는 보기: 고를 수 없는 구분선으로 보여 준다 */
+  separator?: boolean
+}
+
 export interface Query extends Span {
   /** ?{…} 전체 */
   raw: string
   label: string
-  /** 선택지 (이름, 값). 하나뿐이면 기본값 */
-  options: { name: string; value: string }[]
+  /** 선택지 (이름, 값). 하나뿐이면 기본값. 빈 보기(맨 끝 | 뒤 줄바꿈 등)는 뺀다 */
+  options: QueryOption[]
+}
+
+/** 메시지 하나의 위치 (줄 단위, 질문 안 줄바꿈은 이어 붙임) */
+export interface MessageSpan extends Span {
+  index: number
+}
+
+/** 글꼴 속성 하나 (스타일 안 값의 위치 — !important 는 빼고) */
+export interface FontProp {
+  property: 'font-size' | 'font-weight' | 'letter-spacing' | 'line-height' | 'font-style'
+  value: string
+  valueSpan: Span
 }
 
 export interface ColorUse extends Span {
@@ -162,18 +182,108 @@ function parseParts(src: string, from: number, to: number): Part[] {
   return parts
 }
 
-export function parseCode(code: string): CodeLine[] {
-  const lines: CodeLine[] = []
+/** 줄 나누기: 줄바꿈마다 나누되 ?{ … } 안의 줄바꿈은 건너뛴다. 빈 줄은 메시지가 아니다 */
+export function messageSpans(code: string): MessageSpan[] {
+  const out: MessageSpan[] = []
   let start = 0
-  for (const raw of code.split('\n')) {
-    const end = start + raw.length
+  let inQuery = false
+  const push = (end: number) => {
+    if (code.slice(start, end).trim()) out.push({ index: out.length, start, end })
+  }
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i]
+    if (!inQuery && ch === '?' && code[i + 1] === '{') {
+      // 닫는 } 가 있어야 질문 (없으면 그냥 글자)
+      if (code.indexOf('}', i + 2) !== -1) inQuery = true
+      i++
+    } else if (inQuery && ch === '}') inQuery = false
+    else if (!inQuery && ch === '\n') {
+      push(i)
+      start = i + 1
+    }
+  }
+  push(code.length)
+  return out
+}
+
+export function parseCode(code: string): CodeLine[] {
+  return messageSpans(code).map(({ start, end }) => {
+    const raw = code.slice(start, end)
     const m = /^\s*(\/desc|\/em)(\s+|$)/i.exec(raw)
     const kind: LineKind = m ? (m[1].toLowerCase() === '/desc' ? 'desc' : 'emote') : 'general'
     const bodyStart = start + (m ? m[0].length : 0)
-    if (raw.trim()) lines.push({ kind, prefix: m ? m[1] : '', parts: parseParts(code, bodyStart, end), start, end })
-    start = end + 1
+    return { kind, prefix: m ? m[1] : '', parts: parseParts(code, bodyStart, end), start, end }
+  })
+}
+
+/** 글자 칸과 그 칸이 든 메시지 번호 */
+export interface SlotRef {
+  message: number
+  slot: LinkPart
+}
+
+export function messageSlots(code: string): SlotRef[] {
+  return parseCode(code).flatMap((l, message) => l.parts.filter((p): p is LinkPart => p.kind === 'link').map((slot) => ({ message, slot })))
+}
+
+/** 이미지 메시지: 몸통이 이미지 주소 하나뿐인 메시지. 주소 안에 ?{ } 질문이 있으면 asked */
+export interface ImageMessage {
+  message: number
+  url: string
+  urlSpan: Span
+  asked: boolean
+}
+
+export function imageMessages(code: string): ImageMessage[] {
+  const out: ImageMessage[] = []
+  parseCode(code).forEach((line, message) => {
+    if (line.parts.length !== 1 || line.parts[0].kind !== 'text') return
+    const part = line.parts[0]
+    const lead = part.text.length - part.text.trimStart().length
+    const url = part.text.trim()
+    const filled = fillQueries(url, {})
+    if (!IMAGE_URL.test(filled) || /\s/.test(filled)) return
+    out.push({ message, url, urlSpan: { start: part.start + lead, end: part.start + lead + url.length }, asked: findQueries(url).length > 0 })
+  })
+  return out
+}
+
+/** 이미지 주소 바꾸기 (줄바꿈 · 공백은 주소를 깨뜨리므로 지운다) */
+export function setImageUrl(code: string, image: ImageMessage, url: string): string {
+  return splice(code, image.urlSpan, url.replace(/\s+/g, ''))
+}
+
+const FONT_PROPS: FontProp['property'][] = ['font-size', 'font-weight', 'letter-spacing', 'line-height', 'font-style']
+
+/** 스타일에 이미 있는 글꼴 속성만 (없는 속성은 만들지 않는다) */
+export function fontProps(slot: LinkPart): FontProp[] {
+  if (!slot.style || !slot.styleSpan) return []
+  const style = slot.style
+  const base = slot.styleSpan.start
+  const out: FontProp[] = []
+  const re = /(^|;)\s*(font-size|font-weight|letter-spacing|line-height|font-style)\s*:\s*([^;!]*?)\s*(!important\s*)?(?=;|$)/gi
+  for (const m of style.matchAll(re)) {
+    const property = m[2].toLowerCase() as FontProp['property']
+    if (!FONT_PROPS.includes(property) || out.some((f) => f.property === property)) continue
+    const value = m[3]
+    // 값의 위치: 일치한 부분 안에서 "이름 : " 다음
+    const head = m[0].slice(0, m[0].length - (m[4]?.length ?? 0))
+    const valueAt = m.index + head.lastIndexOf(value)
+    out.push({ property, value, valueSpan: { start: base + valueAt, end: base + valueAt + value.length } })
   }
-  return lines
+  return out.sort((a, b) => FONT_PROPS.indexOf(a.property) - FONT_PROPS.indexOf(b.property))
+}
+
+/** 글꼴 값 바꾸기 (그 값 자리만). ; " ) 는 스타일을 깨뜨리므로 뺀다 */
+export function setFontValue(code: string, prop: FontProp, value: string): string {
+  return splice(code, prop.valueSpan, value.replace(/[;")\n]/g, '').trim() || prop.value)
+}
+
+/** 메시지 하나의 범위 안에 든 것만 */
+export function inMessage(code: string, message: number | null): (span: Span) => boolean {
+  if (message === null) return () => true
+  const m = messageSpans(code)[message]
+  return (span) => !!m && span.start >= m.start && span.end <= m.end
 }
 
 /** 글자 칸: 롤꾸 링크마다 하나 */
@@ -187,10 +297,15 @@ export function findQueries(text: string, offset = 0): Query[] {
   const re = /\?\{([^{}]*)\}/g
   for (let m = re.exec(text); m; m = re.exec(text)) {
     const [label, ...rest] = m[1].split('|')
-    const options = rest.map((opt) => {
+    const options: QueryOption[] = []
+    for (const opt of rest) {
       const comma = opt.indexOf(',')
-      return comma === -1 ? { name: opt, value: opt } : { name: opt.slice(0, comma), value: opt.slice(comma + 1) }
-    })
+      const name = (comma === -1 ? opt : opt.slice(0, comma)).trim()
+      const value = (comma === -1 ? opt : opt.slice(comma + 1)).trim()
+      if (!name && !value) continue
+      if (comma === -1 && /^[-=─━_~·.*]{3,}$/.test(name)) options.push({ name, value, separator: true })
+      else options.push({ name, value })
+    }
     out.push({ raw: m[0], label: label.trim(), options, start: offset + m.index, end: offset + m.index + m[0].length })
   }
   return out
@@ -198,7 +313,7 @@ export function findQueries(text: string, offset = 0): Query[] {
 
 /** 질문의 기본 예시 답: 선택지의 첫 값 → 없으면 질문 이름 (레퍼런스처럼 미리보기에 질문 이름을 보여 준다) */
 export function defaultAnswer(q: Query): string {
-  const first = q.options[0]
+  const first = q.options.find((o) => !o.separator)
   if (first && first.value.trim()) return first.value
   return q.label
 }
@@ -221,10 +336,11 @@ export function uniqueQueries(code: string): Query[] {
   return [...seen.values()]
 }
 
-/** 스타일 속 색 (url(…) 안은 건너뛴다) */
-export function colorGroups(code: string): ColorGroup[] {
+/** 스타일 속 색 (url(…) 안은 건너뛴다). message 를 주면 그 메시지 안의 색만 (바꿔도 그 메시지만 바뀐다) */
+export function colorGroups(code: string, message: number | null = null): ColorGroup[] {
   const groups = new Map<string, ColorGroup>()
-  for (const line of parseCode(code))
+  const lines = parseCode(code)
+  for (const line of message === null ? lines : lines.slice(message, message + 1))
     for (const part of line.parts) {
       if (part.kind !== 'link' || !part.style || !part.styleSpan) continue
       const style = part.style
@@ -289,16 +405,15 @@ export function setColor(code: string, group: ColorGroup, hex: string): string {
   return out
 }
 
-/** 모든 줄을 /desc 서술로 보내기 / 일반 메시지로 */
+/** 모든 메시지를 /desc 서술로 보내기 / 일반 메시지로 (질문 안 줄바꿈 뒤는 메시지 머리가 아니다) */
 export function setDesc(code: string, on: boolean): string {
-  return code
-    .split('\n')
-    .map((line) => {
-      if (!line.trim()) return line
-      const stripped = line.replace(/^(\s*)\/(desc|em)(\s+|$)/i, '$1')
-      return on ? `/desc ${stripped.trimStart()}` : stripped
-    })
-    .join('\n')
+  let out = code
+  for (const m of [...messageSpans(code)].reverse()) {
+    const line = code.slice(m.start, m.end)
+    const stripped = line.replace(/^(\s*)\/(desc|em)(\s+|$)/i, '$1')
+    out = splice(out, m, on ? `/desc ${stripped.trimStart()}` : stripped)
+  }
+  return out
 }
 
 export function allDesc(code: string): boolean {
@@ -379,15 +494,18 @@ function partHtml(part: Part): string {
   return `<a href="#" style="${escapeHtml(sanitizeStyle(part.style))}">${escapeHtml(part.text)}</a>`
 }
 
-/** 코드 → Roll20 채팅 메시지 HTML (질문은 예시 답으로 채워서). 사용자 글자는 모두 이스케이프 */
+/** 코드 → Roll20 채팅 메시지 HTML (메시지마다 질문을 예시 답으로 채워서). 사용자 글자는 모두 이스케이프.
+ *  메시지마다 data-msg="번호" (원본 코드의 메시지 순서 — 미리보기에서 눌러 고를 때 쓴다) */
 export function renderChatHtml(code: string, answers: Record<string, string>): string {
-  const filled = fillQueries(code, answers)
-  return parseCode(filled)
-    .map((line) => {
+  return messageSpans(code)
+    .map((m) => {
+      const filled = fillQueries(code.slice(m.start, m.end), answers).replace(/\r?\n/g, ' ')
+      const line = parseCode(filled)[0]
+      if (!line) return ''
       const body = line.parts.map(partHtml).join('')
       if (line.kind === 'general')
-        return `<div class="message general you"><div class="spacer"></div><span class="by">나:</span> ${body}</div>`
-      return `<div class="message ${line.kind}"><div class="spacer"></div>${body}</div>`
+        return `<div class="message general you" data-msg="${m.index}"><div class="spacer"></div><span class="by">나:</span> ${body}</div>`
+      return `<div class="message ${line.kind}" data-msg="${m.index}"><div class="spacer"></div>${body}</div>`
     })
     .join('')
 }

@@ -308,6 +308,21 @@
   padding: 10px;
   background: linear-gradient(135deg, #ece6dc, #d9d0c2);
   overflow: hidden;
+  position: relative;
+}
+
+/* 여러 메시지: 위에서부터 보이고 아래는 흐리게 잘린다 */
+.r20-thumb:has(.r20-chat) {
+  align-items: start;
+}
+
+.r20-thumb::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 34px;
+  background: linear-gradient(transparent, #d9d0c2);
+  pointer-events: none;
 }
 
 .r20-thumb .r20-chat {
@@ -367,4 +382,123 @@
   background: transparent;
   border-color: var(--d-border);
   color: var(--d-text-muted);
+}
+
+/* ── 여러 메시지 (2026-11-28) ── */
+.r20-edit-head {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #f3efe6;
+  font-size: 12px;
+  color: #6c746f;
+}
+
+.r20-edit-head strong {
+  color: #2f3b37;
+  font-size: 12.5px;
+}
+
+.r20-edit-head .btn {
+  margin-left: auto;
+}
+
+.r20-edit-head.is-picked {
+  background: #fff3dc;
+  box-shadow: inset 0 0 0 1px #e7c98f;
+}
+
+.r20-jump {
+  display: none;
+}
+
+.r20-font {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 7px;
+}
+
+.r20-font-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6c746f;
+}
+
+.r20-font-field .field-input {
+  width: auto;
+  min-width: 0;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.r20-font-field select.field-input {
+  max-width: 130px;
+}
+
+.r20-font-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.r20-font-num .field-input {
+  width: 64px;
+}
+
+.r20-font-num em {
+  font-style: normal;
+  color: #8a918c;
+  font-weight: 600;
+}
+
+@media (max-width: 1050px) {
+  .r20-workspace > .r20-jump {
+    order: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    padding: 8px 12px;
+    background: #fff3dc;
+    border: 1px solid #e0ddd5;
+    border-top: 0;
+    border-bottom: 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #6d5428;
+  }
+
+  .r20-shell .r20-edit-head {
+    border-radius: 0;
+    padding: 12px 18px;
+  }
+}
+
+:root[data-theme='dark'] .r20-edit-head {
+  background: var(--d-surface2);
+  color: var(--d-text-muted);
+}
+
+:root[data-theme='dark'] .r20-edit-head strong {
+  color: var(--d-text-strong);
+}
+
+:root[data-theme='dark'] .r20-edit-head.is-picked,
+:root[data-theme='dark'] .r20-workspace > .r20-jump {
+  background: #33291c;
+  color: #e3c48f;
+}
+
+/* "편집하러 가기"로 내려갈 때 위 고정 막대에 가리지 않게 */
+.r20-edit {
+  scroll-margin-top: 84px;
 }

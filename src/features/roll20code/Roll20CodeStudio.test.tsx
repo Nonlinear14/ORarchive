@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFakeSupabase } from '../../test/fakeSupabase'
 import { renderApp } from '../../test/renderApp'
 import { roll20CodeContent } from './model'
-import { ROLL20_CODE_SAMPLES } from './testSamples'
+import { MULTI_IMAGE_MACRO, MULTI_MIXED, ROLL20_CODE_SAMPLES } from './testSamples'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -111,5 +111,59 @@ describe('롤꾸코드 편집', () => {
     expect(screen.getByRole('link', { name: /새 롤꾸코드/ })).toHaveAttribute('href', '/studio/roll20code/new')
     fireEvent.click(within(mine).getByRole('button', { name: '판정 버튼 (빨강) 열기' }))
     expect(await screen.findByRole('complementary', { name: '롤꾸 편집' })).toBeInTheDocument()
+  })
+
+  it('여러 메시지: 미리보기에서 메시지를 누르면 그 메시지만 · 글꼴 칸 · 색은 그 메시지 안에서만', async () => {
+    const fake = createFakeSupabase()
+    const row = fake.control.insertDocument({ type: 'roll20code', title: '세션 카드', content: roll20CodeContent(MULTI_MIXED) })
+    renderApp(`/studio/roll20code/${row.id}`, { client: fake.client })
+    const card = await screen.findByRole('region', { name: '꾸미기' })
+    const saved = () => docsOf(fake).find((d) => d.id === row.id)!.content.code!
+    expect(within(card).getByText('전체 메시지 9개')).toBeInTheDocument()
+    expect(within(card).getByLabelText('메시지 2 · 글자 1')).toHaveValue('?{시나리오 제목}')
+    expect(within(card).getByLabelText('메시지 6 · 이미지 주소')).toHaveValue('https://imgur.com/csHVgwW.png')
+
+    const shadow = screen.getByTestId('roll20-chat').shadowRoot!
+    fireEvent.click(shadow.querySelector('.message[data-msg="6"] a')!)
+    expect(within(card).getByText('메시지 7 편집 중')).toBeInTheDocument()
+    expect(shadow.querySelector('.message[data-msg="6"]')).toHaveClass('is-picked')
+    expect(within(card).queryByLabelText('메시지 2 · 글자 1')).not.toBeInTheDocument()
+    expect(within(card).getByLabelText('글자 1')).toHaveValue('PC')
+    expect(within(card).getByLabelText('글자 2')).toHaveValue(' ?{PC 이름}')
+    // 질문 예시도 이 메시지 것만
+    expect(within(within(card).getByRole('group', { name: '질문 예시' })).getAllByRole('textbox')).toHaveLength(1)
+
+    vi.useFakeTimers()
+    const font = within(card).getByRole('group', { name: '글자 1 글꼴' })
+    fireEvent.change(within(font).getByLabelText('크기'), { target: { value: '15' } })
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(saved().split('\n')[6]).toContain('color: #F16A66 !important; font-size: 15px;')
+    expect(saved().split('\n')[7]).toContain('font-size: 13px;')
+
+    fireEvent.change(within(card).getByLabelText('색 1 HEX 코드'), { target: { value: '#112233' } })
+    fireEvent.blur(within(card).getByLabelText('색 1 HEX 코드'))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    vi.useRealTimers()
+    const lines = saved().split('\n')
+    expect(lines[6]).toContain('#112233')
+    expect(lines[1]).toContain('#F16A66')
+    expect(lines[7]).toContain('#F16A66')
+
+    fireEvent.click(within(card).getByRole('button', { name: '전체 보기' }))
+    expect(within(card).getByText('전체 메시지 9개')).toBeInTheDocument()
+  })
+
+  it('이미지 매크로: 보기에서 고르면 그 이미지 · 구분선은 고를 수 없다', async () => {
+    const fake = createFakeSupabase()
+    const row = fake.control.insertDocument({ type: 'roll20code', title: '이미지 매크로', content: roll20CodeContent(MULTI_IMAGE_MACRO) })
+    renderApp(`/studio/roll20code/${row.id}`, { client: fake.client })
+    const card = await screen.findByRole('region', { name: '꾸미기' })
+    const select = within(card).getByLabelText('선택') as HTMLSelectElement
+    expect(select.value).toBe('cyTkpDF')
+    expect([...select.options].filter((o) => o.disabled).map((o) => o.text)).toEqual(['----------', '----------', '----------'])
+    fireEvent.change(select, { target: { value: 'UWWDimV' } })
+    const shadow = screen.getByTestId('roll20-chat').shadowRoot!
+    expect(shadow.querySelector('img')!.getAttribute('src')).toBe('https://imgur.com/UWWDimV.png')
+    expect(within(card).getByText(/주소 안에 질문/)).toBeInTheDocument()
   })
 })
