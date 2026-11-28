@@ -920,7 +920,7 @@ describe('핸드아웃 스튜디오 — 내보내기', () => {
 })
 
 describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', () => {
-  it('핸드아웃 화면에는 "새로 시작"이 없고, 새 핸드아웃 버튼이 템플릿 선택 창을 띄운다', async () => {
+  it('핸드아웃 화면에는 "새로 시작"이 없고, 새 핸드아웃 버튼은 선택 창 없이 "새 핸드아웃" 편집기를 연다 (저장 전에는 만들지 않음)', async () => {
     const fake = createFakeSupabase()
     renderApp('/templates', { client: fake.client })
     expect(await screen.findByRole('heading', { level: 1, name: '템플릿 목록' })).toBeInTheDocument()
@@ -933,21 +933,27 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
     expect(fake.control.tables.documents).toHaveLength(1)
     expect(fake.control.tables.documents[0]).toMatchObject({ type: 'handout', title: '핸드아웃 샘플', content: SAMPLE_HANDOUT_CONTENT })
 
-    fireEvent.click(await screen.findByRole('button', { name: '새 핸드아웃' }))
-    const dialog = screen.getByRole('dialog', { name: '템플릿 선택' })
-    expect(await within(dialog).findByRole('button', { name: '핸드아웃 샘플 — 이 템플릿 사용하기' })).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('link', { name: '새 핸드아웃' }))
+    await screen.findByRole('group', { name: '핸드아웃 캔버스' })
+    expect(screen.queryByRole('dialog', { name: '템플릿 선택' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('location').textContent).toBe('/studio/handout/new')
+    expect(screen.getByLabelText('문서 제목')).toHaveValue('새 핸드아웃')
+    // 저장을 누르기 전에는 목록에 생기지 않는다 (샘플 하나뿐)
+    expect(fake.control.tables.documents).toHaveLength(1)
   })
 
   it('기본 핸드아웃은 지울 수 있고, 지운 뒤에는 다시 생기지 않는다 · 빈 선택 창에는 기본 핸드아웃만 보인다', async () => {
     const fake = createFakeSupabase()
     const sample = fake.control.insertDocument({ type: 'handout', title: '핸드아웃 샘플', content: SAMPLE_HANDOUT_CONTENT })
     sample.deleted_at = new Date().toISOString()
-    renderApp('/templates', { client: fake.client })
+    const { router } = renderApp('/templates', { client: fake.client })
     const mine = await screen.findByRole('region', { name: '내 템플릿' })
     await waitFor(() => expect(within(mine).getByText(/아직 만든 핸드아웃이 없어요/)).toBeInTheDocument())
+    expect(within(mine).getByRole('link', { name: /새 핸드아웃 만들기/ })).toHaveAttribute('href', '/studio/handout/new')
 
-    fireEvent.click(screen.getByRole('button', { name: '새 핸드아웃' }))
-    const dialog = screen.getByRole('dialog', { name: '템플릿 선택' })
+    // 핸드아웃 편집 메뉴: 템플릿 선택 창
+    await act(() => router.navigate('/studio/handout'))
+    const dialog = await screen.findByRole('dialog', { name: '템플릿 선택' })
     expect(await within(dialog).findByText(/아직 템플릿 목록에 핸드아웃이 없어요/)).toBeInTheDocument()
     // 예전 기본 템플릿 4종은 보이지 않는다
     expect(within(dialog).getAllByRole('article').map((a) => a.querySelector('strong')!.textContent)).toEqual(['핸드아웃 샘플'])

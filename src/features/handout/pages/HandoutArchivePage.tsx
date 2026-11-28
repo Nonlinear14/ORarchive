@@ -17,7 +17,7 @@ import { HandoutPreview } from '../HandoutPreview'
 import { Roll20CodePreview } from '../../roll20code/Roll20CodePreview'
 import { NEW_ROLL20_CODE_PATH } from '../../roll20code/model'
 import { useSeedSampleHandout } from '../useSeedSampleHandout'
-import { TemplatePickerDialog } from './TemplatePicker'
+import { NEW_HANDOUT_PATH } from '../templates/newHandout'
 
 type ArchiveView = 'grid' | 'list'
 const VIEW_STORAGE_KEY = 'folio-archive-view'
@@ -82,7 +82,6 @@ export default function HandoutArchivePage() {
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
   const [view, setView] = useState<ArchiveView>(readView)
   const [deleting, setDeleting] = useState<DocumentSummary | null>(null)
-  const [picking, setPicking] = useState(false)
   const navigate = useNavigate()
   const handouts = docs.filter((doc) => doc.type === 'handout')
   // 템플릿 = 핸드아웃 + 롤꾸코드 (같은 목록에 유형 칩으로 구분)
@@ -117,9 +116,10 @@ export default function HandoutArchivePage() {
             <Link to={NEW_ROLL20_CODE_PATH} className="btn primary">
               <Icon name="plus" /> 새 롤꾸코드
             </Link>
-            <button type="button" className="btn primary" onClick={() => setPicking(true)}>
+            {/* 선택 창 없이 "새 핸드아웃" 양식 편집기로 (2026-11-28) — 저장할 때 목록에 생긴다 */}
+            <Link to={NEW_HANDOUT_PATH} className="btn primary">
               <Icon name="plus" /> 새 핸드아웃
-            </button>
+            </Link>
           </div>
         }
       />
@@ -152,9 +152,9 @@ export default function HandoutArchivePage() {
             <div className="library-list empty">
               아직 만든 핸드아웃이 없어요.
               <br />
-              <button type="button" className="text-link" onClick={() => setPicking(true)}>
-                템플릿을 골라 새 핸드아웃 만들기 <Icon name="arrow" />
-              </button>
+              <Link to={NEW_HANDOUT_PATH} className="text-link">
+                새 핸드아웃 만들기 <Icon name="arrow" />
+              </Link>
             </div>
           ) : (
             <>
@@ -193,7 +193,6 @@ export default function HandoutArchivePage() {
           ))}
       </section>
 
-      {picking && <TemplatePickerDialog onClose={() => setPicking(false)} />}
       {deleting && (
         <ConfirmDialog
           title={deleting.type === 'roll20code' ? '롤꾸코드를 삭제할까요?' : '핸드아웃을 삭제할까요?'}

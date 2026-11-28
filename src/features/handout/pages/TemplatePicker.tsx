@@ -1,3 +1,4 @@
+import { NEW_HANDOUT_PATH } from '../templates/newHandout'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Icon } from '../../../components/Icon'
@@ -117,7 +118,7 @@ export function TemplatePicker() {
           <span className="sr-only">템플릿 검색</span>
           <input type="search" placeholder="이름으로 검색" value={query} onChange={(event) => setQuery(event.target.value)} />
         </label>
-        <Link to="/studio/handout/new" className="btn primary">
+        <Link to={NEW_HANDOUT_PATH} className="btn primary">
           <Icon name="plus" /> 새 핸드아웃
         </Link>
       </div>

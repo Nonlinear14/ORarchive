@@ -6,6 +6,8 @@ import type { DocumentContent } from '../../../lib/documents'
  * 처음 템플릿 목록에 들어올 때 한 번 넣는 "핸드아웃 샘플"(sample.ts)과는 별개다.
  */
 export const NEW_HANDOUT_TITLE = '새 핸드아웃'
+/** 새 핸드아웃 편집기 — 저장할 때 처음 만들어진다 (템플릿 목록 · 템플릿 선택 화면의 "새 핸드아웃") */
+export const NEW_HANDOUT_PATH = '/studio/handout/new'
 
 export const NEW_HANDOUT_CONTENT: DocumentContent = {
   v: 1,
