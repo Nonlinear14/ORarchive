@@ -149,18 +149,20 @@ function RecentSection({
   )
 }
 
-/** 섹션 아래 편집 메뉴 바로가기 (설명 없이 이름만). 준비 중인 메뉴는 누를 수 없게 */
-function HomeActions({ items }: { items: { to: string; label: string; ready?: boolean }[] }) {
+/** 섹션 아래 편집 메뉴 바로가기 (설명 없이 이름만). 예전 홈 바로가기 카드처럼 2칸 폭의 큰 버튼. 준비 중인 메뉴는 누를 수 없게 */
+function HomeActions({ tone, items }: { tone: 'template' | 'log'; items: { to: string; label: string; ready?: boolean }[] }) {
   return (
-    <div className="home-actions">
+    <div className={`home-actions tone-${tone}`}>
       {items.map((item) =>
         item.ready === false ? (
-          <button key={item.to} type="button" className="btn small" disabled title="준비 중이에요">
-            {item.label} <span className="tag">준비 중</span>
-          </button>
+          <span key={item.to} className="home-action is-disabled" aria-disabled="true" role="link" title="준비 중이에요">
+            <strong>{item.label}</strong>
+            <span className="tag">준비 중</span>
+          </span>
         ) : (
-          <Link key={item.to} to={item.to} className="btn small">
-            {item.label}
+          <Link key={item.to} to={item.to} className="home-action">
+            <strong>{item.label}</strong>
+            <Icon name="arrow" />
           </Link>
         ),
       )}
@@ -197,6 +199,7 @@ function LogSection({ docs, loading }: { docs: DocumentSummary[]; loading: boole
         <div className="recent-empty">아직 로그가 없어요.</div>
       )}
       <HomeActions
+        tone="log"
         items={[
           { to: '/studio/log/roll20', label: 'Roll20 로그 편집' },
           { to: '/studio/log/ccfolia', label: '코코포리아 로그 편집', ready: false },
@@ -261,6 +264,7 @@ export function HomePage() {
         }
         actions={
           <HomeActions
+            tone="template"
             items={[
               { to: '/studio/handout', label: '핸드아웃 편집' },
               { to: '/studio/roll20code', label: '롤꾸코드 편집' },

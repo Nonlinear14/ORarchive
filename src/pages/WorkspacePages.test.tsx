@@ -57,7 +57,8 @@ describe('홈', () => {
     expect(within(templates).getByRole('link', { name: '롤꾸코드 편집' })).toHaveAttribute('href', '/studio/roll20code')
     const logs = screen.getByRole('region', { name: '로그 아카이브' })
     expect(within(logs).getByRole('link', { name: 'Roll20 로그 편집' })).toHaveAttribute('href', '/studio/log/roll20')
-    expect(within(logs).getByRole('button', { name: /코코포리아 로그 편집/ })).toBeDisabled()
+    expect(within(logs).getByRole('link', { name: /코코포리아 로그 편집/ })).toHaveAttribute('aria-disabled', 'true')
+    expect(within(logs).getByRole('link', { name: /코코포리아 로그 편집/ })).not.toHaveAttribute('href')
     expect(within(logs).getByRole('link', { name: /로그 보기/ })).toHaveAttribute('href', '/logs')
 
     // 사이드바 순서: 캐릭터 → 로그 → 템플릿 → 설정
