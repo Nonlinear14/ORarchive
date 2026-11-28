@@ -1,0 +1,335 @@
+/* 롤꾸코드 편집 — 화면 틀은 핸드아웃 편집(HandoutStudio.css)을 그대로 쓰고, 여기에는 롤꾸 전용만 */
+
+/* Roll20 채팅창 폭(약 320px)에 맞춘 미리보기 */
+.r20-stage {
+  padding: 22px 0 26px;
+}
+
+.r20-chat {
+  width: min(320px, 100%);
+  margin: 0 auto;
+  border: 1px solid #d9d6cf;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 14px 26px #343c3314;
+  background: #fff;
+}
+
+.r20-queries {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.r20-queries .field-help {
+  margin: 4px 0 10px;
+}
+
+.r20-query {
+  display: grid;
+  grid-template-columns: minmax(80px, 140px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.r20-query label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4b5753;
+}
+
+.r20-slot {
+  margin-bottom: 12px;
+}
+
+.r20-slot-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.r20-slot-row .field-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.r20-slot-row .btn {
+  flex: none;
+}
+
+.r20-slot-note {
+  display: block;
+  margin-top: 5px;
+  color: #8a918c;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.r20-color {
+  margin-bottom: 10px;
+}
+
+.r20-color .opt-count {
+  font-style: normal;
+  color: #8a918c;
+  font-weight: 600;
+}
+
+.r20-options {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+/* ── 배치 (2026-11-28) ──
+   PC: 왼쪽 회색 칸 = 미리보기 · 꾸미기 카드(내용+질문 예시 | 색) · 복사, 오른쪽 = 되돌리기 · 옵션 · 코드 직접 고치기(길게)
+   1050px 이하: 미리보기 · 복사 → 되돌리기 · 옵션 · 코드 → 꾸미기(내용 · 질문 예시 · 색) 한 줄 */
+.studio-shell.r20-shell {
+  align-items: stretch;
+  /* 코드는 가로로 길수록 편해서 미리보기 : 편집 패널 = 3 : 2 (2026-11-28) */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.r20-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 22px;
+  margin-top: 4px;
+  padding: 16px 18px;
+  border: 1px solid #e6e4dd;
+  border-radius: 12px;
+  background: #fffdfa;
+}
+
+.r20-col {
+  min-width: 0;
+}
+
+.r20-col-content {
+  flex: 2 1 260px;
+}
+
+.r20-col-colors {
+  flex: 1 1 210px;
+}
+
+.r20-edit .r20-col > .field-label:first-child {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.r20-side {
+  /* .panel 의 overflow:hidden 은 sticky 를 막으므로 clip 으로 (둥근 모서리는 그대로) */
+  overflow: clip;
+}
+
+/* 오른쪽 패널은 왼쪽 칸 높이만큼 늘고, 코드 칸은 화면 높이에 맞춰 길게 (스크롤해도 따라옴) */
+.r20-side .r20-raw {
+  position: sticky;
+  top: 12px;
+}
+
+.r20-side .r20-raw[open] .r20-code {
+  height: max(260px, calc(100vh - 520px));
+}
+
+@media (max-width: 1050px) {
+  .studio-shell.r20-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* 회색 칸을 풀어 그 안의 조각들을 순서대로 다시 놓는다 */
+  .r20-workspace {
+    display: contents;
+  }
+
+  .r20-workspace > .canvas-tools,
+  .r20-workspace > .r20-stage,
+  .r20-workspace > .export-bar {
+    background: #eae8e2;
+    border: 1px solid #e0ddd5;
+    margin: 0;
+  }
+
+  .r20-workspace > .canvas-tools {
+    order: 1;
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 12px 12px 0;
+  }
+
+  .r20-workspace > .r20-stage {
+    order: 2;
+    border-top: 0;
+    border-bottom: 0;
+    padding: 14px 12px 6px;
+  }
+
+  .r20-workspace > .export-bar {
+    order: 3;
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+
+  .r20-side .r20-raw {
+    position: static;
+  }
+
+  .r20-side .r20-raw[open] .r20-code {
+    height: auto;
+  }
+
+  .r20-shell .r20-side {
+    order: 4;
+    display: block;
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .r20-shell .r20-edit {
+    order: 5;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+    background: #fffdfa;
+    border-color: #e6e4dd;
+    box-shadow: var(--shadow);
+  }
+
+  .r20-edit .r20-col {
+    flex: none;
+    padding: 16px 18px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 1050px) {
+  :root[data-theme='dark'] .r20-workspace > .canvas-tools,
+  :root[data-theme='dark'] .r20-workspace > .r20-stage,
+  :root[data-theme='dark'] .r20-workspace > .export-bar {
+    background: #141f24;
+    border-color: var(--d-border);
+  }
+}
+
+/* 스위치 (로그 편집기와 같은 모양 — 그 CSS 를 이 화면에서는 불러오지 않으므로 여기 둔다) */
+.r20-options .mini-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+  cursor: pointer;
+}
+
+.r20-options .opt-switch {
+  appearance: none;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: #d6d4cc;
+  position: relative;
+  flex: none;
+  cursor: pointer;
+  transition: 0.15s;
+  margin: 0;
+}
+
+.r20-options .opt-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  transition: 0.15s;
+}
+
+.r20-options .opt-switch:checked {
+  background: #427a67;
+}
+
+.r20-options .opt-switch:checked::after {
+  transform: translateX(15px);
+}
+
+.r20-options .opt-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.r20-options .opt-switch:focus-visible {
+  outline: 2px solid #d9ac72;
+  outline-offset: 2px;
+}
+
+:root[data-theme='dark'] .r20-options .opt-switch:not(:checked) {
+  background: #2e3f45;
+}
+
+.r20-raw summary {
+  cursor: pointer;
+  display: list-item;
+  list-style: disclosure-closed inside;
+}
+
+.r20-raw[open] summary {
+  list-style-type: disclosure-open;
+}
+
+.r20-code {
+  width: 100%;
+  min-height: 180px;
+  margin-top: 10px;
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 카드 안 작은 미리보기 */
+.r20-thumb {
+  height: 150px;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  background: linear-gradient(135deg, #ece6dc, #d9d0c2);
+  overflow: hidden;
+}
+
+.r20-thumb .r20-chat {
+  width: min(260px, 100%);
+  pointer-events: none;
+}
+
+.picker-group {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  color: #3c4a46;
+}
+
+:root[data-theme='dark'] .r20-queries {
+  background: var(--d-surface, #1f2a2e);
+}
+
+:root[data-theme='dark'] .r20-edit {
+  background: var(--d-surface);
+  border-color: var(--d-border);
+}
+
+:root[data-theme='dark'] .r20-query label {
+  color: var(--d-text);
+}

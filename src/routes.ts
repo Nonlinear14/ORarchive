@@ -39,7 +39,7 @@ export const navSections: NavSection[] = [
         label: '템플릿 목록',
         icon: 'templates',
         eyebrow: 'TEMPLATE ARCHIVE / LIST',
-        description: '내 핸드아웃을 모아 보고, 골라서 미리 보거나 사본으로 새로 시작하세요.',
+        description: '내 핸드아웃과 롤꾸코드를 모아 보고, 골라서 미리 보거나 사본으로 새로 시작하세요.',
       },
       {
         path: '/studio/handout',

@@ -5,8 +5,8 @@ import { formatRelativeTime } from '../lib/format'
 import { Icon, type IconName } from './Icon'
 import './DocumentList.css'
 
-const typeIcon: Record<DocumentType, IconName> = { handout: 'handout', log: 'logs', character: 'characters' }
-const squareTone: Record<DocumentType, string> = { handout: '', log: 'log', character: 'char' }
+const typeIcon: Record<DocumentType, IconName> = { handout: 'handout', log: 'logs', character: 'characters', roll20code: 'code' }
+const squareTone: Record<DocumentType, string> = { handout: '', log: 'log', character: 'char', roll20code: 'code' }
 
 interface DocumentListProps {
   docs: DocumentSummary[]

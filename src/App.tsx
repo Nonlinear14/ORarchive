@@ -20,13 +20,15 @@ const LogListPage = lazy(() => import('./features/log/pages/LogListPage'))
 const Roll20LogStartPage = lazy(() => import('./features/log/roll20/pages/Roll20LogStartPage'))
 const Roll20LogEditorPage = lazy(() => import('./features/log/roll20/editor/Roll20LogEditorPage'))
 const HandoutStudioPage = lazy(() => import('./features/handout/studio/HandoutStudioPage'))
+const Roll20CodeStartPage = lazy(() => import('./features/roll20code/pages/Roll20CodeStartPage'))
+const Roll20CodeEditorPage = lazy(() => import('./features/roll20code/editor/Roll20CodeEditorPage'))
 
 function Lazy({ children }: { children: ReactNode }) {
   return <Suspense fallback={<LoadingState label="화면을 불러오는 중…" />}>{children}</Suspense>
 }
 
 /** 실제 화면이 있는 경로 (나머지 내비 경로는 '준비 중' 자리표시) */
-const implemented = new Set(['/', '/settings', '/templates', '/studio/handout', '/logs', '/studio/log/roll20'])
+const implemented = new Set(['/', '/settings', '/templates', '/studio/handout', '/studio/roll20code', '/logs', '/studio/log/roll20'])
 
 export function App() {
   return (
@@ -42,6 +44,8 @@ export function App() {
             <Route path="/templates" element={<Lazy><HandoutArchivePage /></Lazy>} />
             <Route path="/studio/handout" element={<Lazy><TemplateEditorPage /></Lazy>} />
             <Route path="/studio/handout/:id" element={<Lazy><HandoutStudioPage /></Lazy>} />
+            <Route path="/studio/roll20code" element={<Lazy><Roll20CodeStartPage /></Lazy>} />
+            <Route path="/studio/roll20code/:id" element={<Lazy><Roll20CodeEditorPage /></Lazy>} />
             <Route path="/logs" element={<Lazy><LogListPage /></Lazy>} />
             <Route path="/studio/log/roll20" element={<Lazy><Roll20LogStartPage /></Lazy>} />
             <Route path="/studio/log/roll20/:id" element={<Lazy><Roll20LogEditorPage /></Lazy>} />
