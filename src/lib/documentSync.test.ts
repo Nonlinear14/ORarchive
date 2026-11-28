@@ -33,6 +33,7 @@ interface SyncOverrides {
   cache?: DocumentCache
   locks?: Locks
   instanceId?: string
+  manual?: boolean
 }
 
 function makeSync(overrides: SyncOverrides = {}) {
@@ -47,6 +48,7 @@ function makeSync(overrides: SyncOverrides = {}) {
     retryMs: 5000,
     isOnline: () => online,
     instanceId: overrides.instanceId,
+    manual: overrides.manual,
   })
   syncs.push(sync)
   return sync
@@ -1435,5 +1437,93 @@ describe('회귀: 불러오는 동안의 입력은 덮어쓰지 않는다 (round
     expect(fake.control.tables.documents.find((r) => r.id === newId)).toMatchObject({ title: '복구할 편집' })
     expect(sync.getSnapshot()).toMatchObject({ phase: 'deleted', draft: other.draft })
     expect(await pending()).toMatchObject([{ instanceId: sync.instanceId, draft: other.draft, conflict: 'deleted' }])
+  })
+})
+
+describe('수동 저장 (핸드아웃 · 롤꾸코드, 2026-11-28)', () => {
+  it('입력은 곧바로 이 기기에 기록되지만 저장을 누를 때까지 서버에 보내지 않는다', async () => {
+    const sync = makeSync({ manual: true })
+    await sync.start()
+    vi.useFakeTimers()
+    sync.edit({ title: '고친 제목' })
+    expect(sync.getSnapshot()).toMatchObject({ status: 'unsaved', dirty: true })
+    await vi.advanceTimersByTimeAsync(60_000)
+    await sync.flush() // 화면 복귀 · 온라인 이벤트도 보내지 않는다
+    expect(updateCalls()).toBe(0)
+    expect(await pending()).toMatchObject([{ manual: true, draft: { title: '고친 제목' } }])
+
+    await sync.saveNow()
+    expect(updateCalls()).toBe(1)
+    expect(serverRow()).toMatchObject({ title: '고친 제목', version: 2 })
+    expect(sync.getSnapshot()).toMatchObject({ status: 'saved', dirty: false })
+    expect(await pending()).toEqual([])
+  })
+
+  it('저장 중에 입력한 내용은 이어서 보내지 않고 \'저장하지 않음\' 으로 남는다', async () => {
+    const sync = makeSync({ manual: true })
+    await sync.start()
+    sync.edit({ content: { text: 'A' } })
+    const saving = sync.saveNow()
+    sync.edit({ content: { text: 'AB' } })
+    await saving
+    expect(serverRow()).toMatchObject({ content: { text: 'A' }, version: 2 })
+    expect(sync.getSnapshot()).toMatchObject({ status: 'unsaved', dirty: true })
+    expect(await pending()).toMatchObject([{ baseVersion: 2, draft: { content: { text: 'AB' } }, manual: true }])
+    vi.useFakeTimers()
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(updateCalls()).toBe(1)
+  })
+
+  it('오프라인에서 저장하면 실패로 알리고 자동으로 다시 보내지 않는다 (기록은 남는다)', async () => {
+    const sync = makeSync({ manual: true })
+    await sync.start()
+    sync.edit({ title: '오프라인 수정' })
+    online = false
+    await sync.saveNow()
+    expect(sync.getSnapshot()).toMatchObject({ status: 'offline', dirty: true })
+    online = true
+    vi.useFakeTimers()
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(updateCalls()).toBe(0)
+    expect(await pending()).toMatchObject([{ draft: { title: '오프라인 수정' } }])
+    await sync.saveNow()
+    expect(serverRow().title).toBe('오프라인 수정')
+  })
+
+  it('변경 버리기: 마지막으로 확인한 서버 내용으로 돌아가고 기록을 지운다', async () => {
+    const sync = makeSync({ manual: true })
+    await sync.start()
+    sync.edit({ title: '버릴 제목' })
+    sync.discardChanges()
+    expect(sync.getSnapshot()).toMatchObject({ status: 'saved', dirty: false, draft: { title: '원본' } })
+    await Promise.resolve()
+    expect(await pending()).toEqual([])
+    expect(updateCalls()).toBe(0)
+  })
+
+  it('닫힌 탭이 남긴 저장하지 않은 변경: 백그라운드 동기화는 보내지 않고, 다시 열면 화면에 \'저장하지 않음\' 으로 돌아온다', async () => {
+    await store.put(orphan({ draft: { title: '저장 안 한 편집', content: {} }, manual: true }))
+    const background = createBackgroundSync({ userId: 'user-1', repo, store, cache, locks, isOnline: () => online })
+    await background.syncNow()
+    expect(background.getSnapshot().items).toMatchObject([{ unsaved: true, title: '저장 안 한 편집' }])
+    background.dispose()
+    expect(updateCalls()).toBe(0)
+
+    const sync = makeSync({ manual: true })
+    await sync.start()
+    expect(sync.getSnapshot()).toMatchObject({ status: 'unsaved', dirty: true, draft: { title: '저장 안 한 편집' } })
+    expect(updateCalls()).toBe(0)
+    await sync.saveNow()
+    expect(serverRow()).toMatchObject({ title: '저장 안 한 편집', version: 2 })
+  })
+
+  it('저장 때 다른 곳에서 바뀌었으면 충돌 (조용히 덮어쓰지 않는다)', async () => {
+    const sync = makeSync({ manual: true })
+    await sync.start()
+    await repo.update(doc.id, { title: '다른 기기', content: {} }, 1)
+    sync.edit({ title: '내 수정' })
+    await sync.saveNow()
+    expect(sync.getSnapshot().status).toBe('conflict')
+    expect(serverRow().title).toBe('다른 기기')
   })
 })

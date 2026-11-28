@@ -334,3 +334,30 @@
 .picker-empty + .template-grid {
   margin-top: 14px;
 }
+
+/* 롤꾸코드 카드 미리보기 높이는 핸드아웃 카드와 같게 (2026-11-28) */
+.handout-card .r20-thumb {
+  height: 200px;
+  box-sizing: border-box;
+}
+
+.template-card.compact .r20-thumb {
+  height: 170px;
+  box-sizing: border-box;
+}
+
+/* 선택 창 위: 검색 + 새로 만들기 (핸드아웃 · 롤꾸 선택 창 공통) */
+.picker-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.picker-top > .searchbar {
+  flex: 1 1 260px;
+  max-width: 420px;
+  margin: 0;
+}

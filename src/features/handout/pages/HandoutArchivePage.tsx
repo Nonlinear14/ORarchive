@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Modal } from '../../../components/Modal'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { DocumentList, KindChip } from '../../../components/DocumentList'
 import { ListSearch } from '../../../components/ListSearch'
@@ -16,7 +15,6 @@ import { templateKindChips } from '../../../lib/kindChips'
 import { HandoutPreview } from '../HandoutPreview'
 import { Roll20CodePreview } from '../../roll20code/Roll20CodePreview'
 import { NEW_ROLL20_CODE_PATH } from '../../roll20code/model'
-import { useCopyHandout } from '../useCopyHandout'
 import { useSeedSampleHandout } from '../useSeedSampleHandout'
 import { TemplatePickerDialog } from './TemplatePicker'
 
@@ -54,7 +52,7 @@ function HandoutCard({ doc, onOpen, onDelete }: { doc: DocumentSummary; onOpen(d
   const code = doc.type === 'roll20code'
   return (
     <article className="handout-card">
-      <button type="button" className="handout-card-open" aria-label={code ? `${title} 열기` : `${title} 미리보기`} onClick={() => onOpen(doc)}>
+      <button type="button" className="handout-card-open" aria-label={`${title} 열기`} onClick={() => onOpen(doc)}>
         {code ? <Roll20CodePreview id={doc.id} /> : <HandoutPreview id={doc.id} />}
       </button>
       <div className="handout-card-info">
@@ -75,41 +73,12 @@ function HandoutCard({ doc, onOpen, onDelete }: { doc: DocumentSummary; onOpen(d
   )
 }
 
-/** 핸드아웃을 고르면 뜨는 창: 크게 미리보기 + 이 템플릿 사용하기(사본으로 편집) / 원본 편집 */
-function HandoutPreviewDialog({ doc, onClose }: { doc: DocumentSummary; onClose(): void }) {
-  const { copy, busy, error } = useCopyHandout()
-  const title = doc.title.trim() || '제목 없음'
-  return (
-    <Modal title={title} eyebrow="TEMPLATE ARCHIVE / HANDOUT" onClose={onClose} wide>
-      <div className="handout-preview-stage">
-        <HandoutPreview id={doc.id} />
-      </div>
-      <p className="handout-preview-meta">{formatRelativeTime(doc.updated_at)} 수정 · "이 템플릿 사용하기"는 사본을 만들어 편집해요. 원본은 그대로 남아요.</p>
-      {error && (
-        <div className="callout danger gallery-error" role="alert">
-          <Icon name="alert" />
-          <span>사본을 만들지 못했어요: {error}</span>
-        </div>
-      )}
-      <div className="handout-preview-actions">
-        <Link to={documentPath(doc.type, doc.id)} className="btn">
-          <Icon name="edit" /> 원본 편집
-        </Link>
-        <button type="button" className="btn primary" onClick={() => void copy(doc.id)} disabled={busy}>
-          <Icon name="copy" /> {busy ? '사본을 만드는 중…' : '이 템플릿 사용하기'}
-        </button>
-      </div>
-    </Modal>
-  )
-}
-
-/** /templates — 템플릿 아카이브 › 템플릿 목록: 내 핸드아웃 + 롤꾸코드 (미리보기/목록). 핸드아웃은 미리보기 창, 롤꾸코드는 편집기 */
+/** /templates — 템플릿 아카이브 › 템플릿 목록: 내 핸드아웃 + 롤꾸코드 (미리보기/목록). 고르면 원본 편집기 */
 export default function HandoutArchivePage() {
   const repo = useRepository()
   const { status, docs, error, reload, removeLocal } = useMyDocuments()
   const [view, setView] = useState<ArchiveView>(readView)
   const [deleting, setDeleting] = useState<DocumentSummary | null>(null)
-  const [previewing, setPreviewing] = useState<DocumentSummary | null>(null)
   const [picking, setPicking] = useState(false)
   const navigate = useNavigate()
   const handouts = docs.filter((doc) => doc.type === 'handout')
@@ -119,8 +88,8 @@ export default function HandoutArchivePage() {
   const [query, setQuery] = useState('')
   const shown = templates.filter((doc) => matchesTitle(doc.title, query))
   useSeedSampleHandout(status === 'ready', handouts.length, reload)
-  // 핸드아웃은 미리보기 창, 롤꾸코드는 바로 편집기
-  const open = (doc: DocumentSummary) => (doc.type === 'roll20code' ? navigate(documentPath(doc.type, doc.id)) : setPreviewing(doc))
+  // 고르면 바로 그 템플릿(원본)의 편집기 (2026-11-28 — 미리보기 창 없음, 사본은 편집기의 "사본으로 저장")
+  const open = (doc: DocumentSummary) => navigate(documentPath(doc.type, doc.id))
 
   function changeView(next: ArchiveView) {
     setView(next)
@@ -136,11 +105,11 @@ export default function HandoutArchivePage() {
       <PageHeading
         title="템플릿 목록"
         eyebrow="TEMPLATE ARCHIVE / LIST"
-        description="만들어 둔 핸드아웃과 롤꾸코드를 골라 미리 보고, 템플릿으로 다시 쓰거나 이어서 편집하세요."
+        description="만들어 둔 핸드아웃과 롤꾸코드를 골라 바로 편집하세요. 사본은 편집기의 「사본으로 저장」으로 만들어요."
         action={
           <div className="archive-actions">
             <ViewToggle view={view} onChange={changeView} />
-            <Link to={NEW_ROLL20_CODE_PATH} className="btn">
+            <Link to={NEW_ROLL20_CODE_PATH} className="btn primary">
               <Icon name="plus" /> 새 롤꾸코드
             </Link>
             <button type="button" className="btn primary" onClick={() => setPicking(true)}>
@@ -156,7 +125,7 @@ export default function HandoutArchivePage() {
             <h2 id="archive-mine">내 템플릿</h2>
             <p>
               {status === 'ready'
-                ? `${query.trim() ? `템플릿 ${templates.length}개 중 ${shown.length}개` : `핸드아웃 ${handouts.length}개 · 롤꾸코드 ${codeCount}개`} · 고르면 미리보기가 열려요`
+                ? `${query.trim() ? `템플릿 ${templates.length}개 중 ${shown.length}개` : `핸드아웃 ${handouts.length}개 · 롤꾸코드 ${codeCount}개`} · 고르면 편집기가 열려요`
                 : ' '}
             </p>
           </div>
@@ -207,7 +176,6 @@ export default function HandoutArchivePage() {
           ))}
       </section>
 
-      {previewing && <HandoutPreviewDialog doc={previewing} onClose={() => setPreviewing(null)} />}
       {picking && <TemplatePickerDialog onClose={() => setPicking(false)} />}
       {deleting && (
         <ConfirmDialog

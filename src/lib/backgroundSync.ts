@@ -19,6 +19,8 @@ export interface PendingItem {
   savedAt: number
   /** null 이면 보낼 차례를 기다리는 중 */
   conflict: PendingConflict | null
+  /** 수동 저장 편집기의 저장하지 않은 변경 (보내지 않고 문서를 열어 저장 · 버리기를 고른다) */
+  unsaved?: boolean
 }
 
 export interface BackgroundSyncSnapshot {
@@ -85,7 +87,7 @@ export function createBackgroundSync(options: BackgroundSyncOptions): Background
   async function send(key: string, gen: number): Promise<SendOutcome> {
     const result = await locks.tryRequest(pendingLockName(key), async (): Promise<SendOutcome> => {
       const record = await store.get(key)
-      if (!record || record.userId !== userId || record.conflict || gen !== generation) return 'skipped'
+      if (!record || record.userId !== userId || record.conflict || record.manual || gen !== generation) return 'skipped'
 
       try {
         const server = await repo.get(record.docId)
@@ -131,7 +133,8 @@ export function createBackgroundSync(options: BackgroundSyncOptions): Background
 
     if (isOnline()) {
       for (const record of records) {
-        if (record.conflict) continue
+        // 충돌 · 수동 저장(저장하지 않은 변경)은 보내지 않는다
+        if (record.conflict || record.manual) continue
         const outcome = await send(keyOf(record), gen)
         if (gen !== generation) return
         if (outcome === 'offline') break
@@ -153,6 +156,7 @@ export function createBackgroundSync(options: BackgroundSyncOptions): Background
           title: record.draft.title,
           savedAt: record.savedAt,
           conflict: record.conflict,
+          ...(record.manual ? { unsaved: true } : {}),
         }),
       )
     publish(items)

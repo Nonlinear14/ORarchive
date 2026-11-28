@@ -156,3 +156,28 @@
     animation: none;
   }
 }
+
+/* 수동 저장 (핸드아웃 · 롤꾸코드, 2026-11-28) */
+.save-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.save-actions .btn {
+  justify-content: center;
+}
+
+.restored-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.restored-notice .restored-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}

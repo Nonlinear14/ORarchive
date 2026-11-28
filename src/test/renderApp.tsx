@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { StrictMode } from 'react'
-import { MemoryRouter, useLocation } from 'react-router'
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router'
 import { App } from '../App'
 import { AuthProvider } from '../lib/auth/AuthProvider'
 import { createMemoryDocumentCache } from '../lib/documentCache'
@@ -28,17 +28,28 @@ export function createTestServices(): SyncServices {
 
 /** 실제 앱 트리(AuthProvider + 라우터 + App)를 메모리 라우터로 렌더한다 */
 export function renderApp(path: string, { client, basename, services = createTestServices() }: RenderAppOptions) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <>
+            <App />
+            <LocationProbe />
+          </>
+        ),
+      },
+    ],
+    { initialEntries: [path], basename },
+  )
   const result = render(
     <StrictMode>
       <SyncServicesContext value={services}>
         <AuthProvider client={client}>
-          <MemoryRouter initialEntries={[path]} basename={basename}>
-            <App />
-            <LocationProbe />
-          </MemoryRouter>
+          <RouterProvider router={router} />
         </AuthProvider>
       </SyncServicesContext>
     </StrictMode>,
   )
-  return { ...result, services }
+  return { ...result, services, router }
 }

@@ -1,6 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { DeletedRecovery } from '../../../components/document/DeletedRecovery'
+import { RestoredNotice, SaveActions, type SavingProps } from '../../../components/document/ManualSave'
+import { useManualSave, usePendingDraft } from '../../../components/document/useManualSave'
 import '../../../components/document/DocumentEditor.css'
 import { SyncNotices } from '../../../components/document/SyncNotices'
 import { Icon } from '../../../components/Icon'
@@ -8,13 +10,14 @@ import { Modal } from '../../../components/Modal'
 import { LoadingState } from '../../../components/LoadingState'
 import { SaveStatusChip } from '../../../components/SaveStatusChip'
 import { Toast } from '../../../components/Toast'
-import type { DocumentDraft, DocumentRecord } from '../../../lib/documents'
+import { documentPath, type DocumentDraft, type DocumentRecord } from '../../../lib/documents'
 import type { SaveStatus } from '../../../lib/documentSync'
 import { useAuth } from '../../../lib/auth/context'
 import { formatRelativeTime } from '../../../lib/format'
 import { recordRecentView } from '../../../lib/recentViews'
 import { useDocument } from '../../../lib/useDocument'
 import { useEditHistory } from '../../../lib/useEditHistory'
+import { useRepository } from '../../../lib/useRepository'
 import { useToast } from '../../../lib/useToast'
 import { NotFoundPage } from '../../../pages/NotFoundPage'
 import { blockRoll20Text } from '../blockRoll20'
@@ -25,6 +28,8 @@ import { applyToRange, baseValue, normalizeRuns, rangeAllOn, rangeValue, TOGGLE_
 import { caretOffsets, rangeAt } from '../canvas/richDom'
 import { RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
 import { resolveHandout, resolveLook } from '../templates'
+import { newHandoutTemplate } from '../templates/newHandout'
+import { copyTitle } from '../useCopyHandout'
 import { DesignPanel, type TextOps } from './DesignPanel'
 import { ExportBar } from './ExportPanel'
 import './HandoutStudio.css'
@@ -59,11 +64,24 @@ interface StudioEditorProps {
   edit(patch: Partial<DocumentDraft>): void
   flush(): Promise<void>
   children: ReactNode
+  /** 수동 저장 (2026-11-28) */
+  saving: SavingProps
 }
 
+
 /** 불러온 핸드아웃의 편집 화면: 머리(제목·저장 상태) · 캔버스 · 디자인 패널 */
-function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, flush, children }: StudioEditorProps) {
+function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, flush, children, saving }: StudioEditorProps) {
   const { toast, show } = useToast()
+  const [busy, setBusy] = useState(false)
+  const runSave = async (copy: boolean) => {
+    if (busy) return
+    setBusy(true)
+    const ok = await (copy ? saving.saveCopy() : saving.save()).catch(() => false)
+    setBusy(false)
+    if (ok) show(copy ? '사본을 만들었어요. 사본을 편집하고 있어요.' : '저장했어요.')
+    // 저장된 문서의 저장 실패 · 충돌은 머리 아래 안내(SyncNotices)가 알린다
+    else if (copy || saving.isNew) show(copy ? '사본을 만들지 못했어요. 고친 내용은 그대로 있어요.' : '저장하지 못했어요. 고친 내용은 이 화면에 그대로 있어요.', 'error')
+  }
   const look = resolveLook(content)
   // 편집은 저장된 content(draft.content)에 연산을 적용해, 고친 경로만 바뀐 content 를 저장한다.
   // 보기(content)는 정규화한 값이라 저장하지 않는다 — 고치지 않은 저장 값은 한 글자도 바뀌지 않는다.
@@ -223,11 +241,13 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             onChange={(event) => edit({ title: event.target.value })}
           />
           <p>
-            핸드아웃 · v{doc.version} · {offlineCopy ? '이 기기에 저장해 둔 사본' : `${formatRelativeTime(doc.updated_at)} 서버에 저장`}
+            {saving.isNew
+              ? '핸드아웃 · 아직 저장 전 · 저장을 누르면 템플릿 목록에 저장돼요'
+              : `핸드아웃 · v${doc.version} · ${offlineCopy ? '이 기기에 저장해 둔 사본' : `${formatRelativeTime(doc.updated_at)} 서버에 저장`}`}
           </p>
         </div>
         <div className="editor-toolbar">
-          <SaveStatusChip status={status} />
+          {saving.isNew ? saving.dirty && <SaveStatusChip status="unsaved" /> : <SaveStatusChip status={status} />}
           {status === 'error' && (
             <button type="button" className="btn small" onClick={() => void flush()}>
               다시 시도
@@ -303,6 +323,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             <h2>디자인 설정</h2>
             <Icon name="templates" />
           </div>
+          <SaveActions isNew={saving.isNew} dirty={saving.dirty} saving={busy} onSave={() => void runSave(false)} onSaveCopy={() => void runSave(true)} />
           <DesignPanel
             layout={layout}
             canUndo={canUndo}
@@ -352,18 +373,57 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
 }
 
 function HandoutStudio({ docId }: { docId: string }) {
-  const { phase, doc, draft, status, conflict, errorMessage, offlineCopy, recoverSource, edit, flush, resolveConflict, restoreAsNew, discardDeleted } =
-    useDocument(docId)
+  const {
+    phase,
+    doc,
+    draft,
+    status,
+    dirty,
+    conflict,
+    errorMessage,
+    offlineCopy,
+    recoverSource,
+    edit,
+    flush,
+    saveNow,
+    discardChanges,
+    resolveConflict,
+    restoreAsNew,
+    discardDeleted,
+  } = useDocument(docId, { manual: true })
   // 저장된 content(draft.content)가 기준이다. 보기는 그것을 검사·정규화해 그릴 때만 쓴다
   const stored = draft?.content
   const content = useMemo(() => (stored ? resolveHandout(stored) : null), [stored])
   const layout = useMemo(() => (stored ? resolveLayout(stored) : null), [stored])
   const { user } = useAuth()
+  const repo = useRepository()
+  const navigate = useNavigate()
+  const location = useLocation()
   const openedId = phase === 'ready' && doc?.type === 'handout' ? doc.id : null
   // 홈 화면 "최근 조회한 템플릿" 기록 (이 기기에만)
   useEffect(() => {
     if (user && openedId) recordRecentView(user.id, openedId, 'handout')
   }, [user, openedId])
+  usePendingDraft(phase === 'ready' ? draft : null, edit)
+  // 처음 열었을 때 이 기기에 저장하지 않은 변경이 남아 있었는지 (이어서 보여 줌)
+  const [restored, setRestored] = useState<boolean | null>(null)
+  // (새 문서를 저장하는 동안 고친 내용을 넘겨받은 경우는 '남아 있던 변경' 이 아니다)
+  if (restored === null && phase === 'ready') setRestored((location.state as { pendingDraft?: unknown } | null)?.pendingDraft ? false : dirty)
+  const manualSave = useManualSave({
+    dirty,
+    isNew: false,
+    save: saveNow,
+    discard: discardChanges,
+  })
+  const saveCopy = async () => {
+    if (!draft) return false
+    const copy = await repo.create({ type: 'handout', title: copyTitle(draft.title), content: draft.content })
+    // 원본은 마지막으로 저장한 그대로 — 저장하지 않았던 변경은 사본에만 (사용자가 사본으로 저장을 고름)
+    discardChanges()
+    manualSave.allowNext()
+    navigate(documentPath('handout', copy.id))
+    return true
+  }
 
   if (phase === 'loading') return <LoadingState label="핸드아웃을 불러오는 중…" />
   if (phase === 'notfound') return <NotFoundPage />
@@ -404,14 +464,104 @@ function HandoutStudio({ docId }: { docId: string }) {
     )
 
   return (
-    <StudioEditor doc={doc} draft={draft} content={content} layout={layout} status={status} offlineCopy={offlineCopy} edit={edit} flush={flush}>
+    <StudioEditor
+      doc={doc}
+      draft={draft}
+      content={content}
+      layout={layout}
+      status={status}
+      offlineCopy={offlineCopy}
+      edit={edit}
+      flush={flush}
+      saving={{ isNew: false, dirty, save: saveNow, saveCopy }}
+    >
       <SyncNotices
         conflict={conflict}
         status={status}
         errorMessage={errorMessage}
         offlineCopy={offlineCopy}
         onResolve={(choice) => void resolveConflict(choice)}
+        manual
       />
+      {restored && dirty && (
+        <RestoredNotice
+          onSave={() => void saveNow()}
+          onDiscard={() => {
+            discardChanges()
+            setRestored(false)
+          }}
+        />
+      )}
+      {manualSave.dialog}
+    </StudioEditor>
+  )
+}
+
+/**
+ * /studio/handout/new — "새 핸드아웃" 양식의 빈 편집기. 저장을 누를 때 문서를 만든다 (아무것도 하지 않고 나가면 남지 않는다).
+ * 만들어지면 그 문서의 편집기로 넘어가며, 만드는 동안 더 고친 내용은 넘겨받아 '저장하지 않음' 으로 이어 간다.
+ */
+function NewHandout() {
+  const repo = useRepository()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [draft, setDraft] = useState<DocumentDraft>(newHandoutTemplate)
+  const [touched, setTouched] = useState(false)
+  const latest = useRef(draft)
+  const content = useMemo(() => resolveHandout(draft.content), [draft.content])
+  const layout = useMemo(() => resolveLayout(draft.content), [draft.content])
+  const now = useMemo(() => new Date().toISOString(), [])
+  const doc = useMemo(
+    () =>
+      ({
+        id: 'new',
+        owner_id: user?.id ?? '',
+        project_id: null,
+        type: 'handout',
+        title: draft.title,
+        content: draft.content,
+        visibility: 'private',
+        version: 0,
+        created_at: now,
+        updated_at: now,
+        deleted_at: null,
+      }) as DocumentRecord,
+    [user?.id, draft, now],
+  )
+  const edit = useCallback((patch: Partial<DocumentDraft>) => {
+    latest.current = { ...latest.current, ...patch }
+    setDraft(latest.current)
+    setTouched(true)
+  }, [])
+  const create = async (open: boolean) => {
+    const sent = latest.current
+    const created = await repo.create({ type: 'handout', title: sent.title, content: sent.content })
+    setTouched(false)
+    manualSave.allowNext()
+    if (open) navigate(documentPath('handout', created.id), { replace: true, state: latest.current !== sent ? { pendingDraft: latest.current } : null })
+    return true
+  }
+  const manualSave = useManualSave({
+    dirty: touched,
+    isNew: true,
+    save: () => create(true),
+    saveBeforeLeave: () => create(false),
+    discard: () => setTouched(false),
+  })
+
+  return (
+    <StudioEditor
+      doc={doc}
+      draft={draft}
+      content={content}
+      layout={layout}
+      status="saved"
+      offlineCopy={false}
+      edit={edit}
+      flush={() => Promise.resolve()}
+      saving={{ isNew: true, dirty: touched, save: () => create(true), saveCopy: () => Promise.resolve(false) }}
+    >
+      {manualSave.dialog}
     </StudioEditor>
   )
 }
@@ -423,7 +573,7 @@ export default function HandoutStudioPage() {
   return (
     <>
       <h1 className="sr-only">핸드아웃 스튜디오</h1>
-      <HandoutStudio key={id} docId={id} />
+      {id === 'new' ? <NewHandout /> : <HandoutStudio key={id} docId={id} />}
     </>
   )
 }

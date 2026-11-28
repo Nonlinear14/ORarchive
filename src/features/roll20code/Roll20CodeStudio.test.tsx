@@ -5,6 +5,14 @@ import { renderApp } from '../../test/renderApp'
 import { roll20CodeContent } from './model'
 import { MULTI_IMAGE_MACRO, MULTI_MIXED, ROLL20_CODE_SAMPLES } from './testSamples'
 
+/** 수동 저장(2026-11-28): 편집 패널의 저장을 눌러 보낸다 (저장할 것이 없으면 기다리기만) */
+async function saveNow() {
+  const btn = screen.queryByRole('button', { name: /^저장$/ })
+  if (btn && !(btn as HTMLButtonElement).disabled) fireEvent.click(btn)
+  await act(() => vi.advanceTimersByTimeAsync(800))
+}
+
+
 afterEach(() => {
   vi.useRealTimers()
   cleanup()
@@ -43,23 +51,74 @@ describe('롤꾸코드 편집', () => {
     expect(within(dialog).queryAllByRole('article')).toHaveLength(0)
   })
 
-  it('새 롤꾸코드: 아무것도 넣지 않으면 문서를 만들지 않고, 코드를 붙여 넣으면 만들어 그 편집기로 넘어간다', async () => {
+  it('새 롤꾸코드: 저장을 누를 때 처음 만들어 그 편집기로 넘어간다 (붙여 넣기만으로는 만들지 않는다)', async () => {
     const fake = createFakeSupabase()
     const { unmount } = renderApp('/studio/roll20code/new', { client: fake.client })
     const side = await screen.findByRole('complementary', { name: '롤꾸 편집' })
     expect(screen.getByRole('note')).toHaveTextContent('코드 직접 고치기')
     expect(screen.getByText(/아직 저장 전/)).toBeInTheDocument()
     expect(within(side).getByLabelText('롤꾸 코드')).toBeVisible()
-    expect(docsOf(fake)).toHaveLength(0)
-    // 만드는 동안 더 입력해도 마지막 입력이 남는다
-    fireEvent.change(within(side).getByLabelText('롤꾸 코드'), { target: { value: '[가](#" style="color:red")' } })
+    expect(within(side).getByRole('button', { name: /사본으로 저장/ })).toBeDisabled()
     fireEvent.change(within(side).getByLabelText('롤꾸 코드'), { target: { value: chapter.code } })
+    await act(() => new Promise((r) => setTimeout(r, 50)))
+    expect(docsOf(fake)).toHaveLength(0)
+    fireEvent.click(within(side).getByRole('button', { name: /^저장$/ }))
     await waitFor(() => expect(screen.queryByText(/아직 저장 전/)).not.toBeInTheDocument())
-    await waitFor(() => expect(docsOf(fake)[0]?.content.code).toBe(chapter.code), { timeout: 3000 })
     expect(docsOf(fake)).toHaveLength(1)
-    expect(docsOf(fake)[0].title).toBe('새 롤꾸코드')
+    expect(docsOf(fake)[0]).toMatchObject({ title: '새 롤꾸코드', content: { code: chapter.code } })
     expect(screen.getByRole('textbox', { name: '롤꾸코드 이름' })).toHaveValue('새 롤꾸코드')
     unmount()
+  })
+
+  it('새 롤꾸코드: 고친 채 나가려 하면 묻고, 삭제를 고르면 남기지 않는다', async () => {
+    const fake = createFakeSupabase()
+    const { router } = renderApp('/studio/roll20code/new', { client: fake.client })
+    const side = await screen.findByRole('complementary', { name: '롤꾸 편집' })
+    fireEvent.change(within(side).getByLabelText('롤꾸 코드'), { target: { value: chapter.code } })
+    await act(() => router.navigate('/templates'))
+    const dialog = await screen.findByRole('dialog', { name: '아직 저장하지 않았어요. 이대로 나갈까요?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '취소' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/studio/roll20code/new')
+    await act(() => router.navigate('/templates'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '삭제' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/templates'))
+    expect(docsOf(fake)).toHaveLength(0)
+  })
+
+  it('저장된 롤꾸코드: 나가기 창에서 저장 · 변경 버리기 · 사본으로 저장', async () => {
+    const fake = createFakeSupabase()
+    const row = fake.control.insertDocument({ type: 'roll20code', title: '챕터', content: roll20CodeContent(chapter.code) })
+    const { router } = renderApp(`/studio/roll20code/${row.id}`, { client: fake.client })
+    const card = await screen.findByRole('region', { name: '꾸미기' })
+    const saved = () => docsOf(fake).find((d) => d.id === row.id)!
+    fireEvent.change(within(card).getByLabelText('글자 2'), { target: { value: '깊은 밤' } })
+    await act(() => new Promise((r) => setTimeout(r, 50)))
+    expect(saved().content.code).toBe(chapter.code)
+    // 변경 버리기 → 원본 그대로
+    await act(() => router.navigate('/templates'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '변경 버리기' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/templates'))
+    expect(saved().content.code).toBe(chapter.code)
+
+    // 다시 열어 고치고, 나가기 창에서 저장
+    await act(() => router.navigate(`/studio/roll20code/${row.id}`))
+    const card2 = await screen.findByRole('region', { name: '꾸미기' })
+    fireEvent.change(within(card2).getByLabelText('글자 2'), { target: { value: '깊은 밤' } })
+    await act(() => router.navigate('/templates'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/templates'))
+    expect(saved().content.code).toBe(chapter.code.replace('?{챕터명|}', '깊은 밤'))
+
+    // 사본으로 저장: 원본은 그대로, 사본 편집기로
+    await act(() => router.navigate(`/studio/roll20code/${row.id}`))
+    const card3 = await screen.findByRole('region', { name: '꾸미기' })
+    fireEvent.change(within(card3).getByLabelText('글자 2'), { target: { value: '새벽' } })
+    fireEvent.click(screen.getByRole('button', { name: /사본으로 저장/ }))
+    await waitFor(() => expect(docsOf(fake).filter((d) => d.type === 'roll20code')).toHaveLength(2))
+    const copy = docsOf(fake).find((d) => d.type === 'roll20code' && d.id !== row.id)!
+    expect(copy).toMatchObject({ title: '챕터 (사본)', content: { code: chapter.code.replace('?{챕터명|}', '새벽') } })
+    expect(saved().content.code).toBe(chapter.code.replace('?{챕터명|}', '깊은 밤'))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/studio/roll20code/${copy.id}`))
   })
 
   it('새 롤꾸코드: 그냥 나가면 목록에 남지 않는다', async () => {
@@ -87,15 +146,15 @@ describe('롤꾸코드 편집', () => {
 
     vi.useFakeTimers()
     fireEvent.change(within(panel).getByLabelText('글자 2'), { target: { value: '깊은 밤' } })
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved()).toBe(chapter.code.replace('?{챕터명|}', '깊은 밤'))
 
     fireEvent.click(screen.getByRole('switch', { name: '/desc 서술로 보내기' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved().startsWith('/desc ')).toBe(false)
 
     fireEvent.click(screen.getByRole('button', { name: /되돌리기/ }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved().startsWith('/desc ')).toBe(true)
     vi.useRealTimers()
   })
@@ -139,13 +198,13 @@ describe('롤꾸코드 편집', () => {
     vi.useFakeTimers()
     const font = within(card).getByRole('group', { name: '글자 1 글꼴' })
     fireEvent.change(within(font).getByLabelText('크기'), { target: { value: '15' } })
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved().split('\n')[6]).toContain('color: #F16A66 !important; font-size: 15px;')
     expect(saved().split('\n')[7]).toContain('font-size: 13px;')
 
     fireEvent.change(within(card).getByLabelText('색 1 HEX 코드'), { target: { value: '#112233' } })
     fireEvent.blur(within(card).getByLabelText('색 1 HEX 코드'))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     vi.useRealTimers()
     const lines = saved().split('\n')
     expect(lines[6]).toContain('#112233')

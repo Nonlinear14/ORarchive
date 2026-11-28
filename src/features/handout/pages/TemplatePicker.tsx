@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Icon } from '../../../components/Icon'
 import { LoadingState } from '../../../components/LoadingState'
 import { Modal } from '../../../components/Modal'
@@ -111,11 +111,16 @@ export function TemplatePicker() {
 
   return (
     <>
-      <label className="searchbar picker-search">
-        <Icon name="search" />
-        <span className="sr-only">템플릿 검색</span>
-        <input type="search" placeholder="이름으로 검색" value={query} onChange={(event) => setQuery(event.target.value)} />
-      </label>
+      <div className="picker-top">
+        <label className="searchbar picker-search">
+          <Icon name="search" />
+          <span className="sr-only">템플릿 검색</span>
+          <input type="search" placeholder="이름으로 검색" value={query} onChange={(event) => setQuery(event.target.value)} />
+        </label>
+        <Link to="/studio/handout/new" className="btn primary">
+          <Icon name="plus" /> 새 핸드아웃
+        </Link>
+      </div>
       {copyError && (
         <div className="callout danger gallery-error" role="alert">
           <Icon name="alert" />
@@ -173,7 +178,7 @@ export function TemplatePicker() {
 export function TemplatePickerDialog({ onClose }: { onClose(): void }) {
   return (
     <Modal title="템플릿 선택" eyebrow="HANDOUT EDITOR" onClose={onClose} wide>
-      <p>템플릿 목록의 핸드아웃을 골라 사본으로 새 핸드아웃을 만들고 바로 편집기를 열어요. 원본은 그대로 남아요.</p>
+      <p>템플릿 목록의 핸드아웃을 골라 사본으로 새 핸드아웃을 만들고 바로 편집기를 열어요. 원본은 그대로 남아요. 처음부터 만들려면 "새 핸드아웃"을 누르세요.</p>
       <div className="picker-in-modal">
         <TemplatePicker />
       </div>

@@ -30,6 +30,9 @@ export interface PendingEdit {
   savedAt: number
   /** 문서 유형 — 서버에서 삭제된 문서를 새 문서로 복구할 때 쓴다 (이전 기록에는 없을 수 있다) */
   docType?: DocumentType
+  /** 수동 저장 편집기(핸드아웃 · 롤꾸코드)의 저장하지 않은 변경 — 사용자가 저장을 누를 때만 보낸다.
+   *  백그라운드 동기화도 보내지 않는다 (문서를 다시 열면 저장 · 변경 버리기를 고른다) */
+  manual?: boolean
 }
 
 export interface PendingChange {

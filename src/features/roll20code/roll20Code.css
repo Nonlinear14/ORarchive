@@ -311,9 +311,9 @@
   position: relative;
 }
 
-/* 여러 메시지: 위에서부터 보이고 아래는 흐리게 잘린다 */
-.r20-thumb:has(.r20-chat) {
-  align-items: start;
+/* 여러 메시지: 칸을 넘치면 위에서부터 보이고 아래는 흐리게 잘린다 (넘치지 않으면 가운데) */
+.r20-thumb {
+  align-items: safe center;
 }
 
 .r20-thumb::after {
@@ -347,21 +347,6 @@
 
 :root[data-theme='dark'] .r20-query label {
   color: var(--d-text);
-}
-
-/* 롤꾸 선택 창 위: 검색 + 새 롤꾸코드 */
-.r20-picker-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.r20-picker-top > :first-child {
-  flex: 1 1 260px;
-  margin: 0;
 }
 
 /* 빈 롤꾸 미리보기 안내 */

@@ -9,6 +9,7 @@ import './PendingIndicator.css'
 function stateView(item: PendingItem): { label: string; tone: string } {
   if (item.conflict === 'changed') return { label: '충돌 · 선택 필요', tone: 'red' }
   if (item.conflict === 'deleted') return { label: '서버에서 삭제됨', tone: 'red' }
+  if (item.unsaved) return { label: '저장하지 않음 · 열어서 저장', tone: 'gold' }
   return { label: '전송 대기', tone: 'gold' }
 }
 

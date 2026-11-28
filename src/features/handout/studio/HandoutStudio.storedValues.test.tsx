@@ -7,6 +7,14 @@ import { renderApp } from '../../../test/renderApp'
 import { blockRoll20Html } from '../blockRoll20'
 import { resolveLayout } from '../layout'
 
+/** 수동 저장(2026-11-28): 편집 패널의 저장을 눌러 보낸다 (저장할 것이 없으면 기다리기만) */
+async function saveNow() {
+  const btn = screen.queryByRole('button', { name: /^저장$/ })
+  if (btn && !(btn as HTMLButtonElement).disabled) fireEvent.click(btn)
+  await act(() => vi.advanceTimersByTimeAsync(800))
+}
+
+
 /*
  * 블록 편집도 고친 값만 저장한다.
  * - 블록 편집을 처음 할 때는 화면에 보이던 블록을 그대로 layout.rows 에 적는다. 이전 칸(fields) · 템플릿 · 테마 · 모르는 키는 그대로.
@@ -40,7 +48,7 @@ async function openStudio(content: Stored) {
   vi.useFakeTimers()
   const saved = () => fake.control.tables.documents.find((d) => d.id === row.id)!.content as Stored
   const updates = () => fake.control.calls.filter((c) => c.op === 'update').length
-  const settle = () => act(() => vi.advanceTimersByTimeAsync(800))
+  const settle = () => saveNow()
   return { saved, updates, settle }
 }
 

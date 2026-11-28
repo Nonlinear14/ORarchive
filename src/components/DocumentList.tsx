@@ -12,7 +12,7 @@ interface DocumentListProps {
   docs: DocumentSummary[]
   /** 지정하면 각 행에 삭제 버튼을 보여준다 */
   onDelete?(doc: DocumentSummary): void
-  /** 지정하면 행을 눌렀을 때 화면을 옮기지 않고 이 함수를 부른다 (미리보기 창 등) */
+  /** 지정하면 행을 눌렀을 때 이 함수를 부른다 (템플릿 목록: 유형에 맞는 편집기로) */
   onOpen?(doc: DocumentSummary): void
   /** 두 번째 칸(기본: 유형)을 컬러칩으로 — 예: 템플릿 목록의 유형, 로그 목록의 플랫폼 */
   kindColumn?: { label: string; chip(doc: DocumentSummary): KindChipValue }
@@ -92,8 +92,8 @@ export function DocumentList({ docs, onDelete, onOpen, kindColumn, showVisibilit
               <button
                 type="button"
                 className="row-icon"
-                aria-label={`${doc.title || '제목 없음'} 미리보기`}
-                title="미리보기"
+                aria-label={`${doc.title || '제목 없음'} 열기`}
+                title="열기"
                 onClick={() => onOpen(doc)}
               >
                 <Icon name="chev" />

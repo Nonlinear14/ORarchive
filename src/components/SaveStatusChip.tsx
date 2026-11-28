@@ -7,6 +7,7 @@ const statusView: Record<SaveStatus, { label: string; tone: string; icon: IconNa
   offline: { label: '오프라인', tone: 'gold', icon: 'offline' },
   error: { label: '저장 실패', tone: 'red', icon: 'alert' },
   conflict: { label: '충돌 발생', tone: 'red', icon: 'alert' },
+  unsaved: { label: '저장하지 않은 변경 있음', tone: 'gold', icon: 'edit' },
 }
 
 /** 목업의 `tag good` 스타일 저장 상태 칩 */

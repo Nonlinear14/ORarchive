@@ -10,6 +10,14 @@ import { layoutOf } from '../layout'
 import { RECOMMENDED_FIELD_LENGTH, serializeHandout, type HandoutContent } from '../model'
 import { createHandoutContent } from '../templates'
 
+/** 수동 저장(2026-11-28): 편집 패널의 저장을 눌러 보낸다 (저장할 것이 없으면 기다리기만) */
+async function saveNow() {
+  const btn = screen.queryByRole('button', { name: /^저장$/ })
+  if (btn && !(btn as HTMLButtonElement).disabled) fireEvent.click(btn)
+  await act(() => vi.advanceTimersByTimeAsync(800))
+}
+
+
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
@@ -67,14 +75,15 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
 
     vi.useFakeTimers()
     typeInto(title, '새로운 제목 <b>&')
-    expect(chip()).toHaveTextContent('저장 중')
+    // 수동 저장: 저장을 누르기 전까지는 '저장하지 않은 변경 있음'
+    expect(chip()).toHaveTextContent('저장하지 않은 변경 있음')
     typeInto(body, '첫 줄\n  둘째 줄')
     // 같은 DOM 노드 — React 가 다시 그리지 않아 커서가 유지된다
     expect(field('title')).toBe(title)
     expect(field('body')).toBe(body)
     expect(title.textContent).toBe('새로운 제목 <b>&')
 
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(chip()).toHaveTextContent('저장됨')
     expect(control.calls.filter((c) => c.op === 'update')).toHaveLength(1)
     expect(saved().content).toMatchObject({ templateId: 'moonlit' })
@@ -94,7 +103,7 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
       clipboardData: { getData: (type: string) => (type === 'text/plain' ? '붙인\n  제목' : '<b>x</b>') },
     })
     expect(title.textContent).toBe('붙인\n  제목')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'title')).toBe('붙인\n  제목')
   })
 
@@ -114,7 +123,7 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
 
     vi.useFakeTimers()
     typeInto(field('title'), '휴대폰 제목')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(chip()).toHaveTextContent('충돌 발생')
     expect(screen.getByRole('alert')).toHaveTextContent('다른 기기에서 이 문서가 먼저 수정되었어요')
 
@@ -144,7 +153,7 @@ describe('핸드아웃 스튜디오 — 휴대폰에서 충돌', () => {
       body.focus()
       expect(body).toHaveFocus()
       typeInto(body, '휴대폰에서 쓴 본문')
-      await act(() => vi.advanceTimersByTimeAsync(800))
+      await saveNow()
 
       expect(screen.getByRole('alert')).toHaveTextContent('다른 기기에서 이 문서가 먼저 수정되었어요')
       expect(body).not.toHaveFocus()
@@ -153,7 +162,7 @@ describe('핸드아웃 스튜디오 — 휴대폰에서 충돌', () => {
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: '내 변경으로 덮어쓰기' }))
       })
-      await act(() => vi.advanceTimersByTimeAsync(800))
+      await saveNow()
       expect(textOf(saved().content, 'body')).toBe('휴대폰에서 쓴 본문')
       expect(screen.queryByText('다른 기기에서 이 문서가 먼저 수정되었어요')).not.toBeInTheDocument()
     } finally {
@@ -174,7 +183,7 @@ describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 
 
     vi.useFakeTimers()
     typeInto(body, text)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(body.textContent).toBe(text)
     expect(textOf(saved().content, 'body')).toBe(text)
     expect(field('body')).toBe(body)
@@ -191,7 +200,7 @@ describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 
     vi.useFakeTimers()
     fireEvent.paste(body, { clipboardData: { getData: (type: string) => (type === 'text/plain' ? text : '') } })
     expect(body.textContent).toBe(text)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'body')).toBe(text)
   })
 
@@ -203,7 +212,7 @@ describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 
 
     vi.useFakeTimers()
     typeInto(field('title'), '고친 제목')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'title')).toBe('고친 제목')
     expect(textOf(saved().content, 'body')).toBe(text)
     // 이전 본문 text 도 그대로 남는다
@@ -223,7 +232,7 @@ describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 
     vi.useFakeTimers()
     const localBody = longText('내 기기의 끝')
     typeInto(field('body'), localBody)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(chip()).toHaveTextContent('충돌 발생')
     expect(field('body').textContent).toBe(localBody)
 
@@ -237,7 +246,7 @@ describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 
     const { saved } = await openStudio()
     vi.useFakeTimers()
     typeInto(field('signature'), '   ')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(field('signature').textContent).toBe('   ')
     expect(textOf(saved().content, 'signature')).toBe('   ')
   })
@@ -266,7 +275,7 @@ describe('핸드아웃 스튜디오 — 줄바꿈만 있는 본문 (회귀: 빈 
     browserInput(body, '<br>')
     expect(body.innerHTML).toBe('')
     expect(body.matches(':empty')).toBe(true)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'body')).toBe('')
 
     // Enter: 빈 줄은 빈 값이 아니다 — 화면을 지우지 않고, placeholder 도 없다
@@ -274,7 +283,7 @@ describe('핸드아웃 스튜디오 — 줄바꿈만 있는 본문 (회귀: 빈 
     const lineNode = body.firstChild
     expect(body.innerHTML).toBe(afterEnter)
     expect(body.matches(':empty')).toBe(false)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'body')).toBe('\n')
     // 저장 후 동기화 비교(같은 값)도 화면을 다시 쓰지 않는다 → 커서 유지
     expect(body.firstChild).toBe(lineNode)
@@ -282,7 +291,7 @@ describe('핸드아웃 스튜디오 — 줄바꿈만 있는 본문 (회귀: 빈 
 
     // 이어서 입력한 글은 빈 줄 다음에
     browserInput(body, afterTyping)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'body')).toBe('\nabc')
     expect(field('body')).toBe(body)
   })
@@ -296,7 +305,7 @@ describe('핸드아웃 스튜디오 — 줄바꿈만 있는 본문 (회귀: 빈 
 
     vi.useFakeTimers()
     typeInto(field('title'), '다른 칸')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'title')).toBe('다른 칸')
     expect(textOf(saved().content, 'body')).toBe(value)
     expect(field('body').textContent).toBe(body.textContent)
@@ -309,7 +318,7 @@ describe('핸드아웃 스튜디오 — 줄바꿈만 있는 본문 (회귀: 빈 
     expect(field('body').textContent).toBe(value.endsWith('\n') ? `${value}\n` : value)
     vi.useFakeTimers()
     typeInto(field('title'), '또 다른 칸')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(again.saved().content, 'body')).toBe(value)
   })
 
@@ -318,7 +327,7 @@ describe('핸드아웃 스튜디오 — 줄바꿈만 있는 본문 (회귀: 빈 
     control.serverEdit('documents', row.id, { content: withBody('\n\n') })
     vi.useFakeTimers()
     typeInto(field('body'), '내 기기의 본문')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(chip()).toHaveTextContent('충돌 발생')
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '서버 버전 불러오기' }))
@@ -371,7 +380,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     vi.useFakeTimers()
     fireEvent.change(screen.getByLabelText('배경색 HEX 코드'), { target: { value: '#D9E4DC' } })
     fireEvent.submit(screen.getByLabelText('배경색 HEX 코드'))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved().content).toMatchObject({ style: { background: '#d9e4dc' } })
     expect(rowsOf(saved().content)).toBeNull()
     expect(document.querySelector<HTMLElement>('.hb-canvas.editable .hc-frame')!.style.backgroundColor).toBe('rgb(217, 228, 220)')
@@ -381,17 +390,17 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     const picker = screen.getByLabelText('배경색 고르기') as HTMLInputElement
     picker.value = '#445566'
     fireEvent.input(picker)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved().content).toMatchObject({ style: { background: '#d9e4dc' } })
     picker.value = '#112233'
     fireEvent.change(picker)
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(saved().content).toMatchObject({ style: { background: '#112233' } })
     expect(screen.queryByLabelText('배경색 고르기')).not.toBeInTheDocument()
     // 기본 색으로: 템플릿 배경색 (style.background 를 뺀다)
     fireEvent.click(screen.getByRole('button', { name: '배경색 (#112233)' }))
     fireEvent.click(screen.getByRole('button', { name: '기본 색으로' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect((saved().content as unknown as { style: object }).style).not.toHaveProperty('background')
   })
 
@@ -408,7 +417,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.click(screen.getByRole('button', { name: '글자 크게' }))
     fireEvent.change(screen.getByLabelText('글자 색 HEX 코드'), { target: { value: '#9b3b2f' } })
     fireEvent.submit(screen.getByLabelText('글자 색 HEX 코드'))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-title')?.style).toMatchObject({ bold: true, italic: true, size: 31, color: '#9b3b2f' })
     expect(screen.getByRole('button', { name: '굵게' })).toHaveAttribute('aria-pressed', 'true')
     const title = field('title')
@@ -420,16 +429,16 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.change(size, { target: { value: '120' } })
     fireEvent.blur(size)
     expect(screen.getByLabelText('글자 크기 (px)')).toHaveValue('48')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-title')?.style).toMatchObject({ size: 48 })
     // 굵게를 끄면 그 키를 뺀다
     fireEvent.click(screen.getByRole('button', { name: '굵게' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-title')?.style).not.toHaveProperty('bold')
     const before = updates(control)
     // 같은 색을 다시 적용하면 저장하지 않는다
     fireEvent.submit(screen.getByLabelText('글자 색 HEX 코드'))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(updates(control)).toBe(before)
   })
 
@@ -444,11 +453,11 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(box).toHaveFocus()
     vi.useFakeTimers()
     typeInto(box, '새 단서')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, added)).toMatchObject({ type: 'text', text: '새 단서', style: { size: 14 } })
 
     fireEvent.click(screen.getByRole('button', { name: /선택한 블록 삭제/ }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, added)).toBeUndefined()
     expect(screen.getByRole('button', { name: /선택한 블록 삭제/ })).toBeDisabled()
   })
@@ -465,7 +474,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.change(screen.getByLabelText('이미지 주소 (https)'), { target: { value: 'https://cdn.example.com/map.png' } })
     fireEvent.click(screen.getByRole('button', { name: /이미지 넣기/ }))
     expect(document.querySelector('.hb-canvas.editable img')).toHaveAttribute('src', 'https://cdn.example.com/map.png')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     const img = rowsOf(saved().content)!.flatMap((r) => r.blocks).find((b) => b.url)
     expect(img).toMatchObject({ type: 'image', url: 'https://cdn.example.com/map.png' })
     // 대체 텍스트 입력은 없다
@@ -488,13 +497,13 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     vi.useFakeTimers()
     fireEvent.change(screen.getByLabelText('구분선 색 HEX 코드'), { target: { value: '#335577' } })
     fireEvent.submit(screen.getByLabelText('구분선 색 HEX 코드'))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, rule.dataset.blockId!)).toMatchObject({ rule: { widthPercent: 70, color: '#335577' } })
     expect(rule.querySelector<HTMLElement>('.hc-rule > span')!.style.background).toBe('rgb(51, 85, 119)')
 
     // 구분선 추가: 고른 구분선 아래 · 새 구분선 색은 템플릿 구분선 색
     fireEvent.click(screen.getByRole('button', { name: /구분선 추가/ }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     const rows = rowsOf(saved().content)!
     const at = rows.findIndex((r) => r.blocks[0].id === rule.dataset.blockId)
     expect(rows[at + 1].blocks[0]).toMatchObject({ type: 'image', rule: { widthPercent: 100, color: '#335577' } })
@@ -517,7 +526,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(screen.getByLabelText('구분선 길이 (px)')).toHaveValue('370')
     fireEvent.click(screen.getByRole('button', { name: '구분선 굵게' }))
     fireEvent.click(screen.getByRole('button', { name: /1점 쇄선/ }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, id)).toMatchObject({ rule: { length: 370, thickness: 2, style: 'dashdot' } })
     const line = rule.querySelector<HTMLElement>('.hc-rule')!
     expect(line.style.width).toBe('370px')
@@ -544,7 +553,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     const dialog = screen.getByRole('dialog', { name: '템플릿 처음 모양으로 초기화할까요?' })
     fireEvent.click(within(dialog).getByRole('button', { name: '초기화' }))
     expect(field('title').textContent).toBe('달빛 아래의 초대장')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(rowsOf(saved().content)).toBeNull()
     expect(saved().content).toMatchObject({ templateId: 'moonlit', fields: { title: '달빛 아래의 초대장' } })
     expect(screen.getByLabelText('문서 제목')).toHaveValue('달빛 초대장')
@@ -560,7 +569,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(screen.getByText('공백 편집')).toBeInTheDocument()
     expect(screen.getByLabelText('공백 높이 (px)')).toHaveValue('16')
     fireEvent.click(screen.getByRole('button', { name: '공백 높게' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     const rows = rowsOf(saved().content)!
     const at = rows.findIndex((r) => r.blocks[0].id === 'f-title')
     expect(rows[at + 1].blocks[0]).toMatchObject({ type: 'space', height: 17 })
@@ -578,7 +587,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.change(screen.getByLabelText('이미지 주소 (https)'), { target: { value: 'https://cdn.example.com/a.png' } })
     fireEvent.click(screen.getByRole('button', { name: /이미지 넣기/ }))
     fireEvent.click(screen.getByRole('button', { name: '이미지 빼기' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(document.querySelector('.hb-canvas.editable .hb-image-empty')).not.toBeNull()
     expect(screen.getByText('이미지 편집')).toBeInTheDocument()
     const img = rowsOf(saved().content)!.at(-1)!.blocks[0]
@@ -595,7 +604,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     vi.useFakeTimers()
     fireEvent.keyDown(handle, { key: 'ArrowUp' })
     fireEvent.keyDown(handle, { key: 'ArrowDown' })
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(updates()).toBe(0)
   })
 
@@ -615,7 +624,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     vi.useFakeTimers()
     fireEvent.click(screen.getByRole('button', { name: '글자 크게' }))
     fireEvent.click(screen.getByRole('button', { name: '굵게' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     // 처음 고른 블록 값(제목 30px)에 맞춰 모두 31px · 굵게
     for (const id of ['f-title', 'f-body', 'f-signature']) expect(blockOf(saved().content, id)?.style).toMatchObject({ size: 31, bold: true })
     // Ctrl+누르기로 빼기
@@ -627,7 +636,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(field('body').style.fontSize).toBe('31px')
     // 고른 블록 모두 삭제
     fireEvent.click(screen.getByRole('button', { name: /선택한 블록 삭제/ }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-title')).toBeUndefined()
     expect(blockOf(saved().content, 'f-signature')).toBeUndefined()
     expect(blockOf(saved().content, 'f-body')).toBeDefined()
@@ -643,11 +652,11 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.keyDown(document.body, { key: 'u', ctrlKey: true })
     const d = fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true })
     expect(d).toBe(false) // 브라우저 북마크(Ctrl+D) 대신
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ bold: true, italic: true, underline: true, strike: true })
     expect(field('body').querySelector('span')!.style.textDecoration).toBe('underline line-through')
     fireEvent.click(screen.getByRole('button', { name: '취소선' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-body')?.style).not.toHaveProperty('strike')
     // 입력칸에서는 브라우저 기본 (가로채지 않는다)
     expect(fireEvent.keyDown(screen.getByLabelText('배경색 HEX 코드'), { key: 'b', ctrlKey: true })).toBe(true)
@@ -671,7 +680,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.click(screen.getByRole('button', { name: '굵게' }))
     fireEvent.click(screen.getByRole('button', { name: '글자 크게' }))
     fireEvent.click(screen.getByRole('button', { name: '오른쪽 정렬' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     const title = blockOf(saved().content, 'f-title') as unknown as { text: string; runs: unknown; style: Record<string, unknown> }
     expect(title.text).toBe('달빛 아래의 초대장')
     expect(title.runs).toEqual([{ t: '달빛 ' }, { t: '아래의', s: { bold: true, size: 31 } }, { t: ' 초대장' }])
@@ -692,7 +701,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     vi.useFakeTimers()
     fireEvent.click(screen.getByRole('button', { name: '자간 넓게' }))
     fireEvent.click(screen.getByRole('button', { name: '행간 넓게' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ letterSpacing: 0.5, lineHeight: 2.3 })
     expect(field('body').style.letterSpacing).toBe('0.5px')
     expect(field('body').style.lineHeight).toBe('2.3')
@@ -704,7 +713,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.change(lh, { target: { value: '1.26' } })
     fireEvent.blur(lh)
     expect(screen.getByLabelText('행간 (글자 크기의 배수)')).toHaveValue('1.3')
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ letterSpacing: -5, lineHeight: 1.3 })
   })
 
@@ -719,7 +728,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     typeInto(field('title'), '달빛')
     typeInto(field('title'), '달빛 편지')
     fireEvent.click(screen.getByRole('button', { name: '굵게' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(textOf(saved().content, 'title')).toBe('달빛 편지')
 
     // 굵게 되돌리기 (버튼)
@@ -735,7 +744,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.keyDown(document.body, { key: 'y', metaKey: true })
     expect(screen.getByRole('button', { name: '굵게' })).toHaveAttribute('aria-pressed', 'true')
     expect(redoBtn).toBeDisabled()
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-title')).toMatchObject({ text: '달빛 편지', style: { bold: true } })
     // 입력칸(HEX)에서는 그 칸의 되돌리기 — 에디터 기록은 그대로
     fireEvent.keyDown(screen.getByLabelText('배경색 HEX 코드'), { key: 'z', ctrlKey: true })
@@ -748,7 +757,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(screen.getByRole('button', { name: '가운데 정렬' })).toHaveAttribute('aria-pressed', 'true')
     vi.useFakeTimers()
     fireEvent.click(screen.getByRole('button', { name: '오른쪽 정렬' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'f-body')?.style).toMatchObject({ align: 'right' })
     expect(block('f-body').style.textAlign).toBe('right')
   })
@@ -775,13 +784,13 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     fireEvent.click(screen.getByRole('button', { name: '세로 위 정렬' }))
     select('b')
     fireEvent.click(screen.getByRole('button', { name: '세로 아래 정렬' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'a')).toMatchObject({ valign: 'top' })
     expect(blockOf(saved().content, 'b')).toMatchObject({ valign: 'bottom' })
     expect(block('a')).toHaveAttribute('data-valign', 'top')
     // 가운데로 돌리면 그 키를 뺀다
     fireEvent.click(screen.getByRole('button', { name: '세로 가운데 정렬' }))
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(blockOf(saved().content, 'b')).not.toHaveProperty('valign')
   })
 
@@ -812,7 +821,7 @@ describe('핸드아웃 스튜디오 — 블록 편집 · 디자인 설정', () =
     expect(divider).toHaveAttribute('aria-valuenow', '70')
     vi.useFakeTimers()
     fireEvent.keyDown(divider, { key: 'ArrowRight' })
-    await act(() => vi.advanceTimersByTimeAsync(800))
+    await saveNow()
     expect(rowsOf(ctx.saved().content)).toEqual(two.layout.rows)
   })
 
@@ -880,7 +889,7 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
 
     // 새 계정: 기본 핸드아웃 "핸드아웃 샘플"이 아카이브에 일반 핸드아웃으로 한 번 들어간다
     const mine = await screen.findByRole('region', { name: '내 템플릿' })
-    expect(await within(mine).findByRole('button', { name: '핸드아웃 샘플 미리보기' })).toBeInTheDocument()
+    expect(await within(mine).findByRole('button', { name: '핸드아웃 샘플 열기' })).toBeInTheDocument()
     expect(fake.control.tables.documents).toHaveLength(1)
     expect(fake.control.tables.documents[0]).toMatchObject({ type: 'handout', title: '핸드아웃 샘플', content: SAMPLE_HANDOUT_CONTENT })
 
@@ -910,43 +919,67 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
     expect(fake.control.tables.documents).toHaveLength(2)
   })
 
-  it('핸드아웃을 고르면 미리보기 창이 뜨고, "이 템플릿 사용하기"는 사본을 만들어 연다 (원본 그대로)', async () => {
+  it('템플릿 목록에서 핸드아웃을 고르면 미리보기 창 없이 바로 원본 편집기 (카드 · 목록 줄 모두)', async () => {
+    const fake = createFakeSupabase()
+    const original = fake.control.insertDocument({ type: 'handout', title: '잃어버린 연대기', content: serializeHandout(createHandoutContent('forest')) })
+    const { router } = renderApp('/templates', { client: fake.client })
+    const mine = await screen.findByRole('region', { name: '내 템플릿' })
+    fireEvent.click(await within(mine).findByRole('button', { name: '잃어버린 연대기 열기' }))
+    await screen.findByRole('group', { name: '핸드아웃 캔버스' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${original.id}`)
+    expect(fake.control.tables.documents.filter((d) => d.type === 'handout' && String(d.title).includes('사본'))).toHaveLength(0)
+
+    await act(() => router.navigate('/templates'))
+    const mine2 = await screen.findByRole('region', { name: '내 템플릿' })
+    await within(mine2).findByRole('button', { name: '잃어버린 연대기 열기' })
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: '보기 방식' })).getByRole('radio', { name: /목록/ }))
+    fireEvent.click(within(within(mine2).getByRole('table')).getByRole('button', { name: '잃어버린 연대기' }))
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${original.id}`))
+  })
+
+  it('핸드아웃 편집: 저장 · 사본으로 저장 · 나가기 창 · 새 핸드아웃', async () => {
     const fake = createFakeSupabase()
     const stored = { ...serializeHandout(createHandoutContent('forest')), extra: { keep: '저장 값 그대로' } }
     const original = fake.control.insertDocument({ type: 'handout', title: '잃어버린 연대기', content: stored })
-    renderApp('/templates', { client: fake.client })
-
-    const mine = await screen.findByRole('region', { name: '내 템플릿' })
-    fireEvent.click(await within(mine).findByRole('button', { name: '잃어버린 연대기 미리보기' }))
-    const dialog = screen.getByRole('dialog', { name: '잃어버린 연대기' })
-    expect(within(dialog).getByRole('link', { name: /원본 편집/ })).toHaveAttribute('href', `/studio/handout/${original.id}`)
-    // 아직 화면은 그대로
-    expect(screen.getByTestId('location').textContent).toBe('/templates')
-
-    fireEvent.click(within(dialog).getByRole('button', { name: /이 템플릿 사용하기/ }))
+    const { router } = renderApp(`/studio/handout/${original.id}`, { client: fake.client })
     await screen.findByRole('group', { name: '핸드아웃 캔버스' })
-    const docs = fake.control.tables.documents
-    expect(docs).toHaveLength(2)
-    const copy = docs.find((d) => d.id !== original.id)!
-    expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${copy.id}`)
-    expect(copy).toMatchObject({ type: 'handout', title: '잃어버린 연대기 (사본)' })
-    // 사본은 저장된 값을 그대로 복사한다 (정규화하지 않음)
-    expect(copy.content).toEqual(stored)
-    expect(docs.find((d) => d.id === original.id)).toMatchObject({ title: '잃어버린 연대기', content: stored, version: 1 })
-  })
+    const row = () => fake.control.tables.documents.find((d) => d.id === original.id)!
+    fireEvent.change(screen.getByLabelText('문서 제목'), { target: { value: '고친 연대기' } })
+    await act(() => new Promise((r) => setTimeout(r, 30)))
+    expect(row().title).toBe('잃어버린 연대기')
 
-  it('목록 보기에서 줄을 눌러도 미리보기 창이 뜬다', async () => {
-    const fake = createFakeSupabase()
-    fake.control.insertDocument({ type: 'handout', title: '봉인된 편지' })
-    renderApp('/templates', { client: fake.client })
-    const mine = await screen.findByRole('region', { name: '내 템플릿' })
-    await within(mine).findByRole('button', { name: '봉인된 편지 미리보기' })
-    fireEvent.click(within(screen.getByRole('radiogroup', { name: '보기 방식' })).getByRole('radio', { name: /목록/ }))
-    fireEvent.click(within(within(mine).getByRole('table')).getByRole('button', { name: '봉인된 편지' }))
-    expect(screen.getByRole('dialog', { name: '봉인된 편지' })).toBeInTheDocument()
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '닫기' }))
-    fireEvent.click(within(within(mine).getByRole('table')).getByRole('button', { name: '봉인된 편지 미리보기' }))
-    expect(screen.getByRole('dialog', { name: '봉인된 편지' })).toBeInTheDocument()
+    // 사본으로 저장: 고친 내용으로 사본, 원본은 그대로
+    fireEvent.click(screen.getByRole('button', { name: /사본으로 저장/ }))
+    await waitFor(() => expect(fake.control.tables.documents.filter((d) => d.type === 'handout')).toHaveLength(2))
+    const copy = fake.control.tables.documents.find((d) => d.type === 'handout' && d.id !== original.id)!
+    expect(copy).toMatchObject({ title: '고친 연대기 (사본)', content: stored })
+    expect(row()).toMatchObject({ title: '잃어버린 연대기', version: 1 })
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${copy.id}`))
+
+    // 원본을 다시 열면 저장하지 않은 변경 없이 마지막 저장 그대로
+    await act(() => router.navigate(`/studio/handout/${original.id}`))
+    await screen.findByRole('group', { name: '핸드아웃 캔버스' })
+    expect(screen.getByLabelText('문서 제목')).toHaveValue('잃어버린 연대기')
+
+    // 저장 버튼
+    fireEvent.change(screen.getByLabelText('문서 제목'), { target: { value: '저장한 연대기' } })
+    fireEvent.click(screen.getByRole('button', { name: /^저장$/ }))
+    await waitFor(() => expect(row().title).toBe('저장한 연대기'))
+
+    // 새 핸드아웃: 템플릿 선택 창의 버튼 → "새 핸드아웃" 양식, 저장할 때 만든다
+    await act(() => router.navigate('/studio/handout'))
+    const dialog = await screen.findByRole('dialog', { name: '템플릿 선택' })
+    expect(within(dialog).getByRole('link', { name: /새 핸드아웃/ })).toHaveAttribute('href', '/studio/handout/new')
+    fireEvent.click(within(dialog).getByRole('link', { name: /새 핸드아웃/ }))
+    await screen.findByRole('group', { name: '핸드아웃 캔버스' })
+    expect(screen.getByLabelText('문서 제목')).toHaveValue('새 핸드아웃')
+    expect(within(screen.getByRole('group', { name: '핸드아웃 캔버스' })).getByText('HANDOUT')).toBeInTheDocument()
+    const before = fake.control.tables.documents.length
+    fireEvent.click(screen.getByRole('button', { name: /^저장$/ }))
+    await waitFor(() => expect(fake.control.tables.documents.length).toBe(before + 1))
+    expect(fake.control.tables.documents.at(-1)).toMatchObject({ type: 'handout', title: '새 핸드아웃' })
+    await waitFor(() => expect(screen.getByTestId('location').textContent).not.toContain('/new'))
   })
 
   it('템플릿 선택 창: 내 핸드아웃 목록(최근 수정순) · 카드는 미리보기 · 이름 · 이 템플릿 사용하기 · 이름 검색', async () => {
@@ -986,7 +1019,7 @@ describe('템플릿 아카이브 › 템플릿 목록 · 핸드아웃 편집', (
     const mine = await screen.findByRole('region', { name: '내 템플릿' })
     await waitFor(() => expect(within(mine).getByText(/핸드아웃 1개/)).toBeInTheDocument())
     // 기본은 미리보기 카드
-    expect(within(mine).getByRole('button', { name: '봉인된 편지 미리보기' })).toBeInTheDocument()
+    expect(within(mine).getByRole('button', { name: '봉인된 편지 열기' })).toBeInTheDocument()
     expect(within(mine).getByText('핸드아웃')).toHaveClass('kind-chip')
     expect(within(mine).queryByRole('table')).not.toBeInTheDocument()
     expect(within(mine).queryByText('세션 1')).not.toBeInTheDocument()
@@ -1055,12 +1088,12 @@ describe('템플릿 목록 · 로그 목록 검색', () => {
     fake.control.insertDocument({ type: 'handout', title: '봉인된 편지' })
     renderApp('/templates', { client: fake.client })
     const mine = await screen.findByRole('region', { name: '내 템플릿' })
-    await within(mine).findByRole('button', { name: '봉인된 편지 미리보기' })
+    await within(mine).findByRole('button', { name: '봉인된 편지 열기' })
     const search = within(mine).getByRole('searchbox', { name: '템플릿 목록 검색' })
     fireEvent.change(search, { target: { value: 'moon' } })
     expect(within(mine).getByText(/템플릿 2개 중 1개/)).toBeInTheDocument()
-    expect(within(mine).getByRole('button', { name: 'Moon 초대장 미리보기' })).toBeInTheDocument()
-    expect(within(mine).queryByRole('button', { name: '봉인된 편지 미리보기' })).not.toBeInTheDocument()
+    expect(within(mine).getByRole('button', { name: 'Moon 초대장 열기' })).toBeInTheDocument()
+    expect(within(mine).queryByRole('button', { name: '봉인된 편지 열기' })).not.toBeInTheDocument()
     fireEvent.click(within(screen.getByRole('radiogroup', { name: '보기 방식' })).getByRole('radio', { name: /목록/ }))
     expect(within(mine).getByRole('table')).not.toHaveTextContent('봉인된 편지')
     fireEvent.change(search, { target: { value: '우주선' } })

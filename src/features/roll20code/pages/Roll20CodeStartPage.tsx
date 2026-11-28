@@ -56,7 +56,7 @@ export function Roll20CodePicker() {
 
   return (
     <>
-      <div className="r20-picker-top">
+      <div className="picker-top">
         <ListSearch label="롤꾸 검색" value={query} onChange={setQuery} />
         <Link to={NEW_ROLL20_CODE_PATH} className="btn primary">
           <Icon name="plus" /> 새 롤꾸코드

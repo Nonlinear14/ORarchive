@@ -43,7 +43,8 @@ import {
  */
 
 /** 저장 상태 칩에 표시되는 값 */
-export type SaveStatus = 'saving' | 'saved' | 'offline' | 'error' | 'conflict'
+/** unsaved: 수동 저장 편집기에서 저장하지 않은 변경이 있음 (이 기기에는 기록돼 있다) */
+export type SaveStatus = 'saving' | 'saved' | 'offline' | 'error' | 'conflict' | 'unsaved'
 
 /**
  * - deleted: 서버에서 삭제된 문서. 이 기기에 남은 내용(대기 편집 또는 마지막 사본)을 읽기 전용으로 보여 주고
@@ -88,6 +89,12 @@ export interface DocumentSyncOptions {
   isOnline?: () => boolean
   /** 편집 인스턴스 id (기본: 무작위). 대기 기록의 키가 된다 */
   instanceId?: string
+  /**
+   * 수동 저장 (핸드아웃 · 롤꾸코드, 2026-11-28). 입력은 지금처럼 곧바로 IndexedDB 에 기록하지만(불변식 그대로),
+   * 서버에는 saveNow() 를 부를 때만 보낸다. 자동 재시도도 하지 않는다 (실패하면 상태만 알리고 기록은 남는다).
+   * discardChanges() 로 저장하지 않은 변경을 버린다 (사용자가 고른 경우).
+   */
+  manual?: boolean
 }
 
 export interface DocumentSync {
@@ -97,8 +104,13 @@ export interface DocumentSync {
   getSnapshot(): SyncSnapshot
   start(): Promise<void>
   edit(patch: Partial<DocumentDraft>): void
-  /** 대기 중인 변경을 즉시 저장 (debounce 무시). 불러오기에 실패했거나 사본을 보는 중이면 다시 불러온다 */
+  /** 대기 중인 변경을 즉시 저장 (debounce 무시). 불러오기에 실패했거나 사본을 보는 중이면 다시 불러온다.
+   *  수동 저장이면 다시 불러오기만 하고 보내지는 않는다 */
   flush(): Promise<void>
+  /** 수동 저장: 지금 화면을 서버에 보낸다 (사용자가 저장을 누름). 끝난 뒤 저장하지 않은 변경이 없으면 true */
+  saveNow(): Promise<boolean>
+  /** 수동 저장: 저장하지 않은 변경을 버리고 마지막으로 확인한 서버 내용으로 (사용자가 고름). 충돌 중이면 서버 쪽으로 */
+  discardChanges(): void
   resolveConflict(choice: ConflictChoice): Promise<void>
   /**
    * 서버에서 삭제된 문서의 내용으로 새 문서를 만든다. 새 문서가 만들어진 뒤에만 이 기기의 기록을 정리한다.
@@ -189,6 +201,9 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
   const retryMs = options.retryMs ?? RETRY_MS
   const isOnline = options.isOnline ?? defaultIsOnline
   const instanceId = options.instanceId ?? newInstanceId()
+  const manual = options.manual ?? false
+  /** 수동 저장: 사용자가 저장을 눌러 보내는 중 (그 한 번만 보낸다) */
+  let saveRequested = false
   const key = pendingKey(userId, docId, instanceId)
 
   let snapshot = initialSnapshot
@@ -269,6 +284,7 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
       conflict: conflictReason(),
       savedAt: Date.now(),
       ...(docType ? { docType } : {}),
+      ...(manual ? { manual: true } : {}),
     }
   }
 
@@ -334,11 +350,17 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
   async function save(): Promise<void> {
     const { draft, dirty, status, phase } = snapshot
     if (phase !== 'ready' || !draft || !dirty || status === 'conflict' || baseVersion === null) return
+    if (manual && !saveRequested) {
+      // 수동 저장: 보내지 않고 '저장하지 않음' 으로 둔다 (불러온 대기 기록 · 이어 저장 경로 모두 여기로 온다)
+      if (status !== 'saving' || !inFlight) update({ status: 'unsaved' })
+      return
+    }
     if (inFlight) {
       saveQueued = true
       return inFlight
     }
     if (!isOnline()) {
+      saveRequested = false
       update({ status: 'offline' })
       return
     }
@@ -369,7 +391,8 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
         const message = errorMessageOf(error)
         if (!isOnline() || NETWORK_ERROR.test(message)) {
           update({ status: 'offline', errorMessage: null })
-          scheduleRetry()
+          // 수동 저장은 자동으로 다시 보내지 않는다 (사용자가 다시 저장을 누른다)
+          if (!manual) scheduleRetry()
         } else {
           update({ status: 'error', errorMessage: message })
         }
@@ -378,6 +401,12 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
 
     inFlight = run().finally(() => {
       inFlight = null
+      // 수동 저장: 누른 한 번만 보낸다. 저장 중에 입력한 내용은 '저장하지 않음' 으로 남는다 (onSaved)
+      if (manual) {
+        saveRequested = false
+        saveQueued = false
+        return
+      }
       if (saveQueued && gen === generation && active) {
         saveQueued = false
         // debounce 가 아직 남아 있으면 그쪽에 맡긴다.
@@ -413,8 +442,8 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
     if (contentSeq !== seq) {
       // 저장 중에 새로 입력한 내용 — 새 version 기준으로 다시 기록해 두고(닫혀도 충돌로 오인되지 않게) 이어서 보낸다.
       if (snapshot.draft) await persist(snapshot.draft)
-      update({ doc: saved, dirty: true, status: isOnline() ? 'saving' : 'offline', offlineCopy: false })
-      if (gen === generation && active) saveQueued = true
+      update({ doc: saved, dirty: true, status: manual ? 'unsaved' : isOnline() ? 'saving' : 'offline', offlineCopy: false })
+      if (gen === generation && active && !manual) saveQueued = true
       return
     }
 
@@ -764,12 +793,39 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
     update({
       draft: next,
       dirty: true,
-      status: inConflict ? 'conflict' : isOnline() ? 'saving' : 'offline',
+      // 수동 저장: 저장 중에 입력해도 화면 표시는 '저장 중' 을 유지하고, 끝나면 onSaved 가 '저장하지 않음' 으로 바꾼다
+      status: inConflict ? 'conflict' : manual ? (status === 'saving' && inFlight ? 'saving' : 'unsaved') : isOnline() ? 'saving' : 'offline',
       errorMessage: inConflict ? snapshot.errorMessage : null,
     })
     // 충돌 중이면 baseVersion 은 원래 값 그대로, 충돌 표시와 함께 기록된다.
     void persist(next)
-    if (!inConflict) scheduleSave(debounceMs)
+    if (!inConflict && !manual) scheduleSave(debounceMs)
+  }
+
+  async function saveNow(): Promise<boolean> {
+    if (!active) return false
+    if (!manual) {
+      await flush()
+      return !snapshot.dirty
+    }
+    if (inFlight) await inFlight
+    saveRequested = true
+    await save()
+    // save 가 보내지 않고 끝났으면(보낼 것 없음 · 충돌 등) 요청을 거둔다
+    if (!inFlight) saveRequested = false
+    return snapshot.phase === 'ready' && !snapshot.dirty && snapshot.status === 'saved'
+  }
+
+  /** 사용자가 고른 '변경 버리기' — 화면을 마지막으로 확인한 서버 내용으로, 이 인스턴스의 기록은 지운다 (불변식 3·4) */
+  function discardChanges() {
+    if (!manual || snapshot.phase !== 'ready' || inFlight) return
+    const conflictServer = snapshot.conflict?.server
+    const server = conflictServer ?? snapshot.doc
+    if (!server) return
+    clearTimers()
+    baseVersion = server.version
+    store.remove(key).catch(() => {})
+    update({ doc: server, draft: toDraft(server), dirty: false, status: 'saved', conflict: null, errorMessage: null })
   }
 
   async function flush(): Promise<void> {
@@ -782,6 +838,7 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
       await start()
       return
     }
+    if (manual) return
     await save()
   }
 
@@ -899,6 +956,8 @@ export function createDocumentSync(options: DocumentSyncOptions): DocumentSync {
     start,
     edit,
     flush,
+    saveNow,
+    discardChanges,
     resolveConflict,
     restoreAsNew,
     discardDeleted,

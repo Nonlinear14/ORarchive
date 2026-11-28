@@ -8,6 +8,8 @@ import { useRepository } from './useRepository'
 interface UseDocumentOptions {
   repo?: DocumentRepository
   debounceMs?: number
+  /** 수동 저장 (핸드아웃 · 롤꾸코드): saveNow() 를 부를 때만 서버에 보낸다. 입력은 그대로 이 기기에 기록된다 */
+  manual?: boolean
 }
 
 /**
@@ -21,11 +23,11 @@ export function useDocument(docId: string, options: UseDocumentOptions = {}) {
   const { store, cache, locks } = useSyncServices()
   const repo = options.repo ?? defaultRepo
   const userId = user?.id ?? ''
-  const { debounceMs } = options
+  const { debounceMs, manual } = options
 
   const sync: DocumentSync = useMemo(
-    () => createDocumentSync({ docId, userId, repo, store, cache, locks, debounceMs }),
-    [docId, userId, repo, store, cache, locks, debounceMs],
+    () => createDocumentSync({ docId, userId, repo, store, cache, locks, debounceMs, manual }),
+    [docId, userId, repo, store, cache, locks, debounceMs, manual],
   )
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export function useDocument(docId: string, options: UseDocumentOptions = {}) {
     ...snapshot,
     edit: sync.edit,
     flush: sync.flush,
+    saveNow: sync.saveNow,
+    discardChanges: sync.discardChanges,
     resolveConflict: sync.resolveConflict,
     restoreAsNew: sync.restoreAsNew,
     discardDeleted: sync.discardDeleted,
