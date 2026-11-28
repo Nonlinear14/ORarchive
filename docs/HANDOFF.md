@@ -155,6 +155,14 @@
 - 화면 부품: `components/document/ManualSave.tsx`(저장 버튼 · 남은 변경 안내), `useManualSave.tsx`(Ctrl+S · useBlocker 나가기 창 · beforeunload · 새 문서 저장 중 입력 넘겨받기 `pendingDraft`).
 - 라우터를 `createBrowserRouter`(테스트는 `createMemoryRouter`)로 바꿈 — App 의 `<Routes>`는 그대로.
 
+## 5-3. UI 개편 1단계 (2026-11-28 배포)
+- 공통 틀 · 홈 · 템플릿 목록 · 로그 목록. 색은 의미 토큰(`styles/tokens.css`, 다크는 `theme-dark.css` 맨 위)만 쓴다: `--bg` `--surface` `--surface-2/3` `--text` `--text-muted/faint` `--point(-weak/-line)` `--warn*` `--danger*` `--select-bg` `--chip-blue-*` `--chip-green-*`. 예전 이름(`--gold`, `--green` …)은 새 토큰을 가리키는 별칭으로만 남김.
+- 그림자 · 그라데이션 · 세리프 없음, 모서리 4px(`--radius`).
+- 선택 표시(사이드바 메뉴 · 분할 버튼 `.segmented`)는 강조 상자(`--select-bg`) + 굵게만, 포인트색 없음.
+- `.press-accent`(홈 편집 바로가기 · 편집기 저장): 평소 무채색, 마우스 올림 때만 포인트색. 휴대폰(hover: none)은 `usePressAccent`로 0.16초 강조 후 이동(저장은 곧바로).
+- 다크 모드 버튼은 오른쪽 아래(`ThemeButton`). 처음엔 기기 설정, 누르면 기억(`folio-theme`).
+- `theme-dark.css` 아래쪽 "편집 화면" 묶음은 2단계(편집기 · 설정 개편) 전까지의 임시 규칙.
+
 ## 6. 참고 자료
 - 데이터베이스 설정 절차: `supabase/README.md`
 - 화면 기록: `docs/screens/`
