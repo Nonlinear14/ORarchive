@@ -23,6 +23,7 @@ export const CCF_LOG_CSS = `
 .ccf-msg.ccf-divider{border-top:1px solid #ececec}
 .ccf-msg.ccf-divider.ccf-first{border-top:0}
 .ccf-av{flex:none;width:36px;height:36px;margin-top:2px}
+.ccf-av:empty{height:0;margin-top:0}
 .ccf-av img{width:36px;height:36px;object-fit:cover;display:block;border-radius:4px}
 .ccf-round .ccf-av img{border-radius:50%}
 .ccf-body{flex:1;min-width:0}
@@ -59,6 +60,8 @@ export interface CcfRow {
   /** 이름 · 저널을 보여 줄지 (연속 이름 정리) */
   showHeader: boolean
   narrator: boolean
+  /** 탭 이름을 보일 줄 (이름이 보이는 줄. 같은 서술자가 같은 탭에서 이어 말하면 첫 줄만) */
+  showTab: boolean
 }
 
 /** 화면에 보일 메시지 (탭 끄기 · 캐릭터 숨기기 · 빈 메시지 · 주사위 숨기기 반영) */
@@ -75,7 +78,9 @@ export function visibleCcfMessages(content: CcfoliaLogContent): CcfRow[] {
     const narrator = narrators.has(message.speaker)
     const sameSpeaker =
       !!prev && !prev.narrator && !narrator && prev.message.speaker === message.speaker && prev.message.tab === message.tab && kind.kind !== 'system'
-    const row: CcfRow = { message, kind, narrator, showHeader: !(content.options.collapseNames && sameSpeaker) }
+    const showHeader = !(content.options.collapseNames && sameSpeaker)
+    const narratorRun = !!prev && prev.narrator && narrator && prev.message.speaker === message.speaker && prev.message.tab === message.tab
+    const row: CcfRow = { message, kind, narrator, showHeader, showTab: showHeader && !narratorRun }
     rows.push(row)
     prev = row
   }
@@ -109,7 +114,7 @@ export function ccfBodyHtml(content: CcfoliaLogContent, row: CcfRow): string {
   const colors = ccfColors(content, m)
   const name = escapeHtml(m.speaker)
   const hasName = row.showHeader && !!m.speaker && !row.narrator && kind.kind !== 'system'
-  const tag = content.options.showTabs && row.showHeader && m.tab ? `<span class="ccf-tab">${escapeHtml(m.tab)}</span>` : ''
+  const tag = content.options.showTabs && row.showTab && m.tab ? `<span class="ccf-tab">${escapeHtml(m.tab)}</span>` : ''
   // 이름이 없는 줄(서술 · system · 이름 없음)은 탭 이름만 한 줄로
   const tagLine = tag && !hasName ? `<span class="ccf-tab-line">${tag}</span>` : ''
   const nameSpan = hasName ? `${tag}<span class="ccf-name" style="${hexStyle('color', colors.name)}">${name}</span>` : tagLine

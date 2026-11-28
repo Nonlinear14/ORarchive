@@ -81,9 +81,16 @@ describe('코코포리아 로그 그리기', () => {
   })
 
   it('탭 이름 표시: 켜면 이름 앞에 (이름 없는 줄은 탭 이름만 한 줄), 이어진 메시지에는 없다', () => {
-    const root = doc(renderCcfMessagesHtml(sample({ narrators: ['GM'], options: { ...sample().options, showTabs: true } })))
+    const base = sample({ narrators: ['GM'], options: { ...sample().options, showTabs: true } })
+    // 같은 서술자가 같은 탭에서 이어 말하면 첫 줄만
+    const twice = { ...base, messages: [base.messages[0], { ...base.messages[0], id: 'a2' }, ...base.messages.slice(1)] }
+    const runs = [...doc(renderCcfMessagesHtml(twice)).querySelectorAll('.ccf-msg')]
+    expect(runs[0].querySelector('.ccf-tab')).toBeTruthy()
+    expect(runs[1].querySelector('.ccf-tab')).toBeNull()
+    const root = doc(renderCcfMessagesHtml(base))
     const msgs = [...root.querySelectorAll('.ccf-msg')]
     expect(msgs[0].querySelector('.ccf-tab-line')?.textContent).toBe('main') // 서술
+    expect(msgs[1].querySelector('.ccf-tab')?.textContent).toBe('main') // 서술 뒤 하늘
     expect(msgs[1].querySelector('.ccf-tab + .ccf-name')).toBeTruthy()
     expect(msgs[2].querySelector('.ccf-tab')).toBeNull() // 연속 이름 정리
     expect(msgs[4].querySelector('.ccf-tab-line')?.textContent).toBe('main') // system
