@@ -66,7 +66,9 @@ describe('롤꾸코드 편집', () => {
     await waitFor(() => expect(screen.queryByText(/아직 저장 전/)).not.toBeInTheDocument())
     expect(docsOf(fake)).toHaveLength(1)
     expect(docsOf(fake)[0]).toMatchObject({ title: '새 롤꾸코드', content: { code: chapter.code } })
-    expect(screen.getByRole('textbox', { name: '롤꾸코드 이름' })).toHaveValue('새 롤꾸코드')
+    // 저장 뒤 새 문서 편집기로 넘어가는 동안 잠깐 불러오는 화면이 보인다 — 편집기가 다 뜰 때까지 기다린다
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe(`/studio/roll20code/${docsOf(fake)[0].id}`))
+    expect(await screen.findByRole('textbox', { name: '롤꾸코드 이름' })).toHaveValue('새 롤꾸코드')
     unmount()
   })
 
