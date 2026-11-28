@@ -572,9 +572,10 @@
 /* 예전 형식 핸드아웃 (2026-11-28): 업데이트해 저장하기 전까지 편집을 막는다 */
 .legacy-notice {
   align-items: flex-start;
-  background: var(--warn-weak);
-  border-color: var(--warn);
-  color: var(--text);
+  background: var(--danger-weak);
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .legacy-body {
