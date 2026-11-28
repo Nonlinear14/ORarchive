@@ -7,10 +7,15 @@ import { SYSTEM_SPEAKER, type CcfMessage, type CcfoliaLogContent } from './model
  * 코코포리아 로그 → HTML. 미리보기(그림자 DOM)와 내보내기가 같은 결과를 쓴다.
  * 글은 모두 이스케이프하고 줄바꿈만 <br> 로 바꾼다 (코코포리아 글에는 꾸밈이 없다 — * 같은 글자도 그대로 보인다).
  *
- * 색 우선순위: 탭 설정 > 캐릭터 설정 > 코코포리아 원래 색
- * 탭 이름은 '탭 이름 표시'를 켰을 때만 (이름이 보이는 줄의 이름 앞)
+ * 색 우선순위: 탭 설정 > 캐릭터 설정 > 기본 (이름은 코코포리아 원래 색, 대사는 #1a1a1a, 배경은 없음 = 흰 바탕)
+ * 이름은 한 줄을 따로 쓰고 대사는 그 아래부터 (2026-11-29).
+ * 탭 이름은 '탭 이름 표시'를 켰을 때만, 이름 줄 오른쪽 끝 (이름 없는 줄은 오른쪽 위 한 줄)
  * 디자인(2026-11-28 결정): system = 수치 카드(S-3), 주사위 = 판정 카드(D-3), 표 = 표 카드(T-2)
  */
+
+/** 고른 색이 없을 때 출력되는 색 (패널의 빈 색 동그라미도 이 색을 보여 준다) */
+export const CCF_DEFAULT_TEXT = '#1a1a1a'
+export const CCF_DEFAULT_BG = '#ffffff'
 
 export const plainHtml = (text: string) => escapeHtml(text).replace(/\r?\n/g, '<br>')
 
@@ -27,12 +32,11 @@ export const CCF_LOG_CSS = `
 .ccf-av img{width:36px;height:36px;object-fit:cover;display:block;border-radius:4px}
 .ccf-round .ccf-av img{border-radius:50%}
 .ccf-body{flex:1;min-width:0}
-.ccf-name{font-weight:700;margin-right:6px}
-.ccf-name-line{font-weight:700;display:block}
+.ccf-name{font-weight:700}
+.ccf-name-line{font-weight:700;display:flex;align-items:baseline;gap:8px}
 .ccf-narr .ccf-body{text-align:center;font-weight:700}
-.ccf-tab{display:inline-block;margin-right:6px;padding:0 5px;border:1px solid rgba(0,0,0,.18);border-radius:3px;font-size:10.5px;font-weight:600;line-height:1.5;color:#8a8a8a;vertical-align:1px}
-.ccf-tab-line{display:block;margin-bottom:2px}
-.ccf-tab-line .ccf-tab{margin-right:0}
+.ccf-tab{display:inline-block;margin-left:auto;padding:0 5px;border:1px solid rgba(0,0,0,.18);border-radius:3px;font-size:10.5px;font-weight:600;line-height:1.5;color:#8a8a8a;white-space:nowrap}
+.ccf-tab-line{display:flex;justify-content:flex-end;margin-bottom:2px}
 .ccf-sys{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid rgba(0,0,0,.14);border-left:3px solid #9a9a9a;border-radius:4px;padding:4px 10px;font-size:12.5px;margin:2px 0}
 .ccf-sys-who{color:#6b6b6b}
 .ccf-sys-who b{color:#1a1a1a}
@@ -93,7 +97,7 @@ export function ccfColors(content: CcfoliaLogContent, m: CcfMessage): { name?: s
   const own = (m.speaker && content.characters[m.speaker]) || {}
   return {
     name: tab.text ?? own.color ?? m.color,
-    text: tab.text ?? own.text ?? m.color,
+    text: tab.text ?? own.text ?? CCF_DEFAULT_TEXT,
     bg: tab.bg ?? own.bg,
   }
 }
@@ -117,8 +121,7 @@ export function ccfBodyHtml(content: CcfoliaLogContent, row: CcfRow): string {
   const tag = content.options.showTabs && row.showTab && m.tab ? `<span class="ccf-tab">${escapeHtml(m.tab)}</span>` : ''
   // 이름이 없는 줄(서술 · system · 이름 없음)은 탭 이름만 한 줄로
   const tagLine = tag && !hasName ? `<span class="ccf-tab-line">${tag}</span>` : ''
-  const nameSpan = hasName ? `${tag}<span class="ccf-name" style="${hexStyle('color', colors.name)}">${name}</span>` : tagLine
-  const nameLine = hasName ? `<span class="ccf-name-line">${tag}<span style="${hexStyle('color', colors.name)}">${name}</span></span>` : tagLine
+  const nameLine = hasName ? `<span class="ccf-name-line"><span class="ccf-name" style="${hexStyle('color', colors.name)}">${name}</span>${tag}</span>` : tagLine
   if (kind.kind === 'system') {
     if (kind.who !== undefined)
       return `${tagLine}<div class="ccf-sys"><span class="ccf-sys-who"><b>${escapeHtml(kind.who)}</b> · ${escapeHtml(kind.label ?? '')}</span><span class="ccf-sys-val">${escapeHtml(kind.from ?? '')} → ${escapeHtml(kind.to ?? '')}${deltaBadge(kind.from, kind.to)}</span></div>`
@@ -134,7 +137,7 @@ export function ccfBodyHtml(content: CcfoliaLogContent, row: CcfRow): string {
   }
   if (kind.kind === 'table')
     return `${nameLine}<div class="ccf-table"><div class="ccf-table-h"><span class="ccf-table-no">${escapeHtml(kind.roll)}</span>${escapeHtml(kind.title)}</div><div class="ccf-table-b">${plainHtml(kind.result)}</div></div>`
-  return `${nameSpan}<span class="ccf-text">${plainHtml(m.text)}</span>`
+  return `${nameLine}<span class="ccf-text">${plainHtml(m.text)}</span>`
 }
 
 export function ccfRowClass(content: CcfoliaLogContent, row: CcfRow, first: boolean): string {

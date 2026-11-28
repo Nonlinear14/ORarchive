@@ -1,17 +1,39 @@
 /* 코코포리아 로그 편집 패널 (나머지는 roll20Log.css 를 같이 쓴다) */
+/* 서술자 버튼: 5줄까지 보이고 그 다음부터 목록 안에서 스크롤 (휴대폰도 같게, 2026-11-29) */
 .narrator-chips {
+  --chip-h: 30px;
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 6px;
+  max-height: calc(var(--chip-h) * 5 + 6px * 4 + 4px); /* + 위아래 padding */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 2px;
+  margin: -2px;
+}
+.narrator-chips:focus-visible,
+.tab-list:focus-visible {
+  outline: 2px solid var(--point);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
 .narrator-chip {
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--text-muted);
   border-radius: var(--radius);
-  padding: 5px 10px;
+  box-sizing: border-box;
+  height: var(--chip-h);
+  max-width: 100%;
+  padding: 0 10px;
   font: inherit;
   font-size: 12.5px;
+  line-height: calc(var(--chip-h) - 2px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 .narrator-chip:hover {
@@ -35,6 +57,20 @@
   margin-left: auto;
   flex: none;
 }
+/* 탭 목록: 4개까지 보이고 그 다음부터 목록 안에서 스크롤 (휴대폰도 같게) */
 .tab-list {
-  max-height: none;
+  --tab-row-h: 58px;
+  max-height: calc(var(--tab-row-h) * 4 + 8px * 3 + 4px); /* + 위아래 padding */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 2px 4px;
+  margin: 0 -4px;
+}
+.tab-list .tab-row {
+  box-sizing: border-box;
+  height: var(--tab-row-h);
+}
+.tab-list .tab-row:last-child {
+  margin-bottom: 0;
 }

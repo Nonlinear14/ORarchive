@@ -27,7 +27,7 @@ const CCF_OVERLAY_CSS = `
 .log-msg>.ccf-msg{transition:box-shadow .12s}
 .log-msg.is-active>.ccf-msg,.log-msg:focus-visible>.ccf-msg,.log-msg.is-editing>.ccf-msg{box-shadow:inset 0 0 0 2px var(--point)}
 .log-msg.is-editable>.ccf-msg{cursor:text}
-.log-msg.is-editing .ccf-name,.log-msg.is-editing .ccf-av{cursor:pointer}
+.log-msg.is-editing .ccf-name{cursor:pointer}
 .log-msg.is-editing .ccf-name:hover{outline:2px dashed var(--point);outline-offset:2px}
 .msg-inline{display:inline}
 .ccf-narr .msg-hint{text-align:center}

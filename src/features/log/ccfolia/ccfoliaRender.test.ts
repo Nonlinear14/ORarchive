@@ -50,11 +50,20 @@ describe('코코포리아 로그 그리기', () => {
     expect(root.querySelector('.ccf-table-b')?.textContent).toBe('도구를 하나 잃는다.')
   })
 
+  it('이름은 따로 한 줄, 대사는 그 아래 · 고른 색이 없으면 대사는 #1a1a1a (이름은 원래 색)', () => {
+    const root = doc(renderCcfMessagesHtml(sample()))
+    const haneul = root.querySelectorAll('.ccf-msg')[1] as HTMLElement
+    const body = haneul.querySelector('.ccf-body')!
+    expect([...body.children].map((c) => c.className)).toEqual(['ccf-name-line', 'ccf-text'])
+    expect(haneul.style.color).toBe('rgb(26, 26, 26)')
+    expect((body.querySelector('.ccf-name') as HTMLElement).style.color).toBe('rgb(255, 165, 0)')
+  })
+
   it('연속 이름 정리: 같은 사람이 이어 말하면 이름은 한 번만 (끄면 매번)', () => {
     const on = doc(renderCcfMessagesHtml(sample()))
-    expect([...on.querySelectorAll('.ccf-name, .ccf-name-line')].map((n) => n.textContent)).toEqual(['GM', '하늘', '유진'])
+    expect([...on.querySelectorAll('.ccf-name')].map((n) => n.textContent)).toEqual(['GM', '하늘', '유진'])
     const off = doc(renderCcfMessagesHtml(sample({ options: { ...sample().options, collapseNames: false } })))
-    expect(off.querySelectorAll('.ccf-name, .ccf-name-line')).toHaveLength(5)
+    expect(off.querySelectorAll('.ccf-name')).toHaveLength(5)
   })
 
   it('서술자: 이름 없이 가운데 · 굵게', () => {
@@ -80,7 +89,7 @@ describe('코코포리아 로그 그리기', () => {
     expect(html).not.toContain('main')
   })
 
-  it('탭 이름 표시: 켜면 이름 앞에 (이름 없는 줄은 탭 이름만 한 줄), 이어진 메시지에는 없다', () => {
+  it('탭 이름 표시: 켜면 이름 줄 오른쪽 끝에 (이름 없는 줄은 탭 이름만 한 줄), 이어진 메시지에는 없다', () => {
     const base = sample({ narrators: ['GM'], options: { ...sample().options, showTabs: true } })
     // 같은 서술자가 같은 탭에서 이어 말하면 첫 줄만
     const twice = { ...base, messages: [base.messages[0], { ...base.messages[0], id: 'a2' }, ...base.messages.slice(1)] }
@@ -91,7 +100,7 @@ describe('코코포리아 로그 그리기', () => {
     const msgs = [...root.querySelectorAll('.ccf-msg')]
     expect(msgs[0].querySelector('.ccf-tab-line')?.textContent).toBe('main') // 서술
     expect(msgs[1].querySelector('.ccf-tab')?.textContent).toBe('main') // 서술 뒤 하늘
-    expect(msgs[1].querySelector('.ccf-tab + .ccf-name')).toBeTruthy()
+    expect(msgs[1].querySelector('.ccf-name-line > .ccf-name + .ccf-tab')).toBeTruthy()
     expect(msgs[2].querySelector('.ccf-tab')).toBeNull() // 연속 이름 정리
     expect(msgs[4].querySelector('.ccf-tab-line')?.textContent).toBe('main') // system
     expect(msgs[5].querySelector('.ccf-name-line .ccf-tab')?.textContent).toBe('other') // 표 카드 이름 줄

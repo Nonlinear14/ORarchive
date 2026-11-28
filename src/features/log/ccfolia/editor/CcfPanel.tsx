@@ -8,6 +8,7 @@ import { AvatarDialog, ColorRound, Section, Toggle } from '../../roll20/editor/L
 import { classifyMessage } from '../classify'
 import { countCcfMatches, replaceAllCcf, setCcfOption, setNarrator, setTab } from '../edits'
 import { ccfSpeakersOf, tabsOf, type CcfOptions, type CcfoliaLogContent } from '../model'
+import { CCF_DEFAULT_BG, CCF_DEFAULT_TEXT } from '../render'
 
 interface PanelProps {
   content: CcfoliaLogContent
@@ -64,7 +65,8 @@ function CharacterRow({
                   name={speaker}
                   colorKey={key}
                   value={setting[key]}
-                  detected={key === 'bg' ? undefined : color}
+                  // 고른 색이 없으면 지금 출력되는 색 (이름: 원래 색 · 배경: 흰 바탕 · 대사: 기본 글자색)
+                  detected={key === 'color' ? color : key === 'bg' ? CCF_DEFAULT_BG : CCF_DEFAULT_TEXT}
                   apply={apply}
                 />
               ))}
@@ -131,6 +133,7 @@ function TabRow({ tab, count, content, apply }: { tab: string; count: number; co
                 name={`${label} 탭`}
                 colorKey={key}
                 value={setting[key]}
+                detected={key === 'bg' ? CCF_DEFAULT_BG : CCF_DEFAULT_TEXT}
                 apply={apply}
                 set={(value) => setTab(tab, key, value)}
               />
@@ -181,7 +184,7 @@ export function CcfPanel({ content, apply, notify }: PanelProps) {
         <Toggle label="주사위 결과 숨기기" sub="판정 · 표 결과" count={rollCount} checked={options.hideRolls} onChange={set('hideRolls')} />
         <Toggle label="연속 이름 정리" sub="같은 사람이 이어 말하면 이름을 한 번만" checked={options.collapseNames} onChange={set('collapseNames')} />
         <Toggle label="구분선 표시" sub="메시지 사이의 가는 선" checked={options.divider} onChange={set('divider')} />
-        <Toggle label="탭 이름 표시" sub="이름 앞에 main · other 같은 탭 이름" checked={options.showTabs} onChange={set('showTabs')} />
+        <Toggle label="탭 이름 표시" sub="메시지 오른쪽에 main · other 같은 탭 이름" checked={options.showTabs} onChange={set('showTabs')} />
         <div className="seg-label">저널 모양</div>
         <div className="segmented" role="radiogroup" aria-label="저널 모양">
           {shapes.map(([v, text]) => (
@@ -200,7 +203,7 @@ export function CcfPanel({ content, apply, notify }: PanelProps) {
       </Section>
 
       <Section label="서술자" extra={<em className="opt-count">{content.narrators.length}명</em>}>
-        <div className="narrator-chips" role="group" aria-label="서술자 고르기">
+        <div className="narrator-chips" role="group" aria-label="서술자 고르기" tabIndex={0}>
           {speakers.map(({ speaker }) => {
             const on = content.narrators.includes(speaker)
             return (
@@ -214,7 +217,7 @@ export function CcfPanel({ content, apply, notify }: PanelProps) {
       </Section>
 
       <Section label="탭" extra={<em className="opt-count">{tabs.length}개</em>}>
-        <div className="char-list tab-list" role="group" aria-label="탭 목록">
+        <div className="tab-list" role="group" aria-label="탭 목록" tabIndex={0}>
           {tabs.map((t) => (
             <TabRow key={t.tab} {...t} content={content} apply={apply} />
           ))}
