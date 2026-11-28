@@ -171,7 +171,8 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
   const multi = messages.length > 1
   const sel = multi && selected !== null && selected < messages.length ? selected : null
   const toggleMessage = useCallback((i: number) => setSelected((cur) => (cur === i ? null : i)), [])
-  const msgLabel = (message: number) => (multi && sel === null ? `메시지 ${message + 1} · ` : '')
+  // 여러 메시지인데 아무것도 고르지 않았으면 내용 칸은 비우고 안내만 (색은 문서 전체)
+  const picking = multi && sel === null
   const slotRefs = useMemo(() => messageSlots(code), [code])
   const slots = useMemo(() => slotRefs.map((r) => r.slot), [slotRefs])
   // 글자 번호: 한 메시지면 문서 전체 순서, 여러 메시지면 메시지 안 순서
@@ -225,7 +226,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
     return (
       <div className="r20-slot" key={id}>
         <label className="field-label sub" htmlFor={img.asked ? undefined : id}>
-          {msgLabel(img.message)}이미지 주소
+          이미지 주소
         </label>
         {img.asked ? (
           <small className="r20-slot-note">주소 안에 질문(?{'{…}'})이 있어요. 아래 "질문 예시"에서 고르면 그 이미지가 보여요.</small>
@@ -241,13 +242,13 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
       </div>
     )
   }
-  const renderSlot = ({ message, slot, n, global }: (typeof shownSlots)[number]) => {
+  const renderSlot = ({ slot, n, global }: (typeof shownSlots)[number]) => {
     const id = `slot-${global}`
     const asked = /\?\{[^{}]*\}/.test(slot.text)
     return (
       <div className="r20-slot" key={`${global}-${slot.textSpan.start}`}>
         <label className="field-label sub" htmlFor={id}>
-          {msgLabel(message)}글자 {n}
+          글자 {n}
         </label>
         <div className="r20-slot-row">
           <input
@@ -267,7 +268,7 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             </button>
           )}
         </div>
-        <FontFields code={code} slot={slot} idBase={id} label={`${msgLabel(message)}글자 ${n}`} apply={apply} />
+        <FontFields code={code} slot={slot} idBase={id} label={`글자 ${n}`} apply={apply} />
         {asked && !multi && <small className="r20-slot-note">?{'{…}'} 질문은 매크로를 실행할 때 물어봐요. 미리보기는 아래 "질문 예시"로 채워요.</small>}
       </div>
     )
@@ -366,49 +367,58 @@ function CodeEditor({ doc, draft, content, status, offlineCopy, edit, flush, chi
             )}
             <div className="r20-col r20-col-content">
               <span className="field-label">내용</span>
-              {shownSlots.length === 0 && shownImages.length === 0 && (
-                <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. "코드 직접 고치기"에서 넣을 수 있어요.</p>
-              )}
-              {contentItems.map((item) => item.node)}
-              {shownQueries.length > 0 && (
-                <div className="r20-queries" role="group" aria-label="질문 예시">
-                  <span className="field-label">질문 예시</span>
-                  <p className="field-help">
-                    Roll20 이 매크로를 실행할 때 묻는 질문이에요. 여기 넣은 답으로 미리보기 · 롤꾸 복사를 만들어요 (저장되지 않아요).
-                  </p>
-                  {shownQueries.map((q) => {
-                    const id = `q-${q.label}`
-                    const set = (value: string) => setAnswers({ ...answers, [q.label]: value })
-                    return (
-                      <div className="r20-query" key={q.label}>
-                        <label htmlFor={id}>{q.label || '(이름 없는 질문)'}</label>
-                        {q.options.length > 1 ? (
-                          <select id={id} className="field-input" value={answers[q.label] ?? defaultAnswer(q)} onChange={(e) => set(e.target.value)}>
-                            {q.options.map((o, i) =>
-                              o.separator ? (
-                                <option key={`sep-${i}`} disabled value={`\u0000sep-${i}`}>
-                                  {o.name}
-                                </option>
-                              ) : (
-                                <option key={`${o.value}-${i}`} value={o.value}>
-                                  {o.name}
-                                </option>
-                              ),
+              {picking ? (
+                <p className="r20-pick-hint" role="note">
+                  수정할 열을 선택해 주세요
+                  <small>미리보기에서 메시지를 누르면 그 메시지의 내용 · 질문 예시 · 색이 보여요.</small>
+                </p>
+              ) : (
+                <>
+                  {shownSlots.length === 0 && shownImages.length === 0 && (
+                    <p className="field-help">꾸밀 글자([글자](#" style="…"))가 없어요. "코드 직접 고치기"에서 넣을 수 있어요.</p>
+                  )}
+                  {contentItems.map((item) => item.node)}
+                  {shownQueries.length > 0 && (
+                    <div className="r20-queries" role="group" aria-label="질문 예시">
+                      <span className="field-label">질문 예시</span>
+                      <p className="field-help">
+                        Roll20 이 매크로를 실행할 때 묻는 질문이에요. 여기 넣은 답으로 미리보기 · 롤꾸 복사를 만들어요 (저장되지 않아요).
+                      </p>
+                      {shownQueries.map((q) => {
+                        const id = `q-${q.label}`
+                        const set = (value: string) => setAnswers({ ...answers, [q.label]: value })
+                        return (
+                          <div className="r20-query" key={q.label}>
+                            <label htmlFor={id}>{q.label || '(이름 없는 질문)'}</label>
+                            {q.options.length > 1 ? (
+                              <select id={id} className="field-input" value={answers[q.label] ?? defaultAnswer(q)} onChange={(e) => set(e.target.value)}>
+                                {q.options.map((o, i) =>
+                                  o.separator ? (
+                                    <option key={`sep-${i}`} disabled value={`\u0000sep-${i}`}>
+                                      {o.name}
+                                    </option>
+                                  ) : (
+                                    <option key={`${o.value}-${i}`} value={o.value}>
+                                      {o.name}
+                                    </option>
+                                  ),
+                                )}
+                              </select>
+                            ) : (
+                              <input
+                                id={id}
+                                className="field-input"
+                                value={answers[q.label] ?? ''}
+                                placeholder={defaultAnswer(q)}
+                                onChange={(e) => set(e.target.value)}
+                              />
                             )}
-                          </select>
-                        ) : (
-                          <input
-                            id={id}
-                            className="field-input"
-                            value={answers[q.label] ?? ''}
-                            placeholder={defaultAnswer(q)}
-                            onChange={(e) => set(e.target.value)}
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="r20-col r20-col-colors">

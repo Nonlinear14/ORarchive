@@ -502,3 +502,30 @@
 .r20-edit {
   scroll-margin-top: 84px;
 }
+
+/* 여러 메시지 · 아무것도 고르지 않음: 내용 칸 안내 */
+.r20-pick-hint {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 18px 16px;
+  border: 1px dashed #d4cdbf;
+  border-radius: 10px;
+  background: #faf7f1;
+  color: #4b5753;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.r20-pick-hint small {
+  color: #8a918c;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+:root[data-theme='dark'] .r20-pick-hint {
+  background: transparent;
+  border-color: var(--d-border);
+  color: var(--d-text);
+}

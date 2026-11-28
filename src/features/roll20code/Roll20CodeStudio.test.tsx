@@ -120,14 +120,17 @@ describe('롤꾸코드 편집', () => {
     const card = await screen.findByRole('region', { name: '꾸미기' })
     const saved = () => docsOf(fake).find((d) => d.id === row.id)!.content.code!
     expect(within(card).getByText('전체 메시지 9개')).toBeInTheDocument()
-    expect(within(card).getByLabelText('메시지 2 · 글자 1')).toHaveValue('?{시나리오 제목}')
-    expect(within(card).getByLabelText('메시지 6 · 이미지 주소')).toHaveValue('https://imgur.com/csHVgwW.png')
+    // 아무것도 고르지 않으면: 내용 · 질문 예시는 비우고 안내, 색은 문서 전체
+    expect(within(card).getByText('수정할 열을 선택해 주세요')).toBeInTheDocument()
+    expect(within(card).queryByRole('textbox', { name: /글자/ })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('group', { name: '질문 예시' })).not.toBeInTheDocument()
+    expect(within(card).getByText(/색 1 · 글자/)).toHaveTextContent('3곳')
 
     const shadow = screen.getByTestId('roll20-chat').shadowRoot!
     fireEvent.click(shadow.querySelector('.message[data-msg="6"] a')!)
     expect(within(card).getByText('메시지 7 편집 중')).toBeInTheDocument()
     expect(shadow.querySelector('.message[data-msg="6"]')).toHaveClass('is-picked')
-    expect(within(card).queryByLabelText('메시지 2 · 글자 1')).not.toBeInTheDocument()
+    expect(within(card).queryByText('수정할 열을 선택해 주세요')).not.toBeInTheDocument()
     expect(within(card).getByLabelText('글자 1')).toHaveValue('PC')
     expect(within(card).getByLabelText('글자 2')).toHaveValue(' ?{PC 이름}')
     // 질문 예시도 이 메시지 것만
@@ -149,6 +152,8 @@ describe('롤꾸코드 편집', () => {
     expect(lines[1]).toContain('#F16A66')
     expect(lines[7]).toContain('#F16A66')
 
+    fireEvent.click(shadow.querySelector('.message[data-msg="5"]')!)
+    expect(within(card).getByLabelText('이미지 주소')).toHaveValue('https://imgur.com/csHVgwW.png')
     fireEvent.click(within(card).getByRole('button', { name: '전체 보기' }))
     expect(within(card).getByText('전체 메시지 9개')).toBeInTheDocument()
   })
