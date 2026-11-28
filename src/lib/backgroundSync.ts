@@ -1,3 +1,4 @@
+import type { DocumentType } from './database.types'
 import type { DocumentCache } from './documentCache'
 import type { DocumentRepository } from './documents'
 import {
@@ -21,6 +22,8 @@ export interface PendingItem {
   conflict: PendingConflict | null
   /** 수동 저장 편집기의 저장하지 않은 변경 (보내지 않고 문서를 열어 저장 · 버리기를 고른다) */
   unsaved?: boolean
+  /** 문서 종류 — 목록에서 맞는 편집기로 바로 연다 (이전 기록에는 없을 수 있다) */
+  docType?: DocumentType
 }
 
 export interface BackgroundSyncSnapshot {
@@ -157,6 +160,7 @@ export function createBackgroundSync(options: BackgroundSyncOptions): Background
           savedAt: record.savedAt,
           conflict: record.conflict,
           ...(record.manual ? { unsaved: true } : {}),
+          ...(record.docType ? { docType: record.docType } : {}),
         }),
       )
     publish(items)

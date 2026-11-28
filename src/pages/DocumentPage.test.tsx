@@ -4,6 +4,7 @@ import type { DocumentRecord } from '../lib/documents'
 import type { PendingStore } from '../lib/pendingStore'
 import { createFakeSupabase } from '../test/fakeSupabase'
 import { createTestServices, renderApp } from '../test/renderApp'
+import { roll20CodeContent } from '../features/roll20code/model'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -11,7 +12,7 @@ afterEach(() => {
 
 function setup(content = { text: '첫 줄' }) {
   const fake = createFakeSupabase()
-  const row = fake.control.insertDocument({ title: '달빛 초대장', content })
+  const row = fake.control.insertDocument({ type: 'log', title: '달빛 초대장', content })
   renderApp(`/documents/${row.id}`, { client: fake.client })
   return { ...fake, row }
 }
@@ -79,7 +80,7 @@ describe('문서 페이지 (useDocument + 저장 상태 칩)', () => {
 describe('동기화되지 않은 변경 (상단바 표시 · 오프라인 사본)', () => {
   it('닫힌 탭이 남긴 충돌 변경을 상단바에 표시하고, 문서를 열면 선택지를 보여 준다', async () => {
     const fake = createFakeSupabase()
-    const row = fake.control.insertDocument({ title: '달빛 초대장', content: { text: '첫 줄' } })
+    const row = fake.control.insertDocument({ type: 'log', title: '달빛 초대장', content: { text: '첫 줄' } })
     const services = createTestServices()
     await services.store.put({
       userId: 'user-1',
@@ -119,7 +120,7 @@ describe('동기화되지 않은 변경 (상단바 표시 · 오프라인 사본
 
   it('회귀: 사본을 보다가 다시 연결하는 중(문서는 서버에서 삭제됨) 입력하면, 그 입력이 복구 화면에 보이고 이 기기에 남는다', async () => {
     const fake = createFakeSupabase()
-    const row = fake.control.insertDocument({ title: '달빛 초대장', content: { text: '첫 줄' } })
+    const row = fake.control.insertDocument({ type: 'log', title: '달빛 초대장', content: { text: '첫 줄' } })
     const services = createTestServices()
     await services.cache.put('user-1', row as unknown as DocumentRecord)
     // 편집기가 자기 대기 기록을 읽은 뒤, 그 결과만 늦게 돌려줄 수 있는 저장소
@@ -171,7 +172,7 @@ describe('동기화되지 않은 변경 (상단바 표시 · 오프라인 사본
 
   it('서버에 연결되지 않으면 이 기기에 저장해 둔 사본을 오프라인 상태로 연다', async () => {
     const fake = createFakeSupabase()
-    const row = fake.control.insertDocument({ title: '달빛 초대장', content: { text: '첫 줄' } })
+    const row = fake.control.insertDocument({ type: 'log', title: '달빛 초대장', content: { text: '첫 줄' } })
     const services = createTestServices()
     await services.cache.put('user-1', row as unknown as DocumentRecord)
     fake.control.offline = true
@@ -290,5 +291,61 @@ describe('서버에서 삭제된 문서의 대기 변경 (복구 화면)', () =>
     expect(await screen.findByRole('heading', { level: 1, name: '페이지를 찾을 수 없음' })).toBeInTheDocument()
     expect(await services.store.list('user-1')).toEqual([])
     await waitFor(() => expect(screen.queryByRole('button', { name: /동기화되지 않은 변경/ })).not.toBeInTheDocument())
+  })
+})
+
+describe('문서 주소(/documents/:id)는 종류에 맞는 편집기로 넘긴다 (2026-11-28)', () => {
+  /** 롤꾸코드 편집기에서 저장하지 않고 닫은 변경 (수동 저장 기록) */
+  async function setupUnsavedCode() {
+    const fake = createFakeSupabase()
+    const row = fake.control.insertDocument({ type: 'roll20code', title: '판정 버튼', content: roll20CodeContent('/desc 서버 코드') })
+    const services = createTestServices()
+    await services.store.put({
+      userId: 'user-1',
+      docId: row.id,
+      instanceId: 'closed-tab',
+      draft: { title: '판정 버튼', content: roll20CodeContent('/desc 저장하지 않은 코드') },
+      baseVersion: 1,
+      revision: 2,
+      docType: 'roll20code',
+      manual: true,
+      conflict: null,
+      savedAt: Date.now(),
+    })
+    return { fake, row, services }
+  }
+
+  it('회귀: 롤꾸코드를 문서 주소로 열면 롤꾸코드 편집기로 넘기고, 저장하지 않은 변경을 서버로 보내지 않는다', async () => {
+    const { fake, row, services } = await setupUnsavedCode()
+    renderApp(`/documents/${row.id}`, { client: fake.client, services })
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe(`/studio/roll20code/${row.id}`))
+    expect(await screen.findByText(/저장하지 않은 변경이 남아 있어요/)).toBeInTheDocument()
+    // 기본 편집기(자동 저장)는 열리지 않았다
+    expect(screen.queryByLabelText('본문')).not.toBeInTheDocument()
+    await act(() => new Promise((resolve) => setTimeout(resolve, 1200)))
+    expect(fake.control.calls.filter((c) => c.op === 'update')).toHaveLength(0)
+    expect(fake.control.tables.documents.find((d) => d.id === row.id)?.content).toEqual(roll20CodeContent('/desc 서버 코드'))
+    expect(await services.store.list('user-1')).toMatchObject([{ manual: true, draft: { content: { code: '/desc 저장하지 않은 코드' } } }])
+  })
+
+  it('상단바 목록의 롤꾸코드는 롤꾸코드 편집기로 바로 연다', async () => {
+    const { fake, row, services } = await setupUnsavedCode()
+    renderApp('/settings', { client: fake.client, services })
+    fireEvent.click(await screen.findByRole('button', { name: '동기화되지 않은 변경 1개' }))
+    const list = screen.getByRole('region', { name: '동기화되지 않은 변경 목록' })
+    await waitFor(() => expect(within(list).getByRole('link', { name: /판정 버튼/ })).toHaveAttribute('href', `/studio/roll20code/${row.id}`))
+  })
+
+  it('아주 예전 형식({ text }) 로그는 기본 편집기로 연다', async () => {
+    const fake = createFakeSupabase()
+    const row = fake.control.insertDocument({ type: 'log', title: '첫 세션', content: { text: '예전 로그' } })
+    renderApp(`/documents/${row.id}`, { client: fake.client })
+    expect(await screen.findByLabelText('본문')).toHaveValue('예전 로그')
+  })
+
+  it('없는 문서는 찾을 수 없다고 알린다', async () => {
+    const fake = createFakeSupabase()
+    renderApp('/documents/00000000-0000-4000-8000-000000000000', { client: fake.client })
+    expect(await screen.findByRole('heading', { name: /찾을 수 없/ })).toBeInTheDocument()
   })
 })

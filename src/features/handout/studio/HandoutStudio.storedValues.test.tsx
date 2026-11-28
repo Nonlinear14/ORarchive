@@ -120,6 +120,9 @@ describe('핸드아웃 스튜디오 — 블록 편집도 고친 값만 저장된
   it('Phase 1 의 { text: "" }: 빈 본문으로 보이고, 다른 블록을 고치면 템플릿 · 빈 본문 블록을 적되 text 는 그대로', async () => {
     const stored = { text: '', other: '남는 값' }
     const { saved, settle } = await openStudio(stored)
+    // 예전 형식: 업데이트를 눌러 지금 형식으로 저장한 뒤에 편집한다
+    fireEvent.click(screen.getByRole('button', { name: '업데이트' }))
+    await settle()
     expect(textBox('f-body').textContent).toBe('')
     typeInto(textBox('f-title'), '새 제목')
     await settle()

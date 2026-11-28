@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { PendingItem } from '../lib/backgroundSync'
 import { formatRelativeTime } from '../lib/format'
+import { documentPath } from '../lib/documents'
 import { usePendingChanges } from '../lib/sync/context'
 import { Icon } from './Icon'
 import './PendingIndicator.css'
@@ -18,6 +19,13 @@ function stateView(item: PendingItem): { label: string; tone: string } {
  * 충돌한 변경은 문서 화면에서 어느 쪽을 남길지 고르고, 서버에서 삭제된 문서의 변경은 문서 화면(복구 화면)에서
  * 내용을 확인한 뒤 새 문서로 복구·복사·버리기를 고른다. 여기서 바로 버리지는 않는다.
  */
+/**
+ * 핸드아웃 · 롤꾸코드는 그 편집기로 바로 연다. 그 밖(로그 · 종류를 모르는 이전 기록)은 문서 주소로 —
+ * 문서 주소가 내용을 보고 맞는 편집기로 넘긴다 (Roll20 로그 / 아주 예전 형식 로그)
+ */
+const openPath = (item: PendingItem) =>
+  item.docType === 'handout' || item.docType === 'roll20code' ? documentPath(item.docType, item.docId) : `/documents/${item.docId}`
+
 export function PendingIndicator() {
   const { items } = usePendingChanges()
   const [open, setOpen] = useState(false)
@@ -72,13 +80,13 @@ export function PendingIndicator() {
               const view = stateView(item)
               return (
                 <li key={item.key} className="pending-row">
-                  <Link to={`/documents/${item.docId}`} className="pending-link" onClick={() => setOpen(false)}>
+                  <Link to={openPath(item)} className="pending-link" onClick={() => setOpen(false)}>
                     <strong>{item.title.trim() || '제목 없음'}</strong>
                     <small>{formatRelativeTime(new Date(item.savedAt).toISOString())} 편집</small>
                   </Link>
                   <span className={`tag ${view.tone}`}>{view.label}</span>
                   {item.conflict === 'deleted' && (
-                    <Link to={`/documents/${item.docId}`} className="text-link" onClick={() => setOpen(false)}>
+                    <Link to={openPath(item)} className="text-link" onClick={() => setOpen(false)}>
                       열어서 복구
                     </Link>
                   )}

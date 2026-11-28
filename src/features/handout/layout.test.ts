@@ -3,7 +3,7 @@ import type { DocumentContent } from '../../lib/documents'
 import { deepFreeze } from '../../test/json'
 import { blockRoll20Html, blockRoll20Text } from './blockRoll20'
 import { layoutOf, lineSegments, resolveLayout, type LayoutRow } from './layout'
-import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockValign, setBlockStyle, setBlockText, setRowSplit } from './layoutEdits'
+import { addBlock, moveBlock, removeBlock, setBlockRule, setBlockValign, setBlockStyle, setBlockText, setRowSplit, upgradeLegacy } from './layoutEdits'
 import { serializeHandout } from './model'
 import { applyToRange, normalizeRuns, rangeAllOn, rangeValue } from './richText'
 import { setBlockContent } from './layoutEdits'
@@ -195,5 +195,23 @@ describe('일부 글자 꾸밈 (runs)', () => {
     expect(html).toContain('<span style="text-decoration:underline line-through;">A</span><span style="text-decoration:line-through;">B</span>')
     stored = setBlockStyle('f-title', { underline: true })(stored)
     expect(resolveLayout(stored).rows.flatMap((r) => r.blocks).find((b) => b.id === 'f-title')).not.toHaveProperty('runs')
+  })
+})
+
+describe('예전 형식 업데이트 (upgradeLegacy, 2026-11-28)', () => {
+  it('{ text } 를 지금 형식으로: 보이던 템플릿 · 블록을 적고 예전 본문과 다른 키는 지우지 않는다 (원본은 그대로)', () => {
+    const stored = deepFreeze({ text: '예전 본문', other: '남는 값' }) as unknown as DocumentContent
+    const next = upgradeLegacy(stored) as Record<string, unknown>
+    expect(next.text).toBe('예전 본문')
+    expect(next.other).toBe('남는 값')
+    expect(next.templateId).toBe('moonlit')
+    // 보이던 모양 그대로 (롤꾸 복사 출력 · 글이 같다)
+    expect(blockRoll20Html(resolveLayout(next as DocumentContent))).toBe(blockRoll20Html(resolveLayout(stored)))
+    expect(blockRoll20Text(resolveLayout(next as DocumentContent))).toBe(blockRoll20Text(resolveLayout(stored)))
+  })
+
+  it('이미 지금 형식(저장된 행이 있음)이면 그대로 돌려준다', () => {
+    const once = upgradeLegacy({ text: '본문' } as unknown as DocumentContent)
+    expect(upgradeLegacy(once)).toBe(once)
   })
 })

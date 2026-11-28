@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { DeletedRecovery } from '../components/document/DeletedRecovery'
 import '../components/document/DocumentEditor.css'
@@ -11,7 +12,11 @@ import { blockRoll20Text } from '../features/handout/blockRoll20'
 import { resolveLayout } from '../features/handout/layout'
 import { contentText, documentPath, documentTypeLabels, type DocumentContent } from '../lib/documents'
 import { formatRelativeTime } from '../lib/format'
+import { useAuth } from '../lib/auth/context'
 import { useDocument } from '../lib/useDocument'
+import { useRepository } from '../lib/useRepository'
+import { useSyncServices } from '../lib/sync/context'
+import type { DocumentType } from '../lib/database.types'
 import { NotFoundPage } from './NotFoundPage'
 
 /** 복구 화면에 보여 주고 복사할 본문 (핸드아웃 형식이면 그 글, 이전 단계의 `{ text }` 면 text) */
@@ -110,18 +115,6 @@ function DocumentEditor({ docId }: { docId: string }) {
         offlineCopy={offlineCopy}
         onResolve={(choice) => void resolveConflict(choice)}
       />
-      {doc.type === 'handout' && (
-        <div className="callout handout-moved">
-          <Icon name="handout" />
-          <span>
-            핸드아웃은 이제 스튜디오에서 디자인과 함께 편집해요.{' '}
-            <Link to={documentPath('handout', doc.id)} className="text-link">
-              핸드아웃 스튜디오에서 열기 <Icon name="arrow" />
-            </Link>
-          </span>
-        </div>
-      )}
-
       <section className="doc-body">
         <label className="field-label" htmlFor="doc-text">
           본문
@@ -143,8 +136,68 @@ function DocumentEditor({ docId }: { docId: string }) {
   )
 }
 
+/**
+ * 이 문서를 열 편집기를 정한다 — 문서를 열기(동기화 시작) 전에.
+ * 기본 편집기는 자동 저장이라, 수동 저장 문서(핸드아웃 · 롤꾸코드)를 열면 저장하지 않은 변경을 보내 버린다.
+ * 그래서 종류는 이 기기의 대기 기록 → 마지막으로 본 사본 → 서버 순으로 읽기만 해서 알아낸다.
+ * - handout · roll20code: 항상 그 편집기로 (삭제된 문서 복구도 그 편집기가 맡는다)
+ * - log: Roll20 로그면 로그 편집기로, 아니면(아주 예전 `{ text }` 로그) 기본 편집기
+ * - 그 밖: 기본 편집기
+ */
+type Route = { to: string } | { basic: true } | { notFound: true } | { error: true }
+
+function editorFor(type: DocumentType | undefined, content: DocumentContent | undefined, id: string): Route {
+  if (type === 'handout' || type === 'roll20code') return { to: documentPath(type, id) }
+  if (type === 'log' && content && isRoll20Log(content)) return { to: documentPath('log', id) }
+  return { basic: true }
+}
+
+function useEditorRoute(docId: string): Route | null {
+  const { user } = useAuth()
+  const userId = user?.id ?? ''
+  const repo = useRepository()
+  const { store, cache } = useSyncServices()
+  const [route, setRoute] = useState<{ docId: string; route: Route } | null>(null)
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const pending = (await store.list(userId).catch(() => [])).find((record) => record.docId === docId)
+      const cached = await cache.get(userId, docId).catch(() => undefined)
+      let server: Awaited<ReturnType<typeof repo.get>> | undefined
+      let failed = false
+      try {
+        server = await repo.get(docId)
+      } catch {
+        failed = true
+      }
+      if (!alive) return
+      const known = server ?? cached
+      let next: Route
+      if (known) next = editorFor(known.type, pending?.draft.content ?? known.content, docId)
+      else if (pending) next = editorFor(pending.docType ?? 'handout', pending.draft.content, docId)
+      else next = failed ? { error: true } : { notFound: true }
+      setRoute({ docId, route: next })
+    })()
+    return () => {
+      alive = false
+    }
+  }, [docId, userId, repo, store, cache])
+  return route?.docId === docId ? route.route : null
+}
+
 export function DocumentPage() {
   const { id = '' } = useParams()
+  const route = useEditorRoute(id)
+  if (!route) return <LoadingState label="문서를 불러오는 중…" />
+  if ('to' in route) return <Navigate to={route.to} replace />
+  if ('notFound' in route) return <NotFoundPage />
+  if ('error' in route)
+    return (
+      <div className="callout danger" role="alert">
+        <Icon name="alert" />
+        <span>문서를 불러오지 못했어요. 네트워크 연결을 확인한 뒤 새로고침해 주세요.</span>
+      </div>
+    )
   // 문서가 바뀌면 편집 상태를 통째로 새로 만든다.
   return (
     <>

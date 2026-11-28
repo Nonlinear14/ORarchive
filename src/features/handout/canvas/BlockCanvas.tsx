@@ -361,7 +361,7 @@ export function BlockCanvas({ layout, editing, label }: BlockCanvasProps) {
       ref={rootRef}
       className={['hc-canvas', 'hb-canvas', editing ? 'editable' : '', drag ? 'is-dragging' : ''].filter(Boolean).join(' ')}
       style={{ fontFamily: BLOCK_FONT_STACK, textAlign: layout.align }}
-      role={editing ? 'group' : undefined}
+      role={editing || label ? 'group' : undefined}
       aria-label={label}
       data-rows={allIds.length}
     >

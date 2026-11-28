@@ -11,6 +11,13 @@ import { RECOMMENDED_FIELD_LENGTH, serializeHandout, type HandoutContent } from 
 import { createHandoutContent } from '../templates'
 
 /** 수동 저장(2026-11-28): 편집 패널의 저장을 눌러 보낸다 (저장할 것이 없으면 기다리기만) */
+/** 예전 형식 핸드아웃: 안내의 "업데이트"를 눌러 지금 형식으로 저장한다 */
+async function upgrade() {
+  const notice = screen.getByText(/예전 형식으로 저장된 핸드아웃입니다/).closest('.callout') as HTMLElement
+  fireEvent.click(within(notice).getByRole('button', { name: '업데이트' }))
+  await act(() => vi.advanceTimersByTimeAsync(800))
+}
+
 async function saveNow() {
   const btn = screen.queryByRole('button', { name: /^저장$/ })
   if (btn && !(btn as HTMLButtonElement).disabled) fireEvent.click(btn)
@@ -107,10 +114,42 @@ describe('핸드아웃 스튜디오 — 캔버스 직접 편집', () => {
     expect(textOf(saved().content, 'title')).toBe('붙인\n  제목')
   })
 
-  it('Phase 1 의 { text } 핸드아웃도 열리고, 본문을 옮겨 보여 준다', async () => {
-    await openStudio({ text: '예전 본문' })
+  it('Phase 1 의 { text } 핸드아웃: 안내와 함께 읽기 전용으로 보여 주고, 업데이트하면 지금 형식으로 저장한 뒤 편집할 수 있다', async () => {
+    const { saved, control, row } = await openStudio({ text: '예전 본문' })
+    const notice = screen.getByText('예전 형식으로 저장된 핸드아웃입니다. 현재 편집기에 맞추어 업데이트해야 합니다.').closest('.callout') as HTMLElement
+    expect(notice).toBeInTheDocument()
+    // 편집 막힘: 캔버스는 읽기 전용, 패널은 누를 수 없고, 제목도 고칠 수 없다
+    const canvas = screen.getByRole('group', { name: '핸드아웃 캔버스' })
+    expect(canvas).not.toHaveClass('editable')
+    expect(canvas).toHaveTextContent('예전 본문')
+    expect(canvas).toHaveTextContent('달빛 아래의 초대장')
+    expect(screen.getByRole('complementary', { name: '디자인 설정', hidden: true })).toHaveAttribute('inert')
+    expect(screen.getByLabelText('문서 제목')).toHaveAttribute('readonly')
+    // 아직 서버 값은 그대로
+    expect(control.tables.documents.find((d) => d.id === row.id)?.content).toEqual({ text: '예전 본문' })
+
+    vi.useFakeTimers()
+    fireEvent.click(within(notice).getByRole('button', { name: '업데이트' }))
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    // 보이던 모양 그대로 지금 형식으로 저장 — 예전 본문 text 는 지우지 않는다
+    expect(textOf(saved().content, 'body')).toBe('예전 본문')
+    expect((saved().content as unknown as { text: string }).text).toBe('예전 본문')
+    expect(saved().content).toMatchObject({ templateId: 'moonlit' })
+    expect(screen.queryByText(/예전 형식으로 저장된 핸드아웃입니다/)).not.toBeInTheDocument()
     expect(field('body')).toHaveTextContent('예전 본문')
-    expect(field('title')).toHaveTextContent('달빛 아래의 초대장')
+    expect(screen.getByLabelText('문서 제목')).not.toHaveAttribute('readonly')
+    // 업데이트는 되돌리기 기록에 남지 않는다 (예전 형식으로 되돌아가지 않게)
+    expect(screen.getByRole('button', { name: /되돌리기/ })).toBeDisabled()
+  })
+
+  it('예전 형식 업데이트가 실패하면 안내와 편집 막힘이 그대로 남는다', async () => {
+    const { control, row } = await openStudio({ text: '예전 본문' })
+    vi.useFakeTimers()
+    control.failNext = { message: 'server unavailable', code: '503', details: '', hint: '' }
+    await upgrade()
+    expect(screen.getByText(/예전 형식으로 저장된 핸드아웃입니다/)).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: '핸드아웃 캔버스' })).not.toHaveClass('editable')
+    expect(control.tables.documents.find((d) => d.id === row.id)?.content).toEqual({ text: '예전 본문' })
   })
 
   it('충돌 → "서버 버전 불러오기" 를 고르면 캔버스 글자도 서버 값으로 바뀐다', async () => {
@@ -207,10 +246,11 @@ describe('핸드아웃 스튜디오 — 긴 글 (화면 = 저장 값, 자르지 
   it('20,000자를 넘는 Phase 1 핸드아웃: 전체를 보여 주고, 다른 칸을 고쳐도 본문은 그대로 저장 (회귀)', async () => {
     const text = longText('예전 본문의 마지막')
     const { saved } = await openStudio({ text })
-    expect(field('body').textContent).toBe(text)
     expect(lengthWarning()).toHaveTextContent(`텍스트 블록이 ${text.length.toLocaleString('ko-KR')}자로 권장 한도`)
 
     vi.useFakeTimers()
+    await upgrade()
+    expect(field('body').textContent).toBe(text)
     typeInto(field('title'), '고친 제목')
     await saveNow()
     expect(textOf(saved().content, 'title')).toBe('고친 제목')
@@ -1127,12 +1167,13 @@ describe('기본 편집기와의 연결', () => {
     expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${row.id}`)
   })
 
-  it('이전 형식({ text }) 핸드아웃은 기본 편집기에 남고 스튜디오 링크를 보여 준다', async () => {
+  it('이전 형식({ text }) 핸드아웃을 문서 주소로 열어도 스튜디오로 넘기고 업데이트 안내를 보여 준다 (기본 편집기 없음)', async () => {
     const fake = createFakeSupabase()
     const row = fake.control.insertDocument({ type: 'handout', title: '예전', content: { text: '본문' } })
     renderApp(`/documents/${row.id}`, { client: fake.client })
-    expect(await screen.findByLabelText('본문')).toHaveValue('본문')
-    expect(screen.getByRole('link', { name: /핸드아웃 스튜디오에서 열기/ })).toHaveAttribute('href', `/studio/handout/${row.id}`)
+    expect(await screen.findByText(/예전 형식으로 저장된 핸드아웃입니다/)).toBeInTheDocument()
+    expect(screen.getByTestId('location').textContent).toBe(`/studio/handout/${row.id}`)
+    expect(screen.queryByLabelText('본문')).not.toBeInTheDocument()
   })
 })
 

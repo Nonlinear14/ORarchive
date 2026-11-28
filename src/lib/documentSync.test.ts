@@ -1502,10 +1502,12 @@ describe('수동 저장 (핸드아웃 · 롤꾸코드, 2026-11-28)', () => {
   })
 
   it('닫힌 탭이 남긴 저장하지 않은 변경: 백그라운드 동기화는 보내지 않고, 다시 열면 화면에 \'저장하지 않음\' 으로 돌아온다', async () => {
-    await store.put(orphan({ draft: { title: '저장 안 한 편집', content: {} }, manual: true }))
+    await store.put(orphan({ draft: { title: '저장 안 한 편집', content: {} }, manual: true, docType: 'roll20code' }))
     const background = createBackgroundSync({ userId: 'user-1', repo, store, cache, locks, isOnline: () => online })
     await background.syncNow()
     expect(background.getSnapshot().items).toMatchObject([{ unsaved: true, title: '저장 안 한 편집' }])
+    // 목록은 문서 종류를 함께 알려 맞는 편집기로 바로 연다 (2026-11-28)
+    expect(background.getSnapshot().items[0].docType).toBe('roll20code')
     background.dispose()
     expect(updateCalls()).toBe(0)
 

@@ -46,6 +46,17 @@ function save(base: JsonObject, rows: JsonObject[]): DocumentContent {
   return { ...base, layout: { ...layout, rows: rows.filter((r) => Array.isArray(r.blocks) && r.blocks.length > 0) } }
 }
 
+/**
+ * 예전 형식(`{}` · `{ text }`) 핸드아웃을 지금 편집기 형식으로 바꾼다 — 사용자가 "업데이트"를 눌렀을 때만.
+ * 보이던 템플릿과 블록(예전 본문 포함)을 그대로 적고, 예전 본문(`text`) 등 원래 키는 지우지 않는다.
+ * 이미 지금 형식(저장된 행이 있음)이면 그대로 돌려준다.
+ */
+export const upgradeLegacy: LayoutEdit = (stored) => {
+  if (isStructuredHandout(stored) && storedRows(stored)) return stored
+  const { base, rows } = withRows(stored)
+  return save(base, rows)
+}
+
 function locate(rows: JsonObject[], id: string): { row: number; index: number } | null {
   for (let row = 0; row < rows.length; row++) {
     const blocks = rows[row].blocks

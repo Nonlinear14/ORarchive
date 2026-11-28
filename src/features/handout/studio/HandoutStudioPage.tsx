@@ -23,10 +23,10 @@ import { NotFoundPage } from '../../../pages/NotFoundPage'
 import { blockRoll20Text } from '../blockRoll20'
 import { BlockCanvas } from '../canvas/BlockCanvas'
 import { blockKind, DEFAULT_SPACE, findBlock, resolveLayout, type HandoutLayout, type ImageBlock, type LayoutBlock, type TextBlock } from '../layout'
-import { addBlock, moveBlock, newBlockId, resetToTemplate, setBlockContent, setBlockStyle, setRowSplit, type TextStylePatch } from '../layoutEdits'
+import { addBlock, moveBlock, newBlockId, resetToTemplate, upgradeLegacy, setBlockContent, setBlockStyle, setRowSplit, type TextStylePatch } from '../layoutEdits'
 import { applyToRange, baseValue, normalizeRuns, rangeAllOn, rangeValue, TOGGLE_KEYS, type ToggleKey } from '../richText'
 import { caretOffsets, rangeAt } from '../canvas/richDom'
-import { RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
+import { isStructuredHandout, RECOMMENDED_FIELD_LENGTH, type HandoutContent } from '../model'
 import { resolveHandout, resolveLook } from '../templates'
 import { newHandoutTemplate } from '../templates/newHandout'
 import { copyTitle } from '../useCopyHandout'
@@ -66,11 +66,13 @@ interface StudioEditorProps {
   children: ReactNode
   /** 수동 저장 (2026-11-28) */
   saving: SavingProps
+  /** 서버에 예전 형식(`{}` · `{ text }`)으로 저장된 핸드아웃: 업데이트해 저장하기 전까지 편집을 막는다 */
+  legacy?: boolean
 }
 
 
 /** 불러온 핸드아웃의 편집 화면: 머리(제목·저장 상태) · 캔버스 · 디자인 패널 */
-function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, flush, children, saving }: StudioEditorProps) {
+function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, flush, children, saving, legacy = false }: StudioEditorProps) {
   const { toast, show } = useToast()
   const [busy, setBusy] = useState(false)
   const runSave = async (copy: boolean) => {
@@ -92,7 +94,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
   // 제목 · HEX 같은 입력칸은 그 칸의 되돌리기를 쓴다
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+      if (legacy || !(e.ctrlKey || e.metaKey) || e.altKey) return
       const key = e.key.toLowerCase()
       if (key !== 'z' && key !== 'y') return
       const target = e.target as HTMLElement | null
@@ -103,7 +105,12 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [undo, redo])
+  }, [undo, redo, legacy])
+  // 예전 형식 업데이트: 보이던 모양 그대로 지금 형식으로 바꿔 곧바로 저장한다 (되돌리기 기록에는 남기지 않는다)
+  const upgrade = async () => {
+    edit({ content: upgradeLegacy(draft.content) })
+    await runSave(false)
+  }
   // 고른 블록들: Ctrl(Cmd)+누르기로 같은 종류를 여러 개 고를 수 있다 (PC). 다른 종류는 더하지 않는다
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const setSelectedId = (id: string | null) => setSelectedIds(id ? [id] : [])
@@ -238,6 +245,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             value={draft.title}
             maxLength={200}
             placeholder="제목 없음"
+            readOnly={legacy}
             onChange={(event) => edit({ title: event.target.value })}
           />
           <p>
@@ -260,6 +268,17 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
       </div>
 
       {children}
+      {legacy && (
+        <div className="callout legacy-notice" role="alert">
+          <Icon name="alert" />
+          <div className="legacy-body">
+            <span>예전 형식으로 저장된 핸드아웃입니다. 현재 편집기에 맞추어 업데이트해야 합니다.</span>
+            <button type="button" className="btn primary small" disabled={busy} onClick={() => void upgrade()}>
+              {busy ? '업데이트 중…' : '업데이트'}
+            </button>
+          </div>
+        </div>
+      )}
       <LengthWarning layout={layout} />
 
       <div className="studio-shell">
@@ -284,7 +303,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             <BlockCanvas
               layout={layout}
               label="핸드아웃 캔버스"
-              editing={{
+              editing={legacy ? undefined : {
                 selectedIds,
                 onSelect: (id, additive) => {
                   if (!id || id !== textRange?.id) setTextRange(null)
@@ -318,7 +337,7 @@ function StudioEditor({ doc, draft, content, layout, status, offlineCopy, edit, 
             <BlockCanvas layout={layout} />
           </div>
         </section>
-        <aside className="panel right-panel" aria-label="디자인 설정">
+        <aside className={`panel right-panel${legacy ? ' is-locked' : ''}`} aria-label="디자인 설정" inert={legacy}>
           <div className="panel-top">
             <h2>디자인 설정</h2>
             <Icon name="templates" />
@@ -456,8 +475,8 @@ function HandoutStudio({ docId }: { docId: string }) {
         <Icon name="alert" />
         <span>
           핸드아웃이 아닌 문서예요.{' '}
-          <Link to={`/documents/${doc.id}`} className="text-link">
-            기본 편집기에서 열기 <Icon name="arrow" />
+          <Link to={documentPath(doc.type, doc.id)} className="text-link">
+            맞는 편집기에서 열기 <Icon name="arrow" />
           </Link>
         </span>
       </div>
@@ -474,6 +493,7 @@ function HandoutStudio({ docId }: { docId: string }) {
       edit={edit}
       flush={flush}
       saving={{ isNew: false, dirty, save: saveNow, saveCopy }}
+      legacy={!isStructuredHandout(doc.content)}
     >
       <SyncNotices
         conflict={conflict}
