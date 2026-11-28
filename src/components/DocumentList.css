@@ -32,15 +32,15 @@
 }
 
 .kind-chip.tone-green {
-  color: var(--point);
-  background: var(--point-weak);
-  border-color: var(--point-line);
+  color: var(--chip-blue-text);
+  background: var(--chip-blue-bg);
+  border-color: var(--chip-blue-line);
 }
 
 .kind-chip.tone-brown {
-  color: var(--text-muted);
-  background: var(--surface-2);
-  border-color: var(--line-strong);
+  color: var(--chip-green-text);
+  background: var(--chip-green-bg);
+  border-color: var(--chip-green-line);
 }
 
 .list-head {

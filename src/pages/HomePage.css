@@ -134,10 +134,10 @@
   min-height: 74px;
   padding: 18px 26px;
   border-radius: var(--radius);
-  border: 1px solid var(--point-line);
-  border-left: 4px solid var(--point);
-  background: var(--point-weak);
-  color: var(--point);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -153,17 +153,11 @@
   flex: none;
 }
 
-a.home-action:hover {
-  border-color: var(--point);
-  background: var(--surface);
-}
-
 .home-action.is-disabled {
   cursor: not-allowed;
   color: var(--text-faint);
   background: var(--surface-2);
   border-color: var(--line);
-  border-left-color: var(--line-strong);
 }
 
 .home-action .tag {

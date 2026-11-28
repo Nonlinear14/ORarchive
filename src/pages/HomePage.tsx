@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, type ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { DocumentList } from '../components/DocumentList'
 import { Icon } from '../components/Icon'
 import { logPlatformChip } from '../lib/kindChips'
@@ -11,6 +11,7 @@ import { formatRelativeTime } from '../lib/format'
 import { readRecentViews, recentOf, templateKinds, type RecentView } from '../lib/recentViews'
 import { useDocumentContent } from '../lib/useDocumentContent'
 import { useMyDocuments } from '../lib/useMyDocuments'
+import { isTouchOnly, usePressAccent } from '../lib/usePressAccent'
 import './HomePage.css'
 
 // 핸드아웃 캔버스·템플릿은 미리보기를 그릴 때만 불러온다 (첫 화면 번들을 가볍게)
@@ -151,6 +152,8 @@ function RecentSection({
 
 /** 섹션 아래 편집 메뉴 바로가기 (설명 없이 이름만). 예전 홈 바로가기 카드처럼 2칸 폭의 큰 버튼. 준비 중인 메뉴는 누를 수 없게 */
 function HomeActions({ tone, items }: { tone: 'template' | 'log'; items: { to: string; label: string; ready?: boolean }[] }) {
+  const navigate = useNavigate()
+  const { pressed, press } = usePressAccent()
   return (
     <div className={`home-actions tone-${tone}`}>
       {items.map((item) =>
@@ -160,7 +163,18 @@ function HomeActions({ tone, items }: { tone: 'template' | 'log'; items: { to: s
             <span className="tag">준비 중</span>
           </span>
         ) : (
-          <Link key={item.to} to={item.to} className="home-action">
+          <Link
+            key={item.to}
+            to={item.to}
+            className={`home-action press-accent${pressed === item.to ? ' is-pressed' : ''}`}
+            onClick={(event) => {
+              // 새 탭 열기 등 수정키 · 가운데 버튼은 브라우저에 맡긴다
+              // 마우스가 있는 기기는 링크가 곧바로 이동한다
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !isTouchOnly()) return
+              event.preventDefault()
+              press(item.to, () => navigate(item.to))
+            }}
+          >
             <strong>{item.label}</strong>
             <Icon name="arrow" />
           </Link>

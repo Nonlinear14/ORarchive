@@ -26,6 +26,16 @@
   --danger-ink: #ffffff;
   --danger-weak: #fde8e8;
   --radius: 4px;
+  /* 선택된 메뉴 · 분할 버튼의 강조 상자 */
+  --select-bg: #ffffff;
+
+  /* 종류 칩 (2026-11-28): 핸드아웃 · Roll20 = 포인트보다 옅고 차분한 파랑, 롤꾸코드 · 코코포리아 = 녹색 */
+  --chip-blue-text: #3e4f9a;
+  --chip-blue-bg: #e9edf8;
+  --chip-blue-line: #c8d1ec;
+  --chip-green-text: #2f6a45;
+  --chip-green-bg: #e5f2ea;
+  --chip-green-line: #bddcc8;
 
   /* 예전 이름 → 새 값 (화면 코드가 쓰는 이름은 그대로 두고 값만 바꾼다) */
   --ink: var(--text);
@@ -54,9 +64,8 @@
   --side-text: var(--text);
   --side-item: var(--text-muted);
   --side-hover: var(--surface-3);
-  --side-active: var(--surface);
-  --side-active-text: var(--point);
-  --side-accent: var(--point);
+  --side-active: var(--select-bg);
+  --side-active-text: var(--text);
   --side-heading: var(--text-faint);
   --side-title: var(--text);
   --side-card: var(--surface);

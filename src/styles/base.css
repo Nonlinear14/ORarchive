@@ -337,9 +337,27 @@ a:focus-visible {
 }
 
 .segmented button.active {
-  background: var(--surface);
+  background: var(--select-bg);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* 눌러서 강조하는 버튼 (홈 편집 바로가기 · 편집기 저장, 2026-11-28):
+   평소에는 무채색, 마우스를 올렸을 때(또는 휴대폰에서 누른 순간)만 포인트색 */
+@media (hover: hover) {
+  .press-accent:not(:disabled):not([aria-disabled='true']):hover {
+    background: var(--point-weak);
+    border-color: var(--point);
+    color: var(--point);
+  }
+}
+
+.press-accent.is-pressed,
+.press-accent:not(:disabled):not([aria-disabled='true']):active {
+  background: var(--point-weak);
+  border-color: var(--point);
   color: var(--point);
-  box-shadow: none;
 }
 
 /* 카드 미리보기 자리표시 (홈 · 템플릿 아카이브) */

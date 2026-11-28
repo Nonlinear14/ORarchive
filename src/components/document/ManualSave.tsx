@@ -1,4 +1,5 @@
 import { Icon } from '../Icon'
+import { usePressAccent } from '../../lib/usePressAccent'
 
 /**
  * 수동 저장 편집기(핸드아웃 · 롤꾸코드, 2026-11-28)의 공통 부품.
@@ -26,9 +27,19 @@ export interface SaveActionsProps {
 }
 
 export function SaveActions({ isNew, dirty, saving, onSave, onSaveCopy }: SaveActionsProps) {
+  const { pressed, flash } = usePressAccent()
   return (
     <div className="panel-section save-actions" role="group" aria-label="저장">
-      <button type="button" className="btn primary small" disabled={saving || (!dirty && !isNew)} onClick={onSave} title="저장 (Ctrl+S)">
+      <button
+        type="button"
+        className={`btn small press-accent${pressed === 'save' ? ' is-pressed' : ''}`}
+        disabled={saving || (!dirty && !isNew)}
+        onClick={() => {
+          flash('save')
+          onSave()
+        }}
+        title="저장 (Ctrl+S)"
+      >
         <Icon name="cloud" /> {saving ? '저장 중…' : '저장'}
       </button>
       <button
