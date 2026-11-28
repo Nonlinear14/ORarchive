@@ -45,6 +45,12 @@ async function stage() {
 
 const row = (root: HTMLElement, id: string) => root.querySelector<HTMLElement>(`.log-msg[data-mid="${id}"]`)!
 
+/** PC: 한 번 눌러 선택하고 더블 클릭해 수정 (2026-11-29) */
+function openEdit(el: Element) {
+  fireEvent.click(el)
+  fireEvent.doubleClick(el)
+}
+
 describe('로그 목록 · Roll20 로그 편집 — 불러오기', () => {
   it('Roll20 로그 편집 메뉴는 제목 위에 로그 등록 창을 바로 띄우고, 바로 들어와 닫으면 로그 목록으로 간다', async () => {
     renderApp('/studio/log/roll20', { client: createFakeSupabase().client })
@@ -105,7 +111,7 @@ describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })
     const root = await stage()
-    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    openEdit(row(root, '-g1').querySelector('.message')!)
     let box = within(root).getByRole('textbox', { name: '메시지 내용' })
     box.textContent = '바뀌면 안 됨'
     fireEvent.keyDown(box, { key: 'Enter', isComposing: true })
@@ -114,7 +120,7 @@ describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서
     expect(within(root).queryByRole('textbox')).not.toBeInTheDocument()
     expect(row(root, '-g1')).toHaveTextContent('서가 번호가 이상해요.')
 
-    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    openEdit(row(root, '-g1').querySelector('.message')!)
     box = within(root).getByRole('textbox', { name: '메시지 내용' })
     box.innerHTML = '첫 줄<br>둘째 <i>줄</i>'
     fireEvent.blur(box) // 메시지 밖을 누르면 적용
@@ -125,7 +131,7 @@ describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })
     const root = await stage()
-    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    openEdit(row(root, '-g1').querySelector('.message')!)
     fireEvent.mouseDown(row(root, '-g1').querySelector('.by')!)
     const menu = within(root).getByRole('menu', { name: '캐릭터 바꾸기' })
     const items = within(menu).getAllByRole('menuitem')
@@ -173,12 +179,16 @@ describe('Roll20 로그 편집 — 바로 수정 · 화자 바꾸기 · desc 서
     const saved = () => resolveLog(fake.control.tables.documents.find((d) => d.id === doc.id)!.content as never)
     renderApp(`/studio/log/roll20/${doc.id}`, { client: fake.client })
     const root = await stage()
-    // 저널 이미지를 눌러도 바꾸기 창은 뜨지 않는다 (수정 상태로)
-    fireEvent.click(row(root, '-g1').querySelector('.avatar img')!)
+    // 저널 이미지를 더블 클릭해도 바꾸기 창은 뜨지 않는다 (수정 상태로)
+    openEdit(row(root, '-g1').querySelector('.avatar img')!)
     expect(screen.queryByRole('dialog', { name: '이미지 바꾸기' })).not.toBeInTheDocument()
     fireEvent.keyDown(within(root).getByRole('textbox', { name: '메시지 내용' }), { key: 'Escape' })
 
+    // 로그 속 이미지는 한 번 누르면 선택만, 더블 클릭하면 바꾸기 창
     fireEvent.click(row(root, '-d1').querySelector('img')!)
+    expect(screen.queryByRole('dialog', { name: '이미지 바꾸기' })).not.toBeInTheDocument()
+    expect(row(root, '-d1')).toHaveAttribute('aria-selected', 'true')
+    fireEvent.doubleClick(row(root, '-d1').querySelector('img')!)
     const dialog = screen.getByRole('dialog', { name: '이미지 바꾸기' })
     expect(within(dialog).getByText(/PC 폴더 경로라/)).toBeInTheDocument()
     fireEvent.change(within(dialog).getByLabelText('바꿀 이미지 주소'), { target: { value: 'https://i.imgur.com/scene.png' } })
@@ -220,7 +230,7 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     const root = await stage()
     expect(root.querySelector('style')?.textContent).toContain('.sheet-rolltemplate-coc-1 caption')
 
-    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    openEdit(row(root, '-g1').querySelector('.message')!)
     // 별도 입력 창 없이 그 자리에서 고친다
     const box = within(root).getByRole('textbox', { name: '메시지 내용' })
     expect(box.tagName).toBe('SPAN')
@@ -247,7 +257,7 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     const saved = () => resolveLog(fake.control.tables.documents.find((d) => d.id === doc.id)!.content as never)
     renderApp(`/studio/log/roll20/${doc.id}`, { client: fake.client })
     const root = await stage()
-    fireEvent.click(row(root, '-d1').querySelector('.message a')!)
+    openEdit(row(root, '-d1').querySelector('.message a')!)
     const box = within(root).getByRole('textbox', { name: '메시지 내용' })
     expect(box.querySelector('a')).toHaveAttribute('style', 'color: #8d7d94 ; font-size: 20px')
     expect(box.querySelector('.inlinerollresult')).toHaveAttribute('contenteditable', 'false')
@@ -260,24 +270,47 @@ describe('Roll20 로그 편집 — 편집 화면', () => {
     expect(row(root, '-d1').querySelector('a')).toHaveTextContent('안개 낀 서고')
   })
 
-  it('마우스를 올리면 편집 버튼: 판정 메시지는 수정이 꺼져 있고, 복제·이동·삭제는 된다', async () => {
+  it('누르면 선택(편집 버튼 줄), ↑↓ 로 옮겨도 같은 메시지가 선택된 채로, Delete 로 지우고 Esc 로 선택 풀기', async () => {
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })
     const root = await stage()
 
+    // 마우스를 올려도 편집 버튼은 나오지 않는다 — 선택해야 나온다 (위로 · 아래로 버튼은 없음)
     fireEvent.mouseEnter(row(root, '-r1'))
+    expect(within(row(root, '-r1')).queryByRole('toolbar')).toBeNull()
+    fireEvent.click(row(root, '-r1').querySelector('.message')!)
+    expect(row(root, '-r1')).toHaveAttribute('aria-selected', 'true')
+    expect(within(root).queryByRole('textbox', { name: '메시지 내용' })).toBeNull() // 한 번 누르면 수정은 아님
     const toolbar = within(row(root, '-r1')).getByRole('toolbar', { name: '메시지 편집' })
     expect(within(toolbar).getByRole('button', { name: /수정/ })).toBeDisabled()
-    expect(within(toolbar).getByRole('button', { name: '아래로' })).toBeDisabled()
-    fireEvent.click(within(toolbar).getByRole('button', { name: '위로' }))
-    await waitFor(() => expect(saved().messages.map((m) => m.id)).toEqual(['-d1', '-g1', '-g2', '-r1', '-w1']), { timeout: 3000 })
+    expect(within(toolbar).queryByRole('button', { name: '위로' })).toBeNull()
 
-    fireEvent.mouseEnter(row(root, '-g2'))
-    fireEvent.click(within(row(root, '-g2')).getByRole('button', { name: '삭제' }))
+    // ↑ 두 번: 옮긴 메시지(-r1)가 계속 선택돼 있다
+    fireEvent.keyDown(row(root, '-r1'), { key: 'ArrowUp' })
+    await waitFor(() => expect(saved().messages.map((m) => m.id)).toEqual(['-d1', '-g1', '-g2', '-r1', '-w1']), { timeout: 3000 })
+    fireEvent.keyDown(row(root, '-r1'), { key: 'ArrowUp' })
+    await waitFor(() => expect(saved().messages.map((m) => m.id)).toEqual(['-d1', '-g1', '-r1', '-g2', '-w1']), { timeout: 3000 })
+    expect(row(root, '-r1')).toHaveAttribute('aria-selected', 'true')
+    expect(row(root, '-g2')).toHaveAttribute('aria-selected', 'false')
+
+    // Delete 로 지우고 되돌리기로 살린다
+    fireEvent.click(row(root, '-g2').querySelector('.message')!)
+    fireEvent.keyDown(row(root, '-g2'), { key: 'Delete' })
     await waitFor(() => expect(saved().messages.map((m) => m.id)).not.toContain('-g2'), { timeout: 3000 })
     expect(await screen.findByText(/되돌리기로 다시 살릴 수 있어요/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '되돌리기' }))
+    await waitFor(() => expect(saved().messages.map((m) => m.id)).toContain('-g2'), { timeout: 3000 })
 
-    fireEvent.mouseEnter(row(root, '-g1'))
+    // Enter 로 수정, Esc 로 선택 풀기
+    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    fireEvent.keyDown(row(root, '-g1'), { key: 'Escape' })
+    expect(row(root, '-g1')).toHaveAttribute('aria-selected', 'false')
+    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    fireEvent.keyDown(row(root, '-g1'), { key: 'Enter' })
+    expect(within(root).getByRole('textbox', { name: '메시지 내용' })).toHaveTextContent('서가 번호가 이상해요.')
+    fireEvent.keyDown(within(root).getByRole('textbox', { name: '메시지 내용' }), { key: 'Escape' })
+
+    // 아래에 새 메시지
     fireEvent.click(within(row(root, '-g1')).getByRole('button', { name: '아래에 새 메시지' }))
     const box = within(root).getByRole('textbox', { name: '메시지 내용' })
     expect(box).toHaveTextContent('')
@@ -488,7 +521,7 @@ describe('Roll20 로그 편집 — 이름 직접 고치기', () => {
     const { client, row: doc, saved } = seedLog()
     renderApp(`/studio/log/roll20/${doc.id}`, { client })
     const root = await stage()
-    fireEvent.click(row(root, '-g1').querySelector('.message')!)
+    openEdit(row(root, '-g1').querySelector('.message')!)
     fireEvent.doubleClick(row(root, '-g1').querySelector('.by')!)
     const input = within(root).getByRole('combobox', { name: '캐릭터 이름' }) as HTMLInputElement
     expect(input.value).toBe('엘리너')

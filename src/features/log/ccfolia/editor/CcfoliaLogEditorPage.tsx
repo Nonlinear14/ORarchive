@@ -26,6 +26,7 @@ import { ccfSpeakersOf, isCcfoliaLog, resolveCcfLog, type CcfMessage, type Ccfol
 import { visibleCcfMessages } from '../render'
 import '../ccfoliaLog.css'
 import { CcfPanel } from './CcfPanel'
+import { useSelectionKeys, type DropTarget } from '../../roll20/editor/messageSelect'
 import { CcfPreview } from './CcfPreview'
 import { isCcfEditable } from './editing'
 
@@ -151,6 +152,9 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
   const { apply, undo, redo, canUndo, canRedo } = useLogHistory(draft.content, edit)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
+  // 선택한 메시지 (PC): 한 번 누르면 선택, 더블 클릭하면 수정. 옮겨도 같은 메시지가 선택된 채로
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [revealKey, setRevealKey] = useState(0)
   const touchMenu = useTouchMenu()
   const rows = useMemo(() => visibleCcfMessages(content), [content])
   const speakers = useMemo<SpeakerOption[]>(
@@ -191,17 +195,41 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
         case 'insert': {
           const id = newMessageId()
           apply(insertCcfMessageAfter(message.id, id))
+          setSelectedId(id)
           setEditingId(id)
           break
         }
         case 'remove':
           apply(removeMessage(message.id))
+          setSelectedId(null)
           show('메시지를 지웠어요. 되돌리기로 다시 살릴 수 있어요.')
           break
       }
     },
     [rows, apply, show],
   )
+  const onDragMove = useCallback(
+    (id: string, drop: DropTarget) => {
+      apply(moveMessageBeside(id, drop.targetId, drop.side))
+      setRevealKey((k) => k + 1)
+    },
+    [apply],
+  )
+  useSelectionKeys({
+    selectedId: touchMenu ? null : selectedId,
+    editingId,
+    onKey: (key, id) => {
+      const row = rows.find((r) => r.message.id === id)
+      if (!row) return setSelectedId(null)
+      if (key === 'clear') setSelectedId(null)
+      else if (key === 'edit') onAction('edit', row.message)
+      else if (key === 'remove') onAction('remove', row.message)
+      else {
+        onAction(key, row.message)
+        setRevealKey((k) => k + 1)
+      }
+    },
+  })
   const onSaveText = useCallback(
     (message: CcfMessage, text: string) => {
       apply(setMessageText(message.id, text))
@@ -262,7 +290,7 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
         <section className="preview-workspace" aria-label="로그 미리보기">
           <div className="canvas-tools">
             <span className="edit-hint">
-              <Icon name="edit" /> {touchMenu ? '메시지를 누르면 편집 메뉴가 열려요' : '메시지를 클릭해서 바로 수정하세요'}
+              <Icon name="edit" /> {touchMenu ? '메시지를 누르면 편집 메뉴가 열려요' : '메시지를 누르면 선택, 더블 클릭하면 수정해요'}
             </span>
             <span className="canvas-meta">보이는 메시지 {rows.length.toLocaleString('ko-KR')}개</span>
           </div>
@@ -284,6 +312,10 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
             onSaveText={onSaveText}
             onCancelEdit={onCancelEdit}
             onOpenMenu={onOpenMenu}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onDragMove={onDragMove}
+            revealKey={revealKey}
             onChangeSpeaker={onChangeSpeaker}
             onChangeTab={onChangeTab}
           />
@@ -309,7 +341,7 @@ function CcfEditor({ doc, draft, content, status, offlineCopy, edit, flush, chil
           </div>
           <div className="canvas-footer">
             <span>✧ ORarchive Log Engine</span>
-            <span>{touchMenu ? '누르면 복제 · 이동 · 삭제' : '마우스를 올리면 복제 · 이동 · 삭제'}</span>
+            <span>{touchMenu ? '누르면 복제 · 이동 · 삭제' : '선택한 메시지는 끌거나 ↑↓ 키로 옮기고, Delete 키로 지워요'}</span>
           </div>
         </section>
         <CcfPanel content={content} apply={apply} notify={show} />

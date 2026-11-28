@@ -4,6 +4,7 @@ import { Icon } from '../../../../components/Icon'
 import { ensureViewerFonts, VIEWER_FONT_CSS } from '../../../../lib/pretendard'
 import { NameEditor, OVERLAY_CSS, SpeakerNames, type MessageAction, type SpeakerOption } from '../../roll20/editor/LogPreview'
 import { useOpenUpward } from '../../roll20/editor/useOpenUpward'
+import { revealSelected, SELECT_CSS, useClearOnOutside, useMessageDrag, type DropTarget } from '../../roll20/editor/messageSelect'
 import { isCcfEditable, plainEditableToText } from './editing'
 import { resolveCcfTypedSpeaker, tabsOf, type CcfMessage, type CcfoliaLogContent } from '../model'
 import {
@@ -32,8 +33,8 @@ const CCF_OVERLAY_CSS = `
 .tabs-on .msg-actions{right:96px}
 .tab-menu{left:auto;right:6px;top:26px;min-width:160px}
 .log-msg>.ccf-msg{transition:box-shadow .12s}
-.log-msg.is-active>.ccf-msg,.log-msg:focus-visible>.ccf-msg,.log-msg.is-editing>.ccf-msg{box-shadow:inset 0 0 0 2px var(--point)}
-.log-msg.is-editable>.ccf-msg{cursor:text}
+.log-msg.is-selected>.ccf-msg,.log-msg:focus-visible>.ccf-msg,.log-msg.is-editing>.ccf-msg{box-shadow:inset 0 0 0 2px var(--point)}
+.log-msg.is-editing>.ccf-msg{cursor:text}
 .log-msg.is-editing .ccf-name{cursor:pointer}
 .log-msg.is-editing .ccf-name:hover{outline:2px dashed var(--point);outline-offset:2px}
 .msg-inline{display:inline}
@@ -299,12 +300,14 @@ interface RowProps {
   content: CcfoliaLogContent
   row: CcfRow
   first: boolean
-  last: boolean
-  active: boolean
+  /** 선택된 메시지 (PC) */
+  selected: boolean
   editing: boolean
   speakers: SpeakerOption[]
   touch: boolean
-  onHover(id: string): void
+  /** 한 번 누르기: PC 는 선택, 휴대폰은 메뉴 */
+  onPress(row: CcfRow): void
+  /** 더블 클릭(PC): 수정 */
   onOpen(row: CcfRow): void
   onAction(action: MessageAction, message: CcfMessage): void
   onSaveText(message: CcfMessage, text: string): void
@@ -317,12 +320,11 @@ const CcfMessageRow = memo(function CcfMessageRow({
   content,
   row,
   first,
-  last,
-  active,
+  selected,
   editing,
   speakers,
   touch,
-  onHover,
+  onPress,
   onOpen,
   onAction,
   onSaveText,
@@ -341,7 +343,7 @@ const CcfMessageRow = memo(function CcfMessageRow({
   const toggleTabMenu = () => setTabMenu(!menuShown)
   const editable = isCcfEditable(row)
   const hasHead = row.showHeader && !!message.speaker && !row.narrator && row.kind.kind !== 'system'
-  const cls = ['log-msg', active ? 'is-active' : '', editing ? 'is-editing' : '', editable ? 'is-editable' : '', hasHead ? '' : 'no-head']
+  const cls = ['log-msg', selected ? 'is-selected' : '', editing ? 'is-editing' : '', editable ? 'is-editable' : '', hasHead ? '' : 'no-head']
     .filter(Boolean)
     .join(' ')
   return (
@@ -350,13 +352,7 @@ const CcfMessageRow = memo(function CcfMessageRow({
       data-mid={message.id}
       tabIndex={editing ? -1 : 0}
       aria-label={`${message.speaker || '이름 없음'} 메시지`}
-      onMouseEnter={() => onHover(message.id)}
-      onFocus={(e) => {
-        if (e.target === e.currentTarget) onHover(message.id)
-      }}
-      onKeyDown={(e) => {
-        if (e.target === e.currentTarget && e.key === 'Enter') onOpen(row)
-      }}
+      aria-selected={selected}
     >
       <div
         className={ccfRowClass(content, row, first)}
@@ -365,11 +361,21 @@ const CcfMessageRow = memo(function CcfMessageRow({
           editing
             ? undefined
             : (e) => {
-                // 탭 이름을 누르면 탭 바꾸기 (탭 이름 표시를 켰을 때만 보인다)
+                // 탭 이름을 누르면 탭 바꾸기 (탭 이름 표시를 켰을 때만 보인다) — 그 메시지도 선택
                 if ((e.target as Element).closest('.ccf-tab')) {
+                  if (!touch) onPress(row)
                   toggleTabMenu()
                   return
                 }
+                onPress(row)
+              }
+        }
+        onDoubleClick={
+          editing || touch
+            ? undefined
+            : (e) => {
+                if ((e.target as Element).closest('.ccf-tab')) return
+                e.preventDefault()
                 onOpen(row)
               }
         }
@@ -414,7 +420,7 @@ const CcfMessageRow = memo(function CcfMessageRow({
           }}
         />
       )}
-      {active && !editing && !menuShown && (
+      {selected && !editing && !menuShown && (
         <div className="msg-actions" role="toolbar" aria-label="메시지 편집">
           <button
             type="button"
@@ -428,12 +434,6 @@ const CcfMessageRow = memo(function CcfMessageRow({
           </button>
           <button type="button" className="msg-act" title="복제" aria-label="복제" onClick={() => onAction('duplicate', message)}>
             <Icon name="copy" />
-          </button>
-          <button type="button" className="msg-act" title="위로" aria-label="위로" disabled={first} onClick={() => onAction('up', message)}>
-            <Icon name="up" />
-          </button>
-          <button type="button" className="msg-act" title="아래로" aria-label="아래로" disabled={last} onClick={() => onAction('down', message)}>
-            <Icon name="down" />
           </button>
           <button type="button" className="msg-act" title="아래에 새 메시지" aria-label="아래에 새 메시지" onClick={() => onAction('insert', message)}>
             <Icon name="plus" />
@@ -468,6 +468,10 @@ export interface CcfPreviewProps {
   onSaveText(message: CcfMessage, text: string): void
   onCancelEdit(): void
   onOpenMenu(message: CcfMessage): void
+  selectedId: string | null
+  onSelect(id: string | null): void
+  onDragMove(id: string, drop: DropTarget): void
+  revealKey: number
   onChangeSpeaker(message: CcfMessage, speaker: string): void
   onChangeTab(message: CcfMessage, tab: string): void
 }
@@ -482,11 +486,21 @@ export function CcfPreview({
   onSaveText,
   onCancelEdit,
   onOpenMenu,
+  selectedId,
+  onSelect,
+  onDragMove,
+  revealKey,
   onChangeSpeaker,
   onChangeTab,
 }: CcfPreviewProps) {
   const [shadow, setShadow] = useState<ShadowRoot | null>(null)
-  const [hoverId, setHoverId] = useState<string | null>(null)
+  const clear = useCallback(() => onSelect(null), [onSelect])
+  useClearOnOutside(shadow, selectedId, clear)
+  const { dropLine, onMouseDown } = useMessageDrag({ shadow, selectedId, enabled: !touchMenu && !editingId, onMove: onDragMove })
+  useEffect(() => {
+    if (revealKey) revealSelected(shadow, selectedId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 옮긴 뒤(revealKey)에만
+  }, [revealKey])
   const hostRef = useCallback((host: HTMLDivElement | null) => {
     if (host) setShadow(host.shadowRoot ?? host.attachShadow({ mode: 'open' }))
   }, [])
@@ -499,19 +513,29 @@ export function CcfPreview({
     },
     [touchMenu, onOpenMenu, onAction],
   )
-  const onHover = useCallback(
-    (id: string) => {
-      if (!touchMenu) setHoverId(id)
+  const onPress = useCallback(
+    (row: CcfRow) => {
+      if (touchMenu) onOpenMenu(row.message)
+      else onSelect(row.message.id)
     },
-    [touchMenu],
+    [touchMenu, onOpenMenu, onSelect],
   )
 
   return (
-    <div ref={hostRef} className="log-stage" data-testid="log-stage" onMouseLeave={() => setHoverId(null)}>
+    <div
+      ref={hostRef}
+      className="log-stage"
+      data-testid="log-stage"
+      onMouseDown={onMouseDown}
+      onClick={(e) => {
+        if (!e.nativeEvent.composedPath().some((el) => el instanceof HTMLElement && el.matches('.log-msg'))) onSelect(null)
+      }}
+    >
       {shadow &&
         createPortal(
           <>
-            <style>{`${CCF_LOG_CSS}\n${VIEWER_FONT_CSS}\n${OVERLAY_CSS}\n${CCF_OVERLAY_CSS}`}</style>
+            <style>{`${CCF_LOG_CSS}\n${VIEWER_FONT_CSS}\n${OVERLAY_CSS}\n${CCF_OVERLAY_CSS}\n${SELECT_CSS}`}</style>
+            {dropLine && <div className="drop-line" style={{ top: dropLine.top, left: dropLine.left, width: dropLine.width }} />}
             <div className={`${ccfContainerClass(content)}${content.options.showTabs ? ' tabs-on' : ''}`}>
               {rows.length === 0 && <div className="log-empty">보여 줄 메시지가 없어요. 전체 다듬기 · 탭 설정을 확인해 보세요.</div>}
               {rows.map((row, index) => (
@@ -520,12 +544,11 @@ export function CcfPreview({
                   content={content}
                   row={row}
                   first={index === 0}
-                  last={index === rows.length - 1}
                   touch={touchMenu}
-                  active={!touchMenu && hoverId === row.message.id && editingId !== row.message.id}
+                  selected={!touchMenu && selectedId === row.message.id}
                   editing={editingId === row.message.id}
                   speakers={speakers}
-                  onHover={onHover}
+                  onPress={onPress}
                   onOpen={onOpen}
                   onAction={onAction}
                   onSaveText={onSaveText}

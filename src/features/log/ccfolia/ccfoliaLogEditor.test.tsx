@@ -53,6 +53,12 @@ async function stage() {
 }
 const row = (root: HTMLElement, id: string) => root.querySelector<HTMLElement>(`.log-msg[data-mid="${id}"]`)!
 
+/** PC: 한 번 눌러 선택하고 더블 클릭해 수정 (2026-11-29) */
+function openEdit(el: Element) {
+  fireEvent.click(el)
+  fireEvent.doubleClick(el)
+}
+
 describe('코코포리아 로그 편집', () => {
   it('메뉴는 불러오기 창을 띄우고(HTML 파일만), 불러오면 코코포리아 로그 편집이 열린다', async () => {
     const fake = createFakeSupabase()
@@ -94,7 +100,7 @@ describe('코코포리아 로그 편집', () => {
     renderApp(`/studio/log/ccfolia/${doc.id}`, { client })
     const root = await stage()
 
-    fireEvent.click(row(root, ids[1]).querySelector('.ccf-msg')!)
+    openEdit(row(root, ids[1]).querySelector('.ccf-msg')!)
     const box = within(root).getByRole('textbox', { name: '메시지 내용' })
     box.innerHTML = '누구<br>있어요?'
     fireEvent.keyDown(box, { key: 'Enter' })
@@ -102,11 +108,16 @@ describe('코코포리아 로그 편집', () => {
     fireEvent.click(screen.getByRole('button', { name: '되돌리기' }))
     await waitFor(() => expect(saved().messages[1].text).toBe('누구 있어요?'), { timeout: 3000 })
 
-    fireEvent.mouseEnter(row(root, ids[2]))
+    fireEvent.click(row(root, ids[2]).querySelector('.ccf-msg')!)
     const toolbar = within(row(root, ids[2])).getByRole('toolbar', { name: '메시지 편집' })
     expect(within(toolbar).getByRole('button', { name: '수정' })).toBeDisabled()
-    fireEvent.click(within(toolbar).getByRole('button', { name: '위로' }))
+    fireEvent.doubleClick(row(root, ids[2]).querySelector('.ccf-msg')!) // 판정은 더블 클릭해도 수정되지 않는다
+    expect(within(root).queryByRole('textbox', { name: '메시지 내용' })).toBeNull()
+    fireEvent.keyDown(row(root, ids[2]), { key: 'ArrowUp' })
     await waitFor(() => expect(saved().messages.map((m) => m.id)).toEqual([ids[0], ids[2], ids[1], ids[3], ids[4]]), { timeout: 3000 })
+    expect(row(root, ids[2])).toHaveAttribute('aria-selected', 'true')
+    fireEvent.keyDown(row(root, ids[2]), { key: 'Backspace' })
+    await waitFor(() => expect(saved().messages.map((m) => m.id)).not.toContain(ids[2]), { timeout: 3000 })
   })
 
   it('패널: 서술자 · 탭 끄기 · 전체 다듬기 · 찾아 바꾸기 (GM 은 처음부터 서술자가 아니다)', async () => {
@@ -162,9 +173,9 @@ describe('코코포리아 로그 편집', () => {
 
     // 이어진 메시지: 평소엔 탭 이름이 없고, 수정 중일 때만 보인다
     expect(row(root, second).querySelector('.ccf-tab, .tab-hover')).toBeNull()
-    fireEvent.mouseEnter(row(root, second))
+    fireEvent.click(row(root, second).querySelector('.ccf-msg')!) // 선택만으로는 안 보인다
     expect(row(root, second).querySelector('.tab-hover')).toBeNull()
-    fireEvent.click(row(root, second).querySelector('.ccf-msg')!)
+    fireEvent.doubleClick(row(root, second).querySelector('.ccf-msg')!)
     const tabButton = within(row(root, second)).getByRole('button', { name: /탭 바꾸기 \(지금 main\)/ })
     fireEvent.click(tabButton)
     fireEvent.click(within(within(root).getByRole('menu', { name: '탭 바꾸기' })).getByRole('menuitem', { name: 'other' }))

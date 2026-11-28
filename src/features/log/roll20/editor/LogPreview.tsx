@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useOpenUpward } from './useOpenUpward'
+import { revealSelected, SELECT_CSS, useClearOnOutside, useMessageDrag, type DropTarget } from './messageSelect'
 import { Icon } from '../../../../components/Icon'
 import { isEditable, resolveTypedSpeaker, type LogMessage, type Roll20LogContent } from '../model'
 import { containerClass, displayName, logCss, messageClass, messageInnerHtml, messageStyle, textToHtml, visibleMessages } from '../render'
@@ -26,9 +27,9 @@ export const OVERLAY_CSS = `
 ::selection{background:#8a8a8a;color:currentColor}
 .log-msg{position:relative;outline:none}
 .log-msg>.message{transition:box-shadow .12s}
-.log-msg.is-active>.message{box-shadow:inset 0 0 0 2px var(--point)}
+.log-msg.is-selected>.message{box-shadow:inset 0 0 0 2px var(--point)}
 .log-msg:focus-visible>.message{box-shadow:inset 0 0 0 2px var(--point)}
-.log-msg.is-editable>.message{cursor:text}
+.log-msg.is-editing>.message{cursor:text}
 .log-msg.is-editing>.message{box-shadow:inset 0 0 0 2px var(--point)}
 .log-msg.is-editing .avatar,.log-msg.is-editing .by{cursor:pointer}
 .log-msg.is-editing .avatar:hover img,.log-msg.is-editing .by:hover{outline:2px dashed var(--point);outline-offset:2px}
@@ -429,14 +430,15 @@ interface RowProps {
   content: Roll20LogContent
   message: LogMessage
   showHeader: boolean
-  active: boolean
+  /** 선택된 메시지 (PC: 편집 버튼 줄이 붙고 끌어서 옮길 수 있다) */
+  selected: boolean
   editing: boolean
-  first: boolean
-  last: boolean
   speakers: SpeakerOption[]
   /** 휴대폰 (캐릭터 바꾸기 목록에 이름 직접 입력 칸) */
   touch: boolean
-  onHover(id: string): void
+  /** 한 번 누르기: PC 는 선택, 휴대폰은 메뉴 */
+  onPress(message: LogMessage): void
+  /** 더블 클릭(PC): 수정 */
   onOpen(message: LogMessage): void
   onAction(action: MessageAction, message: LogMessage): void
   onSaveText(message: LogMessage, value: MessageEdit): void
@@ -449,28 +451,41 @@ function ViewMessage({
   content,
   message,
   showHeader,
+  touch,
+  onPress,
   onOpen,
   onImage,
 }: {
   content: Roll20LogContent
   message: LogMessage
   showHeader: boolean
+  touch: boolean
+  onPress(): void
   onOpen(): void
   onImage(index: number, src: string): void
 }) {
   const styleRef = useImportantStyle(messageStyle(content, message))
+  /** 로그 속 이미지(저널 제외)면 이미지 바꾸기 창을 열고 true */
+  const openImage = (e: React.MouseEvent<HTMLDivElement>) => {
+    const img = (e.target as Element).closest('img')
+    if (!img || img.closest('.avatar')) return false
+    const images = [...e.currentTarget.querySelectorAll('img')].filter((el) => !el.closest('.avatar'))
+    onImage(images.indexOf(img), img.getAttribute('src') ?? '')
+    return true
+  }
   return (
     <div
       ref={styleRef}
       className={messageClass(content, message)}
+      // PC: 한 번 누르면 선택, 더블 클릭하면 수정(이미지는 이미지 바꾸기). 휴대폰은 예전대로 (이미지는 바로 바꾸기, 그 밖은 메뉴)
       onClick={(e) => {
-        // 로그 속 이미지(저널 제외)를 누르면 이미지 바꾸기
-        const img = (e.target as Element).closest('img')
-        if (img && !img.closest('.avatar')) {
-          const images = [...e.currentTarget.querySelectorAll('img')].filter((el) => !el.closest('.avatar'))
-          onImage(images.indexOf(img), img.getAttribute('src') ?? '')
-          return
-        }
+        if (touch && openImage(e)) return
+        onPress()
+      }}
+      onDoubleClick={(e) => {
+        if (touch) return
+        e.preventDefault()
+        if (openImage(e)) return
         onOpen()
       }}
       dangerouslySetInnerHTML={{ __html: messageInnerHtml(content, message, showHeader) }}
@@ -482,13 +497,11 @@ const MessageRow = memo(function MessageRow({
   content,
   message,
   showHeader,
-  active,
+  selected,
   editing,
-  first,
-  last,
   speakers,
   touch,
-  onHover,
+  onPress,
   onOpen,
   onAction,
   onSaveText,
@@ -500,7 +513,7 @@ const MessageRow = memo(function MessageRow({
   const hasHead = showHeader && !!message.speaker && message.kind !== 'desc' && message.kind !== 'emote'
   const cls = [
     'log-msg',
-    active ? 'is-active' : '',
+    selected ? 'is-selected' : '',
     editing ? 'is-editing' : '',
     editable ? 'is-editable' : '',
     hasHead ? '' : 'no-head',
@@ -515,13 +528,7 @@ const MessageRow = memo(function MessageRow({
       data-mid={message.id}
       tabIndex={editing ? -1 : 0}
       aria-label={label}
-      onMouseEnter={() => onHover(message.id)}
-      onFocus={(e) => {
-        if (e.target === e.currentTarget) onHover(message.id)
-      }}
-      onKeyDown={(e) => {
-        if (e.target === e.currentTarget && e.key === 'Enter') onOpen(message)
-      }}
+      aria-selected={selected}
     >
       {editing ? (
         <EditingMessage
@@ -540,12 +547,14 @@ const MessageRow = memo(function MessageRow({
           content={content}
           message={message}
           showHeader={showHeader}
+          touch={touch}
+          onPress={() => onPress(message)}
           onOpen={() => onOpen(message)}
           onImage={(index, src) => onImage(message, index, src)}
         />
       )}
       {message.kind === 'hidden' && <span className="msg-flag">숨긴 메시지 · 전체 다듬기에서 지울 수 있어요</span>}
-      {active && !editing && (
+      {selected && !editing && (
         <div className="msg-actions" role="toolbar" aria-label="메시지 편집">
           <button
             type="button"
@@ -559,12 +568,6 @@ const MessageRow = memo(function MessageRow({
           </button>
           <button type="button" className="msg-act" title="복제" aria-label="복제" onClick={() => onAction('duplicate', message)}>
             <Icon name="copy" />
-          </button>
-          <button type="button" className="msg-act" title="위로" aria-label="위로" disabled={first} onClick={() => onAction('up', message)}>
-            <Icon name="up" />
-          </button>
-          <button type="button" className="msg-act" title="아래로" aria-label="아래로" disabled={last} onClick={() => onAction('down', message)}>
-            <Icon name="down" />
           </button>
           <button type="button" className="msg-act" title="아래에 새 메시지" aria-label="아래에 새 메시지" onClick={() => onAction('insert', message)}>
             <Icon name="plus" />
@@ -588,6 +591,13 @@ interface LogPreviewProps {
   onSaveText(message: LogMessage, value: MessageEdit): void
   onCancelEdit(): void
   onOpenMenu(message: LogMessage): void
+  /** 선택한 메시지 (PC) */
+  selectedId: string | null
+  onSelect(id: string | null): void
+  /** 끌어서 옮기기 (PC, 선택된 메시지) */
+  onDragMove(id: string, drop: DropTarget): void
+  /** 바뀔 때마다 선택한 메시지를 화면에 보이게 하고 포커스를 되돌린다 (옮긴 뒤) */
+  revealKey: number
   onChangeSpeaker(message: LogMessage, target: SpeakerTarget): void
   /** 로그 속 이미지를 눌렀을 때 (이미지 바꾸기) */
   onImage(message: LogMessage, index: number, src: string): void
@@ -604,12 +614,22 @@ export function LogPreview({
   onSaveText,
   onCancelEdit,
   onOpenMenu,
+  selectedId,
+  onSelect,
+  onDragMove,
+  revealKey,
   onChangeSpeaker,
   onImage,
   onDetectColors,
 }: LogPreviewProps) {
   const [shadow, setShadow] = useState<ShadowRoot | null>(null)
-  const [hoverId, setHoverId] = useState<string | null>(null)
+  const clear = useCallback(() => onSelect(null), [onSelect])
+  useClearOnOutside(shadow, selectedId, clear)
+  const { dropLine, onMouseDown } = useMessageDrag({ shadow, selectedId, enabled: !touchMenu && !editingId, onMove: onDragMove })
+  useEffect(() => {
+    if (revealKey) revealSelected(shadow, selectedId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 옮긴 뒤(revealKey)에만
+  }, [revealKey])
   const hostRef = useCallback((host: HTMLDivElement | null) => {
     if (host) setShadow(host.shadowRoot ?? host.attachShadow({ mode: 'open' }))
   }, [])
@@ -634,35 +654,44 @@ export function LogPreview({
     },
     [touchMenu, onOpenMenu, onAction],
   )
-  const onHover = useCallback(
-    (id: string) => {
-      if (!touchMenu) setHoverId(id)
+  const onPress = useCallback(
+    (message: LogMessage) => {
+      if (touchMenu) onOpenMenu(message)
+      else onSelect(message.id)
     },
-    [touchMenu],
+    [touchMenu, onOpenMenu, onSelect],
   )
 
   return (
-    <div ref={hostRef} className="log-stage" data-testid="log-stage" onMouseLeave={() => setHoverId(null)}>
+    <div
+      ref={hostRef}
+      className="log-stage"
+      data-testid="log-stage"
+      onMouseDown={onMouseDown}
+      onClick={(e) => {
+        // 메시지가 아닌 빈 곳을 누르면 선택 풀기
+        if (!e.nativeEvent.composedPath().some((el) => el instanceof HTMLElement && el.matches('.log-msg'))) onSelect(null)
+      }}
+    >
       {shadow &&
         createPortal(
           <>
-            <style>{`${logCss(content)}\n${VIEWER_FONT_CSS}\n${OVERLAY_CSS}`}</style>
+            <style>{`${logCss(content)}\n${VIEWER_FONT_CSS}\n${OVERLAY_CSS}\n${SELECT_CSS}`}</style>
+            {dropLine && <div className="drop-line" style={{ top: dropLine.top, left: dropLine.left, width: dropLine.width }} />}
             <div className={containerClass(content)}>
               <div className="content">
                 {rows.length === 0 && <div className="log-empty">보여 줄 메시지가 없어요. 전체 다듬기 설정을 확인해 보세요.</div>}
-                {rows.map(({ message, showHeader }, index) => (
+                {rows.map(({ message, showHeader }) => (
                   <MessageRow
                     key={message.id}
                     content={content}
                     message={message}
                     showHeader={showHeader}
                     touch={touchMenu}
-                    active={!touchMenu && hoverId === message.id && editingId !== message.id}
+                    selected={!touchMenu && selectedId === message.id}
                     editing={editingId === message.id}
-                    first={index === 0}
-                    last={index === rows.length - 1}
                     speakers={speakers}
-                    onHover={onHover}
+                    onPress={onPress}
                     onOpen={onOpen}
                     onAction={onAction}
                     onSaveText={onSaveText}
