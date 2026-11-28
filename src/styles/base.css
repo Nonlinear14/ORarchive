@@ -6,7 +6,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
@@ -57,7 +57,7 @@ a:focus-visible {
   font-weight: 750;
   letter-spacing: 2px;
   font-size: 10px;
-  color: var(--eyebrow);
+  color: var(--text-muted);
 }
 
 .muted {
@@ -241,7 +241,7 @@ a:focus-visible {
 
 .field-error {
   font-size: 11px;
-  color: var(--rose);
+  color: var(--danger);
   margin-top: 8px;
 }
 
@@ -375,8 +375,8 @@ a:focus-visible {
   height: 190px;
   display: grid;
   place-items: center;
-  background: var(--canvas);
-  color: var(--muted);
+  background: var(--surface-2);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -397,7 +397,7 @@ a:focus-visible {
   outline: 0;
   width: 100%;
   background: transparent;
-  color: var(--ink);
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -412,7 +412,7 @@ a:focus-visible {
   border-radius: var(--radius);
   padding: 34px 16px;
   text-align: center;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 13px;
 }
 

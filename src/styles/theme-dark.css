@@ -31,18 +31,9 @@
   --chip-green-bg: #1e2c24;
   --chip-green-line: #30493a;
 
-  --ink2: #e6e6e6;
   --line: #333333;
   --line-strong: #444444;
 
-  /* 예전 다크 전용 이름 → 새 값 */
-  --d-surface: var(--surface);
-  --d-surface2: var(--surface-2);
-  --d-hover: var(--surface-3);
-  --d-border: var(--line);
-  --d-text: var(--text);
-  --d-text-strong: var(--text);
-  --d-text-muted: var(--text-muted);
 }
 
 :root[data-theme='dark'] body {

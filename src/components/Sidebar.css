@@ -37,7 +37,7 @@
 
 /* 금색 주사위(45도) · 눈은 사이드바 색 */
 .brandmark .die-body {
-  fill: var(--brand-gold);
+  fill: var(--point);
 }
 
 .brandmark .die-pip {

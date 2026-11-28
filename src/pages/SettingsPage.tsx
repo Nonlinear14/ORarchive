@@ -64,7 +64,7 @@ function ProfileCard() {
               setMessage(null)
             }}
           />
-          <button type="submit" className="btn press-accent" disabled={busy || value === null}>
+          <button type="submit" className="btn primary" disabled={busy || value === null}>
             {busy ? '저장 중…' : '저장'}
           </button>
         </div>

@@ -11,7 +11,7 @@
 
 .recent-card {
   border: 1px solid var(--line);
-  background: var(--card);
+  background: var(--surface);
   border-radius: var(--radius);
   overflow: hidden;
   display: flex;
@@ -32,7 +32,7 @@
 
 .recent-card.skeleton {
   height: 250px;
-  background: linear-gradient(100deg, var(--card) 30%, var(--canvas) 50%, var(--card) 70%);
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
   background-size: 300% 100%;
   animation: recent-shimmer 1.4s infinite linear;
 }
@@ -54,7 +54,7 @@
 .recent-info strong {
   display: block;
   font-size: 13.5px;
-  color: var(--heading-ink);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -64,7 +64,7 @@
   display: block;
   margin-top: 4px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -105,10 +105,10 @@
   border-radius: var(--radius);
   padding: 34px 20px;
   text-align: center;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.9;
-  background: var(--card);
+  background: var(--surface);
 }
 
 /* 롤꾸코드 미리보기도 핸드아웃 카드와 같은 높이 */

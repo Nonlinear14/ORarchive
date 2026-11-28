@@ -59,7 +59,7 @@
   border-radius: var(--radius);
   padding: 8px 9px;
   margin-bottom: 8px;
-  background: var(--card);
+  background: var(--surface);
 }
 
 .char-row.is-hidden {
@@ -104,7 +104,7 @@
 .char-name small {
   display: block;
   font-size: 10px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin-top: 3px;
 }
 
@@ -163,13 +163,13 @@
 .opt-row b {
   display: block;
   font-size: 12px;
-  color: var(--heading-ink);
+  color: var(--text);
 }
 
 .opt-row small {
   display: block;
   font-size: 10px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -230,7 +230,7 @@
 
 .seg-label {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin: 10px 0 6px;
 }
 
@@ -269,14 +269,14 @@
   display: grid;
   gap: 6px;
   justify-items: center;
-  color: var(--muted);
-  background: var(--canvas);
+  color: var(--text-muted);
+  background: var(--surface-2);
   cursor: pointer;
 }
 
 .dropzone.dragging,
 .dropzone:focus-within {
-  border-color: var(--gold);
+  border-color: var(--point);
   outline: 2px solid var(--point);
   outline-offset: 2px;
 }
@@ -284,11 +284,11 @@
 .dropzone .ico {
   width: 26px;
   height: 26px;
-  color: var(--gold);
+  color: var(--point);
 }
 
 .dropzone b {
-  color: var(--heading-ink);
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -301,7 +301,7 @@
   padding-left: 20px;
   font-size: 12px;
   line-height: 1.9;
-  color: var(--ink2);
+  color: var(--text);
 }
 
 .pastezone {
@@ -312,15 +312,15 @@
   border-radius: var(--radius);
   padding: 30px;
   text-align: center;
-  color: var(--ink);
-  background: var(--canvas);
+  color: var(--text);
+  background: var(--surface-2);
   resize: none;
   font: 13px var(--font);
   caret-color: transparent;
 }
 
 .pastezone::placeholder {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .good-callout {
@@ -367,7 +367,7 @@
   right: 0;
   bottom: 0;
   z-index: 91;
-  background: var(--card);
+  background: var(--surface);
   border-radius: var(--radius) var(--radius) 0 0;
   padding: 14px 14px calc(env(safe-area-inset-bottom) + 14px);
   display: grid;
@@ -385,13 +385,13 @@
 .msg-sheet-head b {
   display: block;
   font-size: 14px;
-  color: var(--heading-ink);
+  color: var(--text);
 }
 
 .msg-sheet-head small {
   display: block;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
@@ -407,12 +407,12 @@
   padding: 12px 8px;
   border-radius: var(--radius);
   font: 600 14px var(--font);
-  color: var(--ink);
+  color: var(--text);
   text-align: left;
 }
 
 .msg-sheet button:hover:not(:disabled) {
-  background: var(--canvas);
+  background: var(--surface-2);
 }
 
 .msg-sheet button:disabled {
@@ -425,7 +425,7 @@
 
 .msg-sheet .msg-sheet-close {
   justify-content: center;
-  background: var(--canvas);
+  background: var(--surface-2);
   margin-top: 6px;
 }
 
@@ -468,7 +468,7 @@
 .rule-field label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text-muted);
   flex: none;
 }
 
@@ -504,7 +504,7 @@
 .char-body .char-name {
   display: block;
   font-size: 12.5px;
-  color: var(--heading-ink);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -525,7 +525,7 @@
 
 .color-round small {
   font-size: 10px;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .color-round .round {
@@ -558,7 +558,7 @@
   min-width: 140px;
   padding: 8px;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: none;
 }
@@ -569,7 +569,7 @@
   gap: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--heading-ink);
+  color: var(--text);
   cursor: pointer;
 }
 
@@ -600,7 +600,7 @@
   gap: 7px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--ink2);
+  color: var(--text);
   cursor: pointer;
 }
 
@@ -611,7 +611,7 @@
   gap: 10px;
   margin: 14px 0 16px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .avatar-current img,
@@ -659,7 +659,7 @@
 
 .char-note {
   font-size: 10px;
-  color: var(--muted);
+  color: var(--text-muted);
   text-align: right;
 }
 
@@ -669,7 +669,7 @@
   gap: 10px;
   margin: 14px 0 16px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .image-current img {
@@ -677,5 +677,5 @@
   max-height: 80px;
   border-radius: var(--radius);
   object-fit: contain;
-  background: var(--canvas);
+  background: var(--surface-2);
 }

@@ -18,7 +18,7 @@
   align-items: center;
   gap: 11px;
   min-width: 0;
-  color: var(--heading-ink, var(--text));
+  color: var(--text, var(--text));
 }
 
 .top-brand .brandmark {

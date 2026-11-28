@@ -12,7 +12,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--gold);
+  background: var(--point);
   animation: loading-pulse 1s ease-in-out infinite alternate;
 }
 

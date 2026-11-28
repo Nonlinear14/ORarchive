@@ -20,7 +20,7 @@
   background: transparent;
   font: 700 30px var(--font);
   letter-spacing: -0.8px;
-  color: var(--heading-ink);
+  color: var(--text);
   padding: 4px 6px;
   margin: 6px 0 4px -7px;
 }
@@ -68,7 +68,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: none;
   padding: 18px;
   margin-top: 12px;
 }

@@ -499,7 +499,7 @@
   min-width: 140px;
   padding: 8px;
   border-radius: var(--radius);
-  background: var(--card, var(--surface));
+  background: var(--surface, var(--surface));
   border: 1px solid var(--line, var(--line));
   box-shadow: none;
 }

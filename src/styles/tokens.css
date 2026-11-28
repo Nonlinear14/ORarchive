@@ -37,26 +37,10 @@
   --chip-green-bg: #e5f2ea;
   --chip-green-line: #bddcc8;
 
-  /* 예전 이름 → 새 값 (화면 코드가 쓰는 이름은 그대로 두고 값만 바꾼다) */
-  --ink: var(--text);
-  --ink2: #2e2e2e;
-  --paper: var(--bg);
-  --canvas: var(--surface-2);
-  --card: var(--surface);
-  --gold: var(--point);
-  --gold2: var(--point-line);
   --line: #e2e2e2;
   --line-strong: #d0d0d0;
-  --slate: var(--text-muted);
-  --muted: var(--text-muted);
-  --green: var(--point);
-  --rose: var(--danger);
-  --shadow: none;
-  --rad: var(--radius);
 
   --font: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
-  /* 세리프는 쓰지 않는다 (예전 이름만 남김) */
-  --font-serif: var(--font);
 
   /* 사이드바 (배경보다 한 단계 짙은 무채색 면) */
   --side-bg: var(--surface-2);
@@ -70,10 +54,6 @@
   --side-title: var(--text);
   --side-card: var(--surface);
 
-  /* 브랜드 / 타이포 */
-  --brand-gold: var(--point);
-  --heading-ink: var(--text);
-  --eyebrow: var(--text-muted);
 
   /* 반응형 기준 (미디어쿼리는 리터럴 사용): ≤1050px 접힌 사이드바 / ≤750px 모바일 */
 }
